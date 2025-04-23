@@ -43,10 +43,16 @@ img, video {
 
 .dark-mode .flat,
 .dark-mode .popup-ptr,
-.dark-mode #main-header {
+.dark-mode #main-header,
+.dark-mode form,
+.dark-mode .flex.flex-col.items-center {
   background: #181a1b !important;
   color: #e5e7eb !important;
   border-color: #444;
+}
+
+.dark-mode #chat-form {
+  background: #181a1b !important;
 }
 
 /* Ensure popup-overlay is transparent and popups are visible */
@@ -79,6 +85,20 @@ img, video {
   background-color: #1e1e1e !important;
   color: #e5e7eb !important;
   border-color: #333;
+}
+
+/* Hide scrollbar in text input */
+#chat-input::-webkit-scrollbar {
+  display: none;
+}
+
+#chat-input {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  min-height: 44px;
+  max-height: 120px;
+  overflow-y: hidden;
+  transition: height 0.1s ease-out;
 }
 
 .dark-mode .fa-moon, .dark-mode .fa-sun {

@@ -150,6 +150,12 @@ document.getElementById('chat-form').onsubmit = async function(e) {
   await aiSend(txt, model, time);
 }
 
+// Auto-resize textarea as user types
+document.getElementById('chat-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = (this.scrollHeight) + 'px';
+});
+
 // Add event listener for Enter key press on the chat input
 document.getElementById('chat-input').addEventListener('keydown', function(e) {
   // Check if Enter was pressed (without shift for new line)
