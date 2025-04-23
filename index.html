@@ -148,13 +148,12 @@
       </button>
     </form>
     <!-- Feature Button Bar -->
-    <div class="flex flex-col items-center py-3 px-2 bg-white dark:bg-gray-900 rounded-cool">
+    <div class="flex flex-col items-center py-3 px-2 rounded-cool bg-transparent">
       <div class="flex justify-center space-x-4 mb-2">
         <button class="feature-btn" id="btn-new-chat" title="New Chat"><i class="fa fa-plus"></i></button>
         <button class="feature-btn" id="btn-history" title="Chat History"><i class="fa fa-history"></i></button>
         <button class="feature-btn" id="btn-file" title="File & OCR"><i class="fa fa-file-arrow-up"></i></button>
         <button class="feature-btn" id="btn-image" title="Generate Image"><i class="fa fa-image"></i></button>
-        <button class="feature-btn" id="btn-code" title="Code Generation"><i class="fa fa-code"></i></button>
         <button class="feature-btn" id="btn-settings" title="Settings"><i class="fa fa-gear"></i></button>
       </div>
       <div class="mt-2 flex items-center">
@@ -240,35 +239,7 @@
     </div>
   </div>
 
-  <!-- Code Generation PopUp -->
-  <div id="popup-code" class="popup-ptr hidden">
-    <div class="bg-white dark:bg-gray-900 flat p-4 rounded-cool w-full max-w-lg mx-auto shadow-lg border-black border">
-      <div class="flex justify-between items-center mb-2">
-        <strong class="text-lg">Code Generator</strong>
-        <button class="text-gray-400 hover:text-black dark:hover:text-yellow-400 text-xl focus:outline-none"
-          onclick="togglePopup('code',false)">
-          <i class="fa fa-times"></i>
-        </button>
-      </div>
-      <div class="space-y-2">
-        <textarea id="code-gen-prompt"
-          class="w-full border flat rounded-cool p-2 focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[32px] dark:bg-gray-800"
-          placeholder="Describe the code you want..."></textarea>
-        <div class="flex justify-center mt-2 space-x-3">
-          <button id="generate-code-btn"
-            class="bg-blue-700 hover:bg-blue-900 text-base rounded-cool px-3 py-1 flat focus:outline-none transition">
-            <i class="fa fa-code mr-1"></i> Generate Code
-          </button>
-          <button id="preview-code-btn"
-            class="bg-gray-600 hover:bg-gray-800 text-base rounded-cool px-3 py-1 flat focus:outline-none transition">
-            <i class="fa fa-eye mr-1"></i> Preview
-          </button>
-        </div>
-        <pre id="code-result"
-          class="bg-gray-100 dark:bg-gray-800 rounded-cool p-3 flat text-xs overflow-x-auto scroll-inside mt-3"></pre>
-      </div>
-    </div>
-  </div>
+  <!-- Code Generation PopUp Removed -->
 
   <!-- Settings PopUp -->
   <div id="popup-settings" class="popup-ptr hidden">

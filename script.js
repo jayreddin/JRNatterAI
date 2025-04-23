@@ -18,20 +18,133 @@ let userSettings = {
   speechVoice: "en-US" // Add default speech voice
 };
 
-// Global function for toggling streaming mode
-window.toggleStreamingMode = toggleStreamingMode;
+// Define toggle functions
+function toggleStreamingMode(enabled) {
+  try {
+    streamingMode = enabled;
+    userSettings.streamingMode = enabled;
+    saveSettings();
+    updateModelSelectOptions();
 
-// Global function for toggling multi-model mode
-window.toggleMultiModel = toggleMultiModel;
+    // Update UI to reflect streaming mode
+    const streamToggle = document.getElementById('streaming-toggle');
+    if (streamToggle) {
+      streamToggle.checked = enabled;
+    }
+
+    // Disable non-streaming models
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect) {
+      Array.from(modelSelect.options).forEach(option => {
+        option.disabled = enabled && !isModelStreamCapable(option.value);
+      });
+    }
+  } catch (error) {
+    console.error('Error toggling streaming mode:', error);
+  }
+}
+
+function toggleMultiModel(enabled) {
+  try {
+    multiModelMode = enabled;
+    userSettings.multiModelMode = enabled;
+    saveSettings();
+
+    // Update UI
+    const multiToggle = document.getElementById('multi-toggle');
+    if (multiToggle) {
+      multiToggle.checked = enabled;
+    }
+
+    // Update UI for multi-model selection
+    const modelSelect = document.getElementById('model-select');
+    const container = document.getElementById('model-select-container');
+    
+    if (!modelSelect || !container) return;
+
+    if (enabled) {
+      // Shrink main model dropdown
+      modelSelect.style.width = '80%'; 
+      
+      // Initialize selected models with the current selection if empty
+      if (selectedModels.length === 0) {
+        selectedModels = [modelSelect.value];
+      }
+      
+      // Create multi-select container if it doesn't exist
+      if (!document.getElementById('multi-model-container')) {
+        const multiContainer = document.createElement('div');
+        multiContainer.id = 'multi-model-container';
+        multiContainer.className = 'flex flex-wrap gap-2 mt-4 pb-2 overflow-y-auto max-h-32';
+        container.appendChild(multiContainer);
+        
+        // Add model selector with + button
+        const modelSelectorContainer = document.createElement('div');
+        modelSelectorContainer.id = 'model-selector-container';
+        modelSelectorContainer.className = 'flex items-center mt-2';
+        
+        const addButton = document.createElement('button');
+        addButton.id = 'add-model-btn';
+        addButton.innerHTML = '<i class="fa fa-plus"></i>';
+        addButton.className = 'ml-2 px-2 py-1 bg-blue-600 text-white rounded-full hover:bg-blue-700';
+        addButton.onclick = (e) => {
+          e.preventDefault();
+          // Get current model value
+          const selectedValue = modelSelect.value;
+          if (selectedValue && !selectedModels.includes(selectedValue)) {
+            selectedModels.push(selectedValue);
+            updateMultiModelDisplay();
+          }
+        };
+        
+        // Add button next to model select
+        const selectWrapper = document.createElement('div');
+        selectWrapper.className = 'flex items-center justify-center';
+        selectWrapper.style.width = '100%';
+        
+        // Reorganize the model-select and add button
+        const parent = modelSelect.parentNode;
+        if (parent) {
+          parent.insertBefore(addButton, modelSelect.nextSibling);
+        }
+      }
+    } else {
+      // Keep only the first selected model when turning off multi-model mode
+      selectedModels = selectedModels.length > 0 ? [selectedModels[0]] : [modelSelect.value];
+      
+      // Restore full width to the model select dropdown
+      modelSelect.style.width = '100%';
+      
+      // Clean up the UI
+      const multiContainer = document.getElementById('multi-model-container');
+      if (multiContainer) multiContainer.remove();
+      
+      const addButton = document.getElementById('add-model-btn');
+      if (addButton) addButton.remove();
+      
+      const modelSelectorContainer = document.getElementById('model-selector-container');
+      if (modelSelectorContainer) modelSelectorContainer.remove();
+    }
+    
+    updateMultiModelDisplay();
+  } catch (error) {
+    console.error('Error toggling multi-model mode:', error);
+  }
+}
 
 // Global function for removing models from multi-model selection
 window.removeModel = function(idx) {
   selectedModels.splice(idx, 1);
   if (selectedModels.length === 0) {
-    selectedModels = [document.getElementById('model-select').value];
+    const modelSelect = document.getElementById('model-select');
+    selectedModels = modelSelect ? [modelSelect.value] : ["gpt-4o-mini"];
   }
   updateMultiModelDisplay();
 };
+
+// Make functions available globally
+window.toggleStreamingMode = toggleStreamingMode;
+window.toggleMultiModel = toggleMultiModel;
 
 // Response cache implementation
 const responseCache = {
@@ -475,15 +588,32 @@ function renderChat() {
       <button onclick="copyMsg(${i})" class="text-gray-500 hover:text-blue-700 mr-2" title="Copy"><i class="fa fa-copy"></i></button>
       <button onclick="deleteMsg(${i})" class="text-gray-500 hover:text-blue-700 mr-2" title="Delete"><i class="fa fa-trash"></i></button>
       <button onclick="speakMsg(${i})" class="text-gray-500 hover:text-yellow-700" title="Speak"><i class="fa fa-volume-up"></i></button>`;
-    container.innerHTML += `
+    
+    if (m.role === 'user') {
+      // For user messages, put label and buttons below the bubble
+      container.innerHTML += `
+        <div class="mb-6 flex flex-col w-full ${align}">
+          <div class="border ${bubbleClr} rounded-cool p-3 font-medium whitespace-pre-line flat ${align}" style="max-width:94vw">
+            ${typeof m.content === 'string' ? m.content : m.content && m.content.type === "img" ? `<img src='${m.content.url}' alt='image' class='rounded-cool'>` : ""}
+          </div>
+          <div class="flex flex-row mt-1 justify-end w-full">
+            <div class="text-xs text-gray-500 mr-2 flex items-center">${label}</div>
+            <div class="flex">${iconBtns}</div>
+          </div>
+        </div>
+      `;
+    } else {
+      // For assistant messages, keep the original layout
+      container.innerHTML += `
         <div class="mb-6 flex flex-col w-full ${align}">
           <div class="text-xs text-gray-500 mb-1">${label}</div>
           <div class="border ${bubbleClr} rounded-cool p-3 font-medium whitespace-pre-line flat ${align}" style="max-width:94vw">
             ${typeof m.content === 'string' ? m.content : m.content && m.content.type === "img" ? `<img src='${m.content.url}' alt='image' class='rounded-cool'>` : ""}
           </div>
-            <div class="flex flex-row mt-1">${iconBtns}</div>
+          <div class="flex flex-row mt-1">${iconBtns}</div>
         </div>
       `;
+    }
   }
 }
 
@@ -752,15 +882,6 @@ document.addEventListener('DOMContentLoaded', function() {
     };
   }
 
-  const codeBtn = document.getElementById('btn-code');
-  if (codeBtn) {
-    codeBtn.onclick = function() {
-      togglePopup('code', true);
-      const codeResult = document.getElementById('code-result');
-      if (codeResult) codeResult.textContent = "";
-    };
-  }
-
   const settingsBtn = document.getElementById('btn-settings');
   if (settingsBtn) {
     settingsBtn.onclick = function() {
@@ -1001,161 +1122,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
   }
 
-  // Set up generate code button
-  const generateCodeBtn = document.getElementById('generate-code-btn');
-  if (generateCodeBtn) {
-    generateCodeBtn.onclick = async function() {
-      const codeGenPrompt = document.getElementById('code-gen-prompt');
-      const codeResult = document.getElementById('code-result');
-      if (!codeGenPrompt || !codeResult) return;
-      
-      let prompt = codeGenPrompt.value.trim();
-      if (!prompt) return;
-      
-      codeResult.textContent = "Generating code...";
-      try {
-        // Always use the Codestral model for code generation
-        let model = 'codestral-latest';
-
-        // Create a more code-focused prompt
-        let codePrompt = `Generate code for: ${prompt}\nPlease provide just the code without explanations.`;
-
-        // Call the AI API with the prompt and model
-        let out = await puter.ai.chat(codePrompt, { model });
-
-        // Process the response
-        let responseText = '';
-        if (out.message && out.message.text) {
-          responseText = out.message.text;
-        } else if (out.message && out.message.content) {
-          responseText = out.message.content;
-        } else if (out.text) {
-          responseText = out.text;
-        } else if (typeof out === 'string') {
-          responseText = out;
-        } else {
-          responseText = JSON.stringify(out);
-        }
-
-        // Extract code blocks if present (looking for markdown code blocks)
-        let codeMatch = responseText.match(/```(?:[a-z]+\n)?([\s\S]*?)```/m);
-
-        if (codeMatch && codeMatch[1]) {
-          // If we found a code block, use that
-          codeResult.textContent = codeMatch[1].trim();
-        } else {
-          // Otherwise use the whole response but try to clean it up
-          // Remove any explanations or markdown that's not code
-          let cleanedResponse = responseText
-            .replace(/^Here's the code[:\s]*/i, '')
-            .replace(/^I've created[:\s]*/i, '')
-            .replace(/^Here is[:\s]*/i, '')
-            .trim();
-
-          codeResult.textContent = cleanedResponse;
-        }
-      } catch (err) {
-        console.error("Code generation error:", err);
-        codeResult.textContent = '[ERROR]: ' + (err.message || JSON.stringify(err));
-      }
-    };
-  }
-
-  // Set up preview code button
-  const previewCodeBtn = document.getElementById('preview-code-btn');
-  if (previewCodeBtn) {
-    previewCodeBtn.onclick = function() {
-      const codeResult = document.getElementById('code-result');
-      if (!codeResult) return;
-      
-      const code = codeResult.textContent;
-      if (!code) return;
-      
-      // Check if preview already exists
-      const existingPreview = document.getElementById('code-preview-container');
-      if (existingPreview) {
-        existingPreview.remove();
-        previewCodeBtn.innerHTML = '<i class="fa fa-eye mr-1"></i> Preview';
-        return;
-      }
-      
-      // Create preview container
-      const previewContainer = document.createElement('div');
-      previewContainer.id = 'code-preview-container';
-      previewContainer.className = 'mt-4 border rounded-cool overflow-hidden';
-      
-      // Create header with language detection and close button
-      const header = document.createElement('div');
-      header.className = 'flex justify-between items-center p-2 bg-gray-200 dark:bg-gray-700';
-      
-      // Try to detect language
-      let language = 'plaintext';
-      if (code.includes('function') || code.includes('const ') || code.includes('let ') || code.includes('var ')) {
-        language = 'javascript';
-      } else if (code.includes('def ') || code.includes('import ') || code.includes('class ') && code.includes(':')) {
-        language = 'python';
-      } else if (code.includes('<html') || code.includes('<!DOCTYPE') || (code.includes('<') && code.includes('>'))) {
-        language = 'html';
-      } else if (code.includes('{') && code.includes('}') && code.includes(';')) {
-        language = 'css';
-      }
-      
-      header.innerHTML = `
-        <span class="text-sm font-medium">${language.charAt(0).toUpperCase() + language.slice(1)} Preview</span>
-        <button class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-          <i class="fa fa-times"></i>
-        </button>
-      `;
-      
-      // Create code preview with syntax highlighting
-      const previewContent = document.createElement('div');
-      previewContent.className = 'p-3 bg-white dark:bg-gray-800 overflow-auto max-h-64';
-      
-      // Use Prism.js for syntax highlighting if available
-      if (window.Prism) {
-        const pre = document.createElement('pre');
-        pre.className = `language-${language}`;
-        
-        const codeElement = document.createElement('code');
-        codeElement.className = `language-${language}`;
-        codeElement.textContent = code;
-        
-        pre.appendChild(codeElement);
-        previewContent.appendChild(pre);
-        
-        // Highlight the code
-        previewContainer.appendChild(header);
-        previewContainer.appendChild(previewContent);
-        
-        // Add to the popup
-        const codePopup = document.getElementById('popup-code');
-        codePopup.querySelector('.space-y-2').appendChild(previewContainer);
-        
-        // Initialize Prism highlighting
-        if (Prism.highlightElement) {
-          Prism.highlightElement(codeElement);
-        }
-      } else {
-        // Fallback without Prism
-        previewContent.innerHTML = `<pre>${code.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</pre>`;
-        previewContainer.appendChild(header);
-        previewContainer.appendChild(previewContent);
-        
-        // Add to the popup
-        const codePopup = document.getElementById('popup-code');
-        codePopup.querySelector('.space-y-2').appendChild(previewContainer);
-      }
-      
-      // Set up close button
-      header.querySelector('button').onclick = function() {
-        previewContainer.remove();
-        previewCodeBtn.innerHTML = '<i class="fa fa-eye mr-1"></i> Preview';
-      };
-      
-      // Update button text
-      previewCodeBtn.innerHTML = '<i class="fa fa-eye-slash mr-1"></i> Hide Preview';
-    };
-  }
+  // Code generation functionality removed
 
   // Set up settings save button
   const settingsSaveBtn = document.getElementById('settings-save-btn');
@@ -1986,7 +1953,7 @@ function updateModelSelectionBasedOnOpenRouterSetting() {
     // Hide non-OpenRouter models
     Array.from(modelSelect.options).forEach(option => {
       const optgroup = option.parentNode;
-      if (optgroup.tagName === 'OPTGROUP' && !optgroup.label.startsWith('OpenRouter')) {
+      if (optgroup && optgroup.tagName === 'OPTGROUP' && !optgroup.label.startsWith('OpenRouter')) {
         option.style.display = 'none';
       }
     });
@@ -1994,7 +1961,7 @@ function updateModelSelectionBasedOnOpenRouterSetting() {
     // Show OpenRouter models
     Array.from(modelSelect.options).forEach(option => {
       const optgroup = option.parentNode;
-      if (optgroup.tagName === 'OPTGROUP' && optgroup.label.startsWith('OpenRouter')) {
+      if (optgroup && optgroup.tagName === 'OPTGROUP' && optgroup.label.startsWith('OpenRouter')) {
         option.style.display = '';
       }
     });
@@ -2016,7 +1983,7 @@ function updateModelSelectionBasedOnOpenRouterSetting() {
     if (currentValue.startsWith('openrouter:')) {
       const firstStandardOption = Array.from(modelSelect.options).find(opt => {
         const optgroup = opt.parentNode;
-        return optgroup.tagName === 'OPTGROUP' && !optgroup.label.startsWith('OpenRouter');
+        return optgroup && optgroup.tagName === 'OPTGROUP' && !optgroup.label.startsWith('OpenRouter');
       });
       
       if (firstStandardOption) {
