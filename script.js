@@ -1006,29 +1006,39 @@ window.onbeforeunload = function() {
 }
 
 // ---- PUTER AUTH ----
-document.getElementById('puter-login-btn').addEventListener('click', async function() {
+// Handle Puter Auth
+async function handlePuterAuth(event) {
   try {
-    // Check if already signed in
-    if (puter.auth.isSignedIn()) {
-      // Sign out instead
-      puter.auth.signOut();
-      document.getElementById('puter-login-btn').innerHTML = '<i class="fa fa-user mr-1"></i> Sign In';
-      document.getElementById('user-info').classList.add('hidden');
+    const isSignedIn = puter.auth.isSignedIn();
+    const loginBtn = document.getElementById('puter-login-btn');
+    const userInfo = document.getElementById('user-info');
+
+    if (isSignedIn) {
+      await puter.auth.signOut();
+      loginBtn.innerHTML = '<i class="fa fa-user mr-1"></i> Sign In';
+      userInfo.classList.add('hidden');
       return;
     }
 
-    // Attempt to sign in
     await puter.auth.signIn();
-
-    // Get user information
     const user = await puter.auth.getUser();
-    if (user && user.username) {
-      document.getElementById('puter-login-btn').innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
-      document.getElementById('user-info').textContent = user.username;
-      document.getElementById('user-info').classList.remove('hidden');
+    
+    if (user?.username) {
+      loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
+      userInfo.textContent = user.username;
+      userInfo.classList.remove('hidden');
     }
   } catch (error) {
     console.error('Auth error:', error);
+    alert('Authentication failed. Please try again.');
+  }
+}
+
+// Initialize auth button
+document.addEventListener('DOMContentLoaded', () => {
+  const loginBtn = document.getElementById('puter-login-btn');
+  if (loginBtn) {
+    loginBtn.addEventListener('click', handlePuterAuth);
   }
 });
 
@@ -1244,20 +1254,52 @@ function removeModel(idx) {
 }
 
 // INIT
-document.addEventListener('DOMContentLoaded', function() {
-  loadSettings();
-  renderChat();
-  initPuterAuth();
-  setTimeout(checkAuthState, 500); // Slight delay to ensure Puter.js is fully loaded
-  addOpenRouterModels();
+async function initializeApp() {
+  try {
+    // Load settings first
+    loadSettings();
+    
+    // Initialize UI components
+    renderChat();
+    initializeTheme();
+    
+    // Check auth state once
+    if (puter.auth.isSignedIn()) {
+      const user = await puter.auth.getUser();
+      updateAuthUI(user);
+    }
+    
+    // Add models only if OpenRouter is enabled
+    if (userSettings.openRouterEnabled) {
+      addOpenRouterModels();
+    }
 
-  // Initialize dark mode toggle state
+    // Mobile optimization
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => window.scrollTo(0, 0), 100);
+    });
+  } catch (error) {
+    console.error('Initialization error:', error);
+  }
+}
+
+function initializeTheme() {
   const isDarkTheme = userSettings.theme === 'dark';
-  document.getElementById('moon-icon').classList.toggle('hidden', isDarkTheme);
-  document.getElementById('sun-icon').classList.toggle('hidden', !isDarkTheme);
+  document.getElementById('moon-icon')?.classList.toggle('hidden', isDarkTheme);
+  document.getElementById('sun-icon')?.classList.toggle('hidden', !isDarkTheme);
+}
 
-  // MOBILE: Keep input at bottom
-  window.addEventListener('resize', function() { 
-    setTimeout(() => window.scrollTo(0, 0), 100); 
-  });
-});
+function updateAuthUI(user) {
+  const loginBtn = document.getElementById('puter-login-btn');
+  const userInfo = document.getElementById('user-info');
+  
+  if (user?.username) {
+    loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
+    userInfo.textContent = user.username;
+    userInfo.classList.remove('hidden');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initializeApp);
