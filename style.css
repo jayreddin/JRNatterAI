@@ -7,6 +7,11 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Transparent footer */
+.w-full.max-w-3xl.mx-auto.fixed.bottom-0 {
+  background-color: transparent !important;
+}
+
 /* Hide scrollbar but keep scroll functionality */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
@@ -294,6 +299,7 @@ select#model-select {
   margin-bottom: 8px;
   transition: transform 0.2s;
   width: 80px;
+  user-select: none;
 }
 
 .theme-option:hover {
@@ -554,11 +560,11 @@ select#model-select {
 }
 
 /* User login styles */
-#puter-login-btn {
+#puter-login-btn, #signout-btn {
   transition: all 0.2s ease-in-out;
 }
 
-#puter-login-btn:hover {
+#puter-login-btn:hover, #signout-btn:hover {
   transform: translateY(-2px);
 }
 
@@ -566,7 +572,6 @@ select#model-select {
   color: #2563eb;
   font-weight: 500;
   font-size: 0.9rem;
-  width: 100%;
   text-align: center;
 }
 
@@ -574,9 +579,20 @@ select#model-select {
   color: #93c5fd;
 }
 
-#puter-login-btn {
+#puter-login-btn, #signout-btn {
   font-size: 0.9rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.6rem;
+}
+
+/* Multi-model interface */
+#multi-model-container {
+  animation: fadeIn 0.3s ease-out;
+}
+
+#multi-model-list {
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 @media (max-width: 767px) {
