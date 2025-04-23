@@ -154,7 +154,8 @@
         <button class="feature-btn" id="btn-history" title="Chat History"><i class="fa fa-history"></i></button>
         <button class="feature-btn" id="btn-file" title="File & OCR"><i class="fa fa-file-arrow-up"></i></button>
         <button class="feature-btn" id="btn-image" title="Generate Image"><i class="fa fa-image"></i></button>
-        <button class="feature-btn" id="btn-code" title="Code Generation"><i class="fa fa-code"></i></button>
+        <!-- Code button temporarily hidden -->
+        <!-- <button class="feature-btn" id="btn-code" title="Code Generation"><i class="fa fa-code"></i></button> -->
         <button class="feature-btn" id="btn-settings" title="Settings"><i class="fa fa-gear"></i></button>
       </div>
       <div class="mt-2 flex items-center">
@@ -306,10 +307,33 @@
           <label class="block font-semibold mb-1 mt-2" for="text-size-range">Text Size</label>
           <input id="text-size-range" type="range" min="14" max="22" value="16" class="w-full mb-2">
 
-          <div class="flex items-center justify-between mt-3 mb-2">
-            <span class="block font-semibold">Theme</span>
-            <select id="theme-select" class="flat rounded-cool px-3 py-1 dark:bg-gray-800 dark:text-base">
-              <option value="light">Black/Grey (Default)</option>
+          <div class="flex flex-col mt-3 mb-4">
+            <span class="block font-semibold mb-2">Theme</span>
+            <div class="flex flex-wrap gap-2 justify-center">
+              <div class="theme-option" data-theme="default" onclick="selectThemePreview('default')">
+                <div class="theme-preview default-theme"></div>
+                <span>Default</span>
+              </div>
+              <div class="theme-option" data-theme="light" onclick="selectThemePreview('light')">
+                <div class="theme-preview light-theme"></div>
+                <span>Light</span>
+              </div>
+              <div class="theme-option" data-theme="sunset" onclick="selectThemePreview('sunset')">
+                <div class="theme-preview sunset-theme"></div>
+                <span>Sunset</span>
+              </div>
+              <div class="theme-option" data-theme="multicolored" onclick="selectThemePreview('multicolored')">
+                <div class="theme-preview multicolored-theme"></div>
+                <span>Multicolored</span>
+              </div>
+              <div class="theme-option" data-theme="dark" onclick="selectThemePreview('dark')">
+                <div class="theme-preview dark-theme"></div>
+                <span>Dark</span>
+              </div>
+            </div>
+            <select id="theme-select" class="flat rounded-cool px-3 py-1 dark:bg-gray-800 dark:text-base hidden">
+              <option value="default">Default</option>
+              <option value="light">Light</option>
               <option value="sunset">Sunset</option>
               <option value="multicolored">Multicolored</option>
               <option value="dark">Dark Mode</option>

@@ -167,22 +167,62 @@ function nowStr() {
 }
 // ---- UI MODES ----
 function setTheme(mode) {
+  // Remove dark mode class first
   document.body.classList.remove('dark-mode');
-  if (mode === 'dark') { document.body.classList.add('dark-mode'); }
-  if (mode === 'sunset') {
-    document.body.style.background = "linear-gradient(120deg,#ffecd2 0%,#fcb69f 100%)";
-    document.body.style.color = "#46251a";
-  } else if (mode === 'multicolored') {
-    document.body.style.background = "linear-gradient(120deg,#89f7fe 0%,#66a6ff 100%)";
-    document.body.style.color = "#163253";
-  } else if (mode === 'dark') {
-    document.body.style.background = "#181a1b";
-    document.body.style.color = "#e5e7eb";
-  } else {
-    // reset
-    document.body.style.background = "#fafafa";
-    document.body.style.color = "#24292f";
+  
+  // Clear any previously set styles
+  document.body.style.background = "";
+  document.body.style.color = "";
+  
+  // Apply the selected theme
+  switch(mode) {
+    case 'dark':
+      document.body.classList.add('dark-mode');
+      document.body.style.background = "#181a1b";
+      document.body.style.color = "#e5e7eb";
+      break;
+      
+    case 'sunset':
+      document.body.style.background = "linear-gradient(120deg,#ffecd2 0%,#fcb69f 100%)";
+      document.body.style.color = "#46251a";
+      break;
+      
+    case 'multicolored':
+      document.body.style.background = "linear-gradient(120deg,#89f7fe 0%,#66a6ff 100%)";
+      document.body.style.color = "#163253";
+      break;
+      
+    case 'light':
+      document.body.style.background = "#ffffff";
+      document.body.style.color = "#333333";
+      document.body.style.boxShadow = "0 1px 3px rgba(0,0,0,0.03)";
+      break;
+      
+    case 'default':
+    default:
+      // Default theme
+      document.body.style.background = "#fafafa";
+      document.body.style.color = "#24292f";
+      break;
   }
+  
+  // Update theme icon
+  const isDarkTheme = mode === 'dark';
+  const moonIcon = document.getElementById('moon-icon');
+  const sunIcon = document.getElementById('sun-icon');
+  if (moonIcon) moonIcon.classList.toggle('hidden', isDarkTheme);
+  if (sunIcon) sunIcon.classList.toggle('hidden', !isDarkTheme);
+  
+  // Highlight the active theme in settings if visible
+  if (document.getElementById('popup-settings').classList.contains('hidden') === false) {
+    document.querySelectorAll('.theme-option').forEach(opt => {
+      opt.classList.remove('active');
+    });
+    const activeOption = document.querySelector(`.theme-option[data-theme="${mode}"]`);
+    if (activeOption) activeOption.classList.add('active');
+  }
+  
+  // Save to user settings
   userSettings.theme = mode;
   saveSettings();
 }
@@ -233,6 +273,10 @@ function toggleMultiModel(enabled) {
     if (!modelSelect || !container) return;
 
     if (enabled) {
+      // Hide the main model select dropdown
+      modelSelect.style.display = 'none';
+      container.querySelector('.fa-caret-down')?.classList.add('hidden');
+      
       // Initialize selected models with the current selection if empty
       if (selectedModels.length === 0) {
         selectedModels = [modelSelect.value];
@@ -254,8 +298,17 @@ function toggleMultiModel(enabled) {
         newModelSelect.id = 'multi-model-select';
         newModelSelect.className = 'bg-gray-50 border rounded-cool py-1 px-3 text-sm dark:bg-gray-800';
         
-        // Clone options from main model select
-        Array.from(modelSelect.options).forEach(opt => {
+        // Only add enabled models and respect streaming mode restrictions
+        const availableModels = Array.from(modelSelect.options).filter(opt => {
+          // Check if model is enabled
+          const isEnabled = userSettings.enabledModels.includes(opt.value);
+          // If streaming mode is on, check if model supports streaming
+          const supportsStreaming = !streamingMode || isModelStreamCapable(opt.value);
+          
+          return isEnabled && supportsStreaming;
+        });
+        
+        availableModels.forEach(opt => {
           const option = document.createElement('option');
           option.value = opt.value;
           option.textContent = opt.textContent;
@@ -289,6 +342,10 @@ function toggleMultiModel(enabled) {
         container.appendChild(modelSelectorContainer);
       }
     } else {
+      // Show the main model select dropdown
+      modelSelect.style.display = '';
+      container.querySelector('.fa-caret-down')?.classList.remove('hidden');
+      
       // Keep only the first selected model when turning off multi-model mode
       selectedModels = selectedModels.length > 0 ? [selectedModels[0]] : [modelSelect.value];
       
@@ -303,6 +360,23 @@ function toggleMultiModel(enabled) {
     updateMultiModelDisplay();
   } catch (error) {
     console.error('Error toggling multi-model mode:', error);
+  }
+}
+
+// Theme preview function
+function selectThemePreview(theme) {
+  // Update visual selection
+  document.querySelectorAll('.theme-option').forEach(opt => {
+    opt.classList.remove('active');
+  });
+  document.querySelector(`.theme-option[data-theme="${theme}"]`).classList.add('active');
+  
+  // Update the hidden select element
+  const themeSelect = document.getElementById('theme-select');
+  if (themeSelect) {
+    themeSelect.value = theme;
+    // Trigger change event to apply theme
+    setTheme(theme);
   }
 }
 
@@ -475,13 +549,16 @@ function renderChat() {
       <button onclick="copyMsg(${i})" class="text-gray-500 hover:text-blue-700 mr-2" title="Copy"><i class="fa fa-copy"></i></button>
       <button onclick="deleteMsg(${i})" class="text-gray-500 hover:text-blue-700 mr-2" title="Delete"><i class="fa fa-trash"></i></button>
       <button onclick="speakMsg(${i})" class="text-gray-500 hover:text-yellow-700" title="Speak"><i class="fa fa-volume-up"></i></button>`;
+    
+    const buttonDisplay = m.role === 'user' ? 'justify-end' : 'justify-start';
+    
     container.innerHTML += `
         <div class="mb-6 flex flex-col w-full ${align}">
-          <div class="text-xs text-gray-500 mb-1">${label}</div>
+          <div class="text-xs text-gray-500 mb-1 ${m.role === 'user' ? 'text-right' : 'text-left'}">${label}</div>
           <div class="border ${bubbleClr} rounded-cool p-3 font-medium whitespace-pre-line flat ${align}" style="max-width:94vw">
             ${typeof m.content === 'string' ? m.content : m.content && m.content.type === "img" ? `<img src='${m.content.url}' alt='image' class='rounded-cool'>` : ""}
           </div>
-            <div class="flex flex-row mt-1">${iconBtns}</div>
+          <div class="flex flex-row mt-1 ${buttonDisplay}">${iconBtns}</div>
         </div>
       `;
   }
@@ -1769,66 +1846,138 @@ const getAllOpenRouterModels = () => {
 
 // ---- STORAGE: SAVE SETTINGS (localStorage) ----
 function saveSettings() {
-  localStorage.setItem("puterChatUserSettings", JSON.stringify(userSettings));
+  try {
+    // Save all user settings to localStorage
+    localStorage.setItem("puterChatUserSettings", JSON.stringify(userSettings));
+    
+    // Also save selected models separately for redundancy
+    localStorage.setItem("puterChatSelectedModels", JSON.stringify(selectedModels));
+    
+    // Save current chat for recovery in case of crashes
+    localStorage.setItem("puterChatCurrentSession", JSON.stringify(currentChat));
+  } catch (e) {
+    console.error("Error saving settings:", e);
+    // If quota exceeded, try to clear some less important data
+    try {
+      // Remove old response cache to free up space
+      responseCache.clear();
+      // Try again
+      localStorage.setItem("puterChatUserSettings", JSON.stringify(userSettings));
+    } catch (e2) {
+      console.error("Could not save settings even after clearing cache:", e2);
+    }
+  }
 }
 
 function loadSettings() {
-  let s = localStorage.getItem("puterChatUserSettings");
-  if (s) {
-    userSettings = JSON.parse(s);
+  try {
+    let s = localStorage.getItem("puterChatUserSettings");
+    if (s) {
+      const loadedSettings = JSON.parse(s);
+      // Merge with default settings, preserving user customizations
+      userSettings = {
+        ...userSettings, // Default values
+        ...loadedSettings  // User saved values override defaults
+      };
 
-    // Apply text size
-    document.body.style.fontSize = (userSettings.textSize || 16) + "px";
+      // Apply text size
+      document.body.style.fontSize = (userSettings.textSize || 16) + "px";
 
-    // Apply theme
-    setTheme(userSettings.theme || 'light');
+      // Apply theme
+      setTheme(userSettings.theme || 'default');
+      
+      // Highlight the active theme in settings
+      setTimeout(() => {
+        const activeOption = document.querySelector(`.theme-option[data-theme="${userSettings.theme || 'default'}"]`);
+        if (activeOption) activeOption.classList.add('active');
+      }, 100);
 
-    // Add OpenRouter models if enabled
-    if (userSettings.openRouterEnabled) {
-      addOpenRouterModels();
+      // Default to common models if none are saved
+      if (!userSettings.enabledModels || userSettings.enabledModels.length === 0) {
+        userSettings.enabledModels = [
+          "gpt-4o", "gpt-4.1-mini", "gpt-4.5-preview", "o1-mini", "o3-mini", "o4-mini", 
+          "claude-3-5-sonnet", "claude-3-7-sonnet", "deepseek-chat", "deepseek-reasoner", 
+          "gemini-2.0-flash", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", 
+          "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "mistral-large-latest", "grok-beta"
+        ];
+      }
+      
+      // Add OpenRouter models if enabled
+      if (userSettings.openRouterEnabled) {
+        addOpenRouterModels();
+      }
+
+      // Update model dropdown
+      updateModelSelectOptions();
+      
+      // Load selected models if available
+      const savedSelectedModels = localStorage.getItem("puterChatSelectedModels");
+      if (savedSelectedModels) {
+        try {
+          selectedModels = JSON.parse(savedSelectedModels);
+        } catch (e) {
+          console.error("Error parsing saved selected models:", e);
+          selectedModels = [];
+        }
+      }
+
+      // Set up streaming and multi-model modes (after models are loaded)
+      setTimeout(() => {
+        // Set up toggles
+        const streamToggle = document.getElementById('streaming-toggle');
+        if (streamToggle) streamToggle.checked = userSettings.streamingMode || false;
+        
+        const multiToggle = document.getElementById('multi-toggle');
+        if (multiToggle) multiToggle.checked = userSettings.multiModelMode || false;
+        
+        // Apply toggle states
+        if (userSettings.streamingMode) {
+          toggleStreamingMode(true);
+        }
+
+        if (userSettings.multiModelMode) {
+          toggleMultiModel(true);
+        }
+      }, 100);
     }
 
-    // Default to common models if none are saved
-    if (!userSettings.enabledModels || userSettings.enabledModels.length === 0) {
-      userSettings.enabledModels = [
-        "gpt-4o", "gpt-4.1-mini", "gpt-4.5-preview", "o1-mini", "o3-mini", "o4-mini", 
-        "claude-3-5-sonnet", "claude-3-7-sonnet", "deepseek-chat", "deepseek-reasoner", 
-        "gemini-2.0-flash", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", 
-        "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "mistral-large-latest", "grok-beta"
-      ];
+    // Load chat history
+    let hist = localStorage.getItem("puterChatHistory");
+    if (hist) {
+      try {
+        chatHistory = JSON.parse(hist).map(hist => {
+          hist.when = hist.when ? new Date(hist.when) : new Date();
+          return hist;
+        });
+      } catch (e) {
+        console.error("Error loading chat history:", e);
+        chatHistory = [];
+      }
     }
-
-    // Update model dropdown
-    updateModelSelectOptions();
-
-    // Set up streaming and multi-model modes
-    if (userSettings.streamingMode) {
-      toggleStreamingMode(true);
+    
+    // Load current session if available
+    let currentSession = localStorage.getItem("puterChatCurrentSession");
+    if (currentSession) {
+      try {
+        currentChat = JSON.parse(currentSession);
+        // Render the loaded chat
+        renderChat();
+      } catch (e) {
+        console.error("Error loading current session:", e);
+      }
     }
-
-    if (userSettings.multiModelMode) {
-      toggleMultiModel(true);
-    }
-  }
-
-  // Load chat history
-  let hist = localStorage.getItem("puterChatHistory");
-  if (hist) {
-    try {
-      chatHistory = JSON.parse(hist).map(hist => {
-        hist.when = hist.when ? new Date(hist.when) : new Date();
-        return hist;
-      });
-    } catch (e) {
-      console.error("Error loading chat history:", e);
-      chatHistory = [];
-    }
+  } catch (e) {
+    console.error("Error in loadSettings:", e);
   }
 }
+
+// Save settings periodically and before unloading
+setInterval(saveSettings, 60000); // Every minute
 
 window.onbeforeunload = function() {
   saveSettings();
   localStorage.setItem("puterChatHistory", JSON.stringify(chatHistory));
+  localStorage.setItem("puterChatCurrentSession", JSON.stringify(currentChat));
 };
 
 // ---- PUTER AUTH ----
@@ -1979,44 +2128,48 @@ function updateModelSelectionBasedOnOpenRouterSetting() {
   const modelSelect = document.getElementById('model-select');
   if (!modelSelect) return;
   
-  // Clear current selection
+  // Store current selection
   const currentValue = modelSelect.value;
   
   if (userSettings.openRouterEnabled) {
-    // Hide non-OpenRouter models
-    Array.from(modelSelect.options).forEach(option => {
-      const optgroup = option.parentNode;
-      if (optgroup.tagName === 'OPTGROUP' && !optgroup.label.startsWith('OpenRouter')) {
-        option.style.display = 'none';
-      }
-    });
+    // First ensure OpenRouter models are added
+    addOpenRouterModels();
     
-    // Show OpenRouter models
-    Array.from(modelSelect.options).forEach(option => {
-      const optgroup = option.parentNode;
-      if (optgroup.tagName === 'OPTGROUP' && optgroup.label.startsWith('OpenRouter')) {
-        option.style.display = '';
+    // Hide all non-OpenRouter options and optgroups
+    Array.from(modelSelect.querySelectorAll('optgroup')).forEach(optgroup => {
+      if (!optgroup.label.includes('OpenRouter')) {
+        optgroup.style.display = 'none';
+      } else {
+        optgroup.style.display = '';
       }
     });
     
     // If current selection is hidden, select first visible option
     if (!currentValue.startsWith('openrouter:')) {
-      const firstVisibleOption = Array.from(modelSelect.options).find(opt => opt.style.display !== 'none');
+      const firstVisibleOption = Array.from(modelSelect.options).find(opt => {
+        const optgroup = opt.parentNode;
+        return optgroup.tagName === 'OPTGROUP' && optgroup.label.includes('OpenRouter') && !opt.disabled;
+      });
+      
       if (firstVisibleOption) {
         modelSelect.value = firstVisibleOption.value;
       }
     }
   } else {
-    // Show all options
-    Array.from(modelSelect.options).forEach(option => {
-      option.style.display = '';
+    // Show all non-OpenRouter optgroups and hide OpenRouter ones
+    Array.from(modelSelect.querySelectorAll('optgroup')).forEach(optgroup => {
+      if (optgroup.label.includes('OpenRouter')) {
+        optgroup.style.display = 'none';
+      } else {
+        optgroup.style.display = '';
+      }
     });
     
     // If current selection is from OpenRouter, select first standard option
     if (currentValue.startsWith('openrouter:')) {
       const firstStandardOption = Array.from(modelSelect.options).find(opt => {
         const optgroup = opt.parentNode;
-        return optgroup.tagName === 'OPTGROUP' && !optgroup.label.startsWith('OpenRouter');
+        return optgroup.tagName === 'OPTGROUP' && !optgroup.label.includes('OpenRouter') && !opt.disabled;
       });
       
       if (firstStandardOption) {
@@ -2024,23 +2177,28 @@ function updateModelSelectionBasedOnOpenRouterSetting() {
       }
     }
   }
+  
+  // Save current selection to settings
+  saveSettings();
 }
 
 // INIT
 document.addEventListener('DOMContentLoaded', function() {
   try {
-    // Load settings first
+    // Define global window functions first to prevent "not defined" errors
+    window.toggleStreamingMode = toggleStreamingMode;
+    window.toggleMultiModel = toggleMultiModel;
+    window.selectThemePreview = selectThemePreview;
+    
+    // Load settings 
     loadSettings();
     
     // Initialize UI components
     renderChat();
     
-    // Initialize theme
-    const isDarkTheme = userSettings.theme === 'dark';
-    const moonIcon = document.getElementById('moon-icon');
-    const sunIcon = document.getElementById('sun-icon');
-    if (moonIcon) moonIcon.classList.toggle('hidden', isDarkTheme);
-    if (sunIcon) sunIcon.classList.toggle('hidden', !isDarkTheme);
+    // Initialize theme based on saved setting
+    const themeValue = userSettings.theme || 'default';
+    setTheme(themeValue);
     
     // Initialize Puter Auth
     const loginBtn = document.getElementById('puter-login-btn');
@@ -2051,16 +2209,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check auth state
     setTimeout(checkAuthState, 500);
     
-    // Add OpenRouter models if enabled
-    if (userSettings.openRouterEnabled) {
-      addOpenRouterModels();
-      updateModelSelectionBasedOnOpenRouterSetting();
-    }
-    
     // Initialize toggle switches
     const streamingToggle = document.getElementById('streaming-toggle');
     if (streamingToggle) {
-      streamingToggle.checked = streamingMode;
+      streamingToggle.checked = userSettings.streamingMode || false;
       streamingToggle.addEventListener('change', function() {
         toggleStreamingMode(this.checked);
       });
@@ -2068,10 +2220,21 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const multiToggle = document.getElementById('multi-toggle');
     if (multiToggle) {
-      multiToggle.checked = multiModelMode;
+      multiToggle.checked = userSettings.multiModelMode || false;
       multiToggle.addEventListener('change', function() {
         toggleMultiModel(this.checked);
       });
+    }
+    
+    // Initialize OpenRouter toggle
+    const openrouterToggle = document.getElementById('openrouter-toggle');
+    if (openrouterToggle) {
+      openrouterToggle.checked = userSettings.openRouterEnabled || false;
+      
+      if (userSettings.openRouterEnabled) {
+        addOpenRouterModels();
+        updateModelSelectionBasedOnOpenRouterSetting();
+      }
     }
     
     // Initialize models list in settings
@@ -2083,6 +2246,13 @@ document.addEventListener('DOMContentLoaded', function() {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => window.scrollTo(0, 0), 100);
     });
+    
+    // Initialize theme preview selection
+    setTimeout(() => {
+      const currentTheme = userSettings.theme || 'default';
+      const themeOption = document.querySelector(`.theme-option[data-theme="${currentTheme}"]`);
+      if (themeOption) themeOption.classList.add('active');
+    }, 100);
 
     console.log('Initialization complete');
   } catch (error) {

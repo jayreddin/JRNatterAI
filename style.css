@@ -285,6 +285,121 @@ select#model-select {
   font-size: 1.1rem;
 }
 
+/* Theme previews */
+.theme-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: transform 0.2s;
+  width: 80px;
+}
+
+.theme-option:hover {
+  transform: translateY(-3px);
+}
+
+.theme-option.active {
+  outline: 2px solid #3b82f6;
+  border-radius: 8px;
+}
+
+.theme-preview {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  margin-bottom: 5px;
+  border: 1px solid #ccc;
+  overflow: hidden;
+  position: relative;
+}
+
+.theme-preview::after {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  right: 15px;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.theme-preview::before {
+  content: '';
+  position: absolute;
+  bottom: 15px;
+  left: 10px;
+  right: 10px;
+  height: 20px;
+  border-radius: 5px;
+}
+
+.default-theme {
+  background: #fafafa;
+}
+
+.default-theme::after {
+  background: #666;
+}
+
+.default-theme::before {
+  background: #f3f4f6;
+  border: 1px solid #222;
+}
+
+.light-theme {
+  background: #ffffff;
+}
+
+.light-theme::after {
+  background: #888;
+}
+
+.light-theme::before {
+  background: #f9fafb;
+  border: 1px solid #ddd;
+}
+
+.sunset-theme {
+  background: linear-gradient(120deg,#ffecd2 0%,#fcb69f 100%);
+}
+
+.sunset-theme::after {
+  background: #46251a;
+}
+
+.sunset-theme::before {
+  background: rgba(255,255,255,0.7);
+  border: 1px solid #46251a;
+}
+
+.multicolored-theme {
+  background: linear-gradient(120deg,#89f7fe 0%,#66a6ff 100%);
+}
+
+.multicolored-theme::after {
+  background: #163253;
+}
+
+.multicolored-theme::before {
+  background: rgba(255,255,255,0.7);
+  border: 1px solid #163253;
+}
+
+.dark-theme {
+  background: #181a1b;
+}
+
+.dark-theme::after {
+  background: #e5e7eb;
+}
+
+.dark-theme::before {
+  background: #333;
+  border: 1px solid #555;
+}
+
 .dark-mode .feature-btn {
   background-color: #1e1e1e !important;
   color: #e5e7eb !important;
