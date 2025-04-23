@@ -137,7 +137,7 @@
   </main>
 
   <!-- INPUT BAR & BUTTONS -->
-  <div class="w-full max-w-3xl mx-auto fixed bottom-0 left-0 right-0 px-1 sm:px-0 bg-white dark:bg-gray-900 z-40">
+  <div class="w-full max-w-3xl mx-auto fixed bottom-0 left-0 right-0 px-1 sm:px-0 bg-transparent z-40">
     <form id="chat-form" class="flex items-end py-2 space-x-2" autocomplete="off">
       <textarea id="chat-input" required
         class="flex-1 resize-none border flat rounded-cool py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[44px] max-h-40 dark:bg-gray-800 dark:text-base"
@@ -304,7 +304,7 @@
         </div>
 
         <!-- Models Tab Content -->
-        <div id="models-tab-content" class="tab-content hidden">
+        <div id="models-tab-content" class="tab-content">
           <div class="mb-4 flex items-center justify-between">
             <div class="flex items-center">
               <label class="toggle-switch mr-2">
@@ -314,8 +314,19 @@
               <span class="text-sm font-medium">OpenRouter</span>
             </div>
             <button id="show-enabled-only" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool text-sm">
-              Show Enabled
+              Show All
             </button>
+          </div>
+
+          <div class="mb-4 flex items-center justify-between">
+            <div class="flex space-x-2">
+              <button id="select-all-models" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-3 py-1 rounded-cool text-sm flex items-center">
+                <i class="fa fa-check-square mr-1"></i> Select All
+              </button>
+              <button id="deselect-all-models" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-3 py-1 rounded-cool text-sm flex items-center">
+                <i class="fa fa-square-o mr-1"></i> Deselect All
+              </button>
+            </div>
           </div>
 
           <div class="mb-4">

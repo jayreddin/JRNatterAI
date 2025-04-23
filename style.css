@@ -311,7 +311,7 @@ select#model-select {
     justify-content: center;
     gap: 10px;
   }
-  
+
   #model-select-container {
     order: 0;
     width: 100%;
@@ -352,6 +352,7 @@ select#model-select {
   overflow-y: auto;
 }
 
+/* Feature Button Bar */
 .feature-btn {
   background: #fff;
   border: 1px solid #222;
@@ -367,6 +368,30 @@ select#model-select {
   margin-right: 0.25em;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* Make footer container transparent */
+.w-full.max-w-3xl.mx-auto.fixed.bottom-0.left-0.right-0.px-1.sm\:px-0.bg-white.dark\:bg-gray-900.z-40 {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+}
+
+.w-full.max-w-3xl.mx-auto.fixed.bottom-0.left-0.right-0.px-1.sm\:px-0.bg-white.dark\:bg-gray-900.z-40 .flex.flex-col.items-center.py-3.px-2.rounded-cool.bg-transparent {
+  background-color: transparent !important;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.w-full.max-w-3xl.mx-auto.fixed.bottom-0.left-0.right-0.px-1.sm\:px-0.bg-white.dark\:bg-gray-900.z-40 .flex.flex-col.items-center.py-3.px-2.rounded-cool.bg-transparent:hover {
+  opacity: 1;
+}
+
+/* Improve model list styling */
+#models-list .provider-header {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+  padding-bottom: 0.5rem;
 }
 
 .feature-btn:last-child {
@@ -475,13 +500,13 @@ select#model-select {
   #chat-container {
     padding-bottom: 8rem;
   }
-  
+
   .feature-btn {
     width: 2.2em;
     height: 2.2em;
     font-size: 1rem;
   }
-  
+
   .rounded-cool {
     border-radius: 0.9rem;
   }
@@ -492,7 +517,7 @@ select#model-select {
   .flat {
     border-width: 2px !important;
   }
-  
+
   .feature-btn, button, input, select, textarea {
     border-width: 2px !important;
   }

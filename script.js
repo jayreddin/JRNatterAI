@@ -1,4 +1,3 @@
-
 // ---- GLOBALS ----
 let chatHistory = [];
 let currentChat = [];
@@ -59,35 +58,35 @@ window.toggleMultiModel = function(enabled) {
     // Update UI for multi-model selection
     const modelSelect = document.getElementById('model-select');
     const container = document.getElementById('model-select-container');
-    
+
     if (!modelSelect || !container) return;
 
     if (enabled) {
       // Hide main model dropdown
       modelSelect.style.display = 'none';
-      
+
       // Initialize selected models with the current selection if empty
       if (selectedModels.length === 0) {
         selectedModels = [modelSelect.value];
       }
-      
+
       // Create multi-select container if it doesn't exist
       if (!document.getElementById('multi-model-container')) {
         const multiContainer = document.createElement('div');
         multiContainer.id = 'multi-model-container';
         multiContainer.className = 'flex flex-wrap gap-2 mt-4 pb-2 overflow-y-auto max-h-32';
         container.appendChild(multiContainer);
-        
+
         // Add model selector with + button
         const modelSelectorContainer = document.createElement('div');
         modelSelectorContainer.id = 'model-selector-container';
         modelSelectorContainer.className = 'flex items-center justify-center w-full mt-2';
-        
+
         // Create new dropdown for model selection
         const newModelSelect = document.createElement('select');
         newModelSelect.id = 'multi-model-select';
         newModelSelect.className = 'bg-gray-50 border rounded-cool py-1 px-3 text-sm dark:bg-gray-800';
-        
+
         // Clone options from main model select
         Array.from(modelSelect.options).forEach(opt => {
           const option = document.createElement('option');
@@ -96,7 +95,7 @@ window.toggleMultiModel = function(enabled) {
           option.disabled = selectedModels.includes(opt.value);
           newModelSelect.appendChild(option);
         });
-        
+
         const addButton = document.createElement('button');
         addButton.id = 'add-model-btn';
         addButton.innerHTML = '<i class="fa fa-plus"></i>';
@@ -107,17 +106,17 @@ window.toggleMultiModel = function(enabled) {
           if (selectedValue && !selectedModels.includes(selectedValue)) {
             selectedModels.push(selectedValue);
             updateMultiModelDisplay();
-            
+
             // Disable this option in the dropdown
             const option = newModelSelect.querySelector(`option[value="${selectedValue}"]`);
             if (option) option.disabled = true;
-            
+
             // Select first non-disabled option
             const firstAvailableOption = newModelSelect.querySelector('option:not([disabled])');
             if (firstAvailableOption) newModelSelect.value = firstAvailableOption.value;
           }
         };
-        
+
         modelSelectorContainer.appendChild(newModelSelect);
         modelSelectorContainer.appendChild(addButton);
         container.appendChild(modelSelectorContainer);
@@ -125,24 +124,24 @@ window.toggleMultiModel = function(enabled) {
     } else {
       // Keep only the first selected model when turning off multi-model mode
       selectedModels = selectedModels.length > 0 ? [selectedModels[0]] : [modelSelect.value];
-      
+
       // Restore visibility to the model select dropdown
       modelSelect.style.display = '';
-      
+
       // Clean up the UI
       const multiContainer = document.getElementById('multi-model-container');
       if (multiContainer) multiContainer.remove();
-      
+
       const addButton = document.getElementById('add-model-btn');
       if (addButton) addButton.remove();
-      
+
       const modelSelectorContainer = document.getElementById('model-selector-container');
       if (modelSelectorContainer) modelSelectorContainer.remove();
-      
+
       const multiModelSelect = document.getElementById('multi-model-select');
       if (multiModelSelect) multiModelSelect.remove();
     }
-    
+
     updateMultiModelDisplay();
   } catch (error) {
     console.error('Error toggling multi-model mode:', error);
@@ -359,7 +358,7 @@ function toggleMultiModel(enabled) {
     // Update UI for multi-model selection
     const modelSelect = document.getElementById('model-select');
     const container = document.getElementById('model-select-container');
-    
+
     if (!modelSelect || !container) return;
 
     if (enabled) {
@@ -367,23 +366,23 @@ function toggleMultiModel(enabled) {
       if (selectedModels.length === 0) {
         selectedModels = [modelSelect.value];
       }
-      
+
       // Create multi-select container if it doesn't exist
       if (!document.getElementById('multi-model-container')) {
         const multiContainer = document.createElement('div');
         multiContainer.id = 'multi-model-container';
         multiContainer.className = 'flex flex-wrap gap-2 mt-4 pb-2 overflow-y-auto max-h-32';
         container.appendChild(multiContainer);
-        
+
         // Add model selector with + button
         const modelSelectorContainer = document.createElement('div');
         modelSelectorContainer.id = 'model-selector-container';
         modelSelectorContainer.className = 'flex items-center mt-2';
-        
+
         const newModelSelect = document.createElement('select');
         newModelSelect.id = 'multi-model-select';
         newModelSelect.className = 'bg-gray-50 border rounded-cool py-1 px-3 text-sm dark:bg-gray-800';
-        
+
         // Clone options from main model select
         Array.from(modelSelect.options).forEach(opt => {
           const option = document.createElement('option');
@@ -393,7 +392,7 @@ function toggleMultiModel(enabled) {
           option.disabled = selectedModels.includes(opt.value);
           newModelSelect.appendChild(option);
         });
-        
+
         const addButton = document.createElement('button');
         addButton.innerHTML = '<i class="fa fa-plus"></i>';
         addButton.className = 'ml-2 px-2 py-1 bg-blue-600 text-white rounded-full hover:bg-blue-700';
@@ -403,17 +402,17 @@ function toggleMultiModel(enabled) {
           if (selectedValue && !selectedModels.includes(selectedValue)) {
             selectedModels.push(selectedValue);
             updateMultiModelDisplay();
-            
+
             // Disable this option in the multi-model select dropdown
             const option = newModelSelect.querySelector(`option[value="${selectedValue}"]`);
             if (option) option.disabled = true;
-            
+
             // Select first non-disabled option
             const firstAvailableOption = newModelSelect.querySelector('option:not([disabled])');
             if (firstAvailableOption) newModelSelect.value = firstAvailableOption.value;
           }
         };
-        
+
         modelSelectorContainer.appendChild(newModelSelect);
         modelSelectorContainer.appendChild(addButton);
         container.appendChild(modelSelectorContainer);
@@ -421,15 +420,15 @@ function toggleMultiModel(enabled) {
     } else {
       // Keep only the first selected model when turning off multi-model mode
       selectedModels = selectedModels.length > 0 ? [selectedModels[0]] : [modelSelect.value];
-      
+
       // Clean up the UI
       const multiContainer = document.getElementById('multi-model-container');
       if (multiContainer) multiContainer.remove();
-      
+
       const modelSelectorContainer = document.getElementById('model-selector-container');
       if (modelSelectorContainer) modelSelectorContainer.remove();
     }
-    
+
     updateMultiModelDisplay();
   } catch (error) {
     console.error('Error toggling multi-model mode:', error);
@@ -442,15 +441,15 @@ function updateMultiModelDisplay() {
   if (!container) return;
 
   container.innerHTML = '';
-  
+
   // Create a chip for each selected model
   selectedModels.forEach((model, idx) => {
     const chip = document.createElement('div');
     chip.className = 'inline-flex items-center bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded-full text-sm';
-    
+
     // Truncate long model names for display purposes
     const displayName = model.length > 30 ? model.substring(0, 27) + '...' : model;
-    
+
     chip.innerHTML = `
       <span title="${model}" class="mr-1">${displayName}</span>
       <button class="text-red-500 hover:text-red-700 focus:outline-none" 
@@ -467,15 +466,15 @@ window.removeSelectedModel = function(idx) {
   if (idx >= 0 && idx < selectedModels.length) {
     const removedModel = selectedModels[idx];
     selectedModels.splice(idx, 1);
-    
+
     // If no models are left, add the currently selected model
     if (selectedModels.length === 0) {
       const modelSelect = document.getElementById('model-select');
       if (modelSelect) selectedModels.push(modelSelect.value);
     }
-    
+
     updateMultiModelDisplay();
-    
+
     // Re-enable the option in the multi-model select dropdown
     const multiModelSelect = document.getElementById('multi-model-select');
     if (multiModelSelect) {
@@ -593,7 +592,7 @@ document.querySelectorAll('.popup-ptr').forEach(popup => {
 function renderChat() {
   const container = document.getElementById('chat-container');
   if (!container) return;
-  
+
   // Newest at top
   container.innerHTML = "";
   for (let i = currentChat.length - 1; i >= 0; i--) {
@@ -605,7 +604,7 @@ function renderChat() {
       <button onclick="copyMsg(${i})" class="text-gray-500 hover:text-blue-700 mr-2" title="Copy"><i class="fa fa-copy"></i></button>
       <button onclick="deleteMsg(${i})" class="text-gray-500 hover:text-blue-700 mr-2" title="Delete"><i class="fa fa-trash"></i></button>
       <button onclick="speakMsg(${i})" class="text-gray-500 hover:text-yellow-700" title="Speak"><i class="fa fa-volume-up"></i></button>`;
-    
+
     if (m.role === 'user') {
       // For user messages, put label and buttons below the bubble
       container.innerHTML += `
@@ -767,7 +766,7 @@ window.deleteMsg = function(idx) {
 window.speakMsg = function(idx) {
   const m = currentChat[idx];
   const txt = typeof m.content === 'string' ? m.content : '';
-  
+
   if (txt.length) {
     try {
       // Show loading indicator
@@ -779,12 +778,12 @@ window.speakMsg = function(idx) {
         loadingIndicator.className = 'text-xs text-blue-600 mt-1 flex items-center';
         loadingIndicator.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> Generating speech...';
         bubbleElement.querySelector('.flex.flex-row').appendChild(loadingIndicator);
-        
+
         // Get voice setting with fallbacks for compatibility
         const speechVoiceSelect = document.getElementById('speech-voice-select');
         // Default to 'en-US' if no setting found to ensure compatibility
         const voice = speechVoiceSelect?.value || userSettings.speechVoice || 'en-US';
-        
+
         // Use different options for text to speech to improve compatibility
         puter.ai.txt2speech(txt, {
           voice: voice,
@@ -793,16 +792,16 @@ window.speakMsg = function(idx) {
         .then(audio => {
           // Remove loading indicator
           document.getElementById(loadingId)?.remove();
-          
+
           if (audio && audio instanceof HTMLAudioElement) {
             // Add audio controls to the message
             audio.controls = true;
             audio.className = 'mt-2 w-full';
             audio.style.maxWidth = '300px';
-            
+
             // Add the audio element to the message
             bubbleElement.querySelector('.border').appendChild(audio);
-            
+
             // Auto-play the audio
             audio.play().catch(err => {
               console.warn("Auto-play failed (may require user interaction):", err);
@@ -819,16 +818,16 @@ window.speakMsg = function(idx) {
         })
         .catch(err => {
           console.error("Speech error:", err);
-          
+
           // Remove loading indicator
           document.getElementById(loadingId)?.remove();
-          
+
           // Show error message
           const errorMsg = document.createElement('div');
           errorMsg.className = 'text-xs text-red-600 mt-1';
           errorMsg.textContent = "Speech generation failed. Trying alternative voice...";
           bubbleElement.querySelector('.flex.flex-row').appendChild(errorMsg);
-          
+
           // Try again with alternative method
           setTimeout(() => {
             // Fallback to standard engine and default voice
@@ -980,12 +979,12 @@ document.addEventListener('DOMContentLoaded', function() {
       if (!file) return;
       const previewBox = document.getElementById('file-preview-box');
       if (!previewBox) return;
-      
+
       previewBox.innerHTML = "";
       if (file.type.startsWith('image/')) {
         const url = URL.createObjectURL(file);
         previewBox.innerHTML = `<img src="${url}" class="rounded-cool border mx-auto mb-2" height="140" style="max-height:140px"><button id="ocr-btn" class="bg-blue-700 text-white flat px-3 py-1 rounded-cool mt-2">Extract Text</button> <div id="ocr-result" class="mt-3"></div>`;
-        
+
         const ocrBtn = document.getElementById('ocr-btn');
         if (ocrBtn) {
           ocrBtn.onclick = async function() {
@@ -997,7 +996,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <span>Extracting text from image...</span>
               </div>`;
               previewBox.innerHTML += loadingHTML;
-              
+
               // Convert file to data URL for processing
               const dataURL = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -1005,7 +1004,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
               });
-              
+
               // Call OCR with proper error handling
               let result;
               try {
@@ -1016,14 +1015,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Fall back to using the File object directly
                 result = await puter.ai.img2txt(file);
               }
-              
+
               // Remove loading indicator
               const loadingElement = document.getElementById(loadingId);
               if (loadingElement) loadingElement.remove();
-              
+
               // Format and display result
               result = (result || "").trim() || "[No text detected]";
-              
+
               // Create result container with controls
               const resultHTML = `
                 <div class="mt-3 border rounded-cool overflow-hidden">
@@ -1042,9 +1041,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div id="ocrTextResult" class="whitespace-pre-wrap">${result}</div>
                   </div>
                 </div>`;
-              
+
               previewBox.innerHTML += resultHTML;
-              
+
               // Set up copy button
               document.getElementById('copy-ocr-btn').onclick = function() {
                 const textToCopy = document.getElementById('ocrTextResult').textContent;
@@ -1061,12 +1060,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert("Failed to copy: " + err.message);
                   });
               };
-              
+
               // Set up edit button
               document.getElementById('edit-ocr-btn').onclick = function() {
                 const resultContainer = document.getElementById('ocr-result-container');
                 const currentText = document.getElementById('ocrTextResult').textContent;
-                
+
                 // Replace result container with textarea
                 resultContainer.innerHTML = `
                   <textarea id="ocr-edit-textarea" class="w-full h-32 p-2 border rounded-cool dark:bg-gray-900">${currentText}</textarea>
@@ -1078,13 +1077,13 @@ document.addEventListener('DOMContentLoaded', function() {
                       Cancel
                     </button>
                   </div>`;
-                
+
                 // Set up save button
                 document.getElementById('save-ocr-btn').onclick = function() {
                   const newText = document.getElementById('ocr-edit-textarea').value;
                   resultContainer.innerHTML = `<div id="ocrTextResult" class="whitespace-pre-wrap">${newText}</div>`;
                 };
-                
+
                 // Set up cancel button
                 document.getElementById('cancel-ocr-btn').onclick = function() {
                   resultContainer.innerHTML = `<div id="ocrTextResult" class="whitespace-pre-wrap">${currentText}</div>`;
@@ -1095,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', function() {
               // Remove loading indicator if it exists
               const loadingElement = document.getElementById('ocr-loading');
               if (loadingElement) loadingElement.remove();
-              
+
               // Show error message with retry option
               previewBox.innerHTML += `
                 <div class="mt-3 bg-red-100 dark:bg-red-900 border border-red-200 dark:border-red-800 p-3 rounded-cool">
@@ -1107,7 +1106,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     Try Again
                   </button>
                 </div>`;
-              
+
               // Set up retry button
               document.getElementById('retry-ocr-btn').onclick = ocrBtn.onclick;
             }
@@ -1190,11 +1189,11 @@ document.addEventListener('DOMContentLoaded', function() {
   if (openrouterToggle) {
     openrouterToggle.addEventListener('change', function() {
       userSettings.openRouterEnabled = this.checked;
-      
+
       if (this.checked && !modelSelect.querySelector('optgroup[label^="OpenRouter"]')) {
         addOpenRouterModels();
       }
-      
+
       updateModelSelectionBasedOnOpenRouterSetting();
       populateModelsList();
     });
@@ -1227,12 +1226,12 @@ function autoTitle(msgs) {
 function updateHistoryUI() {
   const list = document.getElementById('history-list');
   if (!list) return;
-  
+
   if (!chatHistory.length) { 
     list.innerHTML = "<div class='text-gray-500'>No chat history yet.</div>"; 
     return; 
   }
-  
+
   list.innerHTML = '';
   chatHistory.forEach((h, i) => {
     list.innerHTML += `<div class="border flat rounded-cool px-3 py-2 bg-gray-50 dark:bg-gray-900 hover:bg-blue-100 dark:hover:bg-gray-700 cursor-pointer mb-1" onclick="selectHistory(${i})">
@@ -1252,15 +1251,15 @@ async function generateImg() {
   const imageGenPrompt = document.getElementById('image-gen-prompt');
   const imageGenArea = document.getElementById('image-gen-area');
   if (!imageGenPrompt || !imageGenArea) return;
-  
+
   let prompt = imageGenPrompt.value.trim();
   if (!prompt) { 
     imageGenArea.innerHTML = '<div class="text-red-500">Please enter prompt above first.</div>'; 
     return; 
   }
-  
+
   imageGenArea.innerHTML = '<div class="w-full h-48 flex flex-col items-center justify-center"><span class="fa fa-spinner fa-spin text-blue-600 text-3xl"></span><span class="text-xs mt-2">Generating Image...</span></div>';
-  
+
   try {
     // Use the txt2img API with the prompt (set testMode to false for production)
     const img = await puter.ai.txt2img(prompt, false);
@@ -1338,7 +1337,7 @@ const defaultModels = [
 function populateModelsList(showEnabledOnly = false) {
   const modelsList = document.getElementById('models-list');
   if (!modelsList) return;
-  
+
   modelsList.innerHTML = '';
 
   // Get all available models
@@ -1388,15 +1387,29 @@ function populateModelsList(showEnabledOnly = false) {
     providerName.className = 'font-bold text-md';
     providerName.textContent = provider;
 
+    // Add a count badge
+    const countBadge = document.createElement('span');
+    countBadge.className = 'ml-2 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded-full text-xs';
+    countBadge.textContent = modelsByProvider[provider].length;
+
     providerHeader.appendChild(providerIcon);
     providerHeader.appendChild(providerName);
+    providerHeader.appendChild(countBadge);
+
+    // Add a separator if this is an OpenRouter provider
+    if (provider.includes('OpenRouter')) {
+      const separator = document.createElement('hr');
+      separator.className = 'border-t border-blue-200 dark:border-blue-800 my-1';
+      modelsList.appendChild(separator);
+    }
+
     modelsList.appendChild(providerHeader);
 
     // Limit the number of models shown per provider to avoid overwhelming the UI
     const modelsToShow = userSettings.openRouterEnabled 
       ? modelsByProvider[provider].slice(0, 20) // Show a limited number when in OpenRouter mode
       : modelsByProvider[provider];
-    
+
     // Add models for this provider
     modelsToShow.forEach(model => {
       const modelItem = document.createElement('div');
@@ -1466,7 +1479,7 @@ function populateModelsList(showEnabledOnly = false) {
       modelItem.appendChild(infoButton);
       modelsList.appendChild(modelItem);
     });
-    
+
     // If there are more models than shown, add a "Show More" button
     if (userSettings.openRouterEnabled && modelsByProvider[provider].length > 20) {
       const showMoreButton = document.createElement('button');
@@ -1476,38 +1489,38 @@ function populateModelsList(showEnabledOnly = false) {
         let startIndex = 20;
         const batchSize = 20;
         const endIndex = Math.min(startIndex + batchSize, modelsByProvider[provider].length);
-        
+
         // Add the next batch of models
         for (let i = startIndex; i < endIndex; i++) {
           const model = modelsByProvider[provider][i];
           // Clone the code to add more models
           const modelItem = document.createElement('div');
           modelItem.className = 'model-item flex items-center justify-between border-b pb-2 mb-2 new-item';
-          
+
           const modelNameContainer = document.createElement('div');
           modelNameContainer.className = 'flex items-center';
-          
+
           const checkbox = document.createElement('input');
           checkbox.type = 'checkbox';
           checkbox.className = 'form-checkbox mr-2';
           checkbox.value = model;
           checkbox.checked = userSettings.enabledModels.includes(model);
-          
+
           const modelName = document.createElement('span');
           modelName.className = 'model-name text-sm';
           modelName.textContent = model.length > 40 ? model.substring(0, 37) + '...' : model;
           modelName.title = model;
-          
+
           modelNameContainer.appendChild(checkbox);
           modelNameContainer.appendChild(modelName);
           modelItem.appendChild(modelNameContainer);
-          
+
           // Insert before the "Show More" button
           showMoreButton.parentNode.insertBefore(modelItem, showMoreButton);
         }
-        
+
         startIndex = endIndex;
-        
+
         // Update or remove the "Show More" button
         if (startIndex >= modelsByProvider[provider].length) {
           showMoreButton.remove();
@@ -1639,17 +1652,17 @@ function getModelDescription(model) {
 // Format OpenRouter model name for display
 function formatOpenRouterModelName(model) {
   if (!model.startsWith('openrouter:')) return model;
-  
+
   // Extract model name from path
   const modelPath = model.replace('openrouter:', '');
   let displayName = '';
-  
+
   // Parse out a readable name
   if (modelPath.includes('/')) {
     // Handle format like openrouter:provider/model-name
     const parts = modelPath.split('/');
     const modelName = parts[1] || '';
-    
+
     // Clean up model name
     displayName = modelName
       .replace('llama-', 'Llama ')
@@ -1666,7 +1679,7 @@ function formatOpenRouterModelName(model) {
       .replace(/-/g, ' ')
       .replace(/\b\w/g, c => c.toUpperCase());
   }
-  
+
   return 'OR: ' + displayName;
 }
 
@@ -1702,7 +1715,7 @@ function updateModelSelectOptions() {
   if (userSettings.openRouterEnabled) {
     // Group OpenRouter models by provider
     const openRouterModelsByProvider = {};
-    
+
     userSettings.enabledModels
       .filter(model => model.startsWith('openrouter:'))
       .forEach(model => {
@@ -1712,7 +1725,7 @@ function updateModelSelectOptions() {
         }
         openRouterModelsByProvider[provider].push(model);
       });
-    
+
     // Create or update optgroups for each provider
     Object.keys(openRouterModelsByProvider).forEach(provider => {
       // Find or create optgroup
@@ -1722,10 +1735,10 @@ function updateModelSelectOptions() {
         providerGroup.label = provider;
         sel.appendChild(providerGroup);
       }
-      
+
       // Clear existing options
       providerGroup.innerHTML = '';
-      
+
       // Add models for this provider
       openRouterModelsByProvider[provider].forEach(model => {
         const option = document.createElement('option');
@@ -1813,7 +1826,7 @@ const getAllOpenRouterModels = () => {
     const prefixedStandardModels = openRouterModelsList.map(model => 
         model.startsWith('openrouter:') ? model : `openrouter:${model}`
     );
-    
+
     // Combine with the already prefixed models
     return [...prefixedStandardModels, ...openRouterPrefixedModels];
 };
@@ -1903,10 +1916,10 @@ async function handlePuterAuth(event) {
 
     if (puter.auth.signIn) {
       await puter.auth.signIn();
-      
+
       if (puter.auth.getUser) {
         const user = await puter.auth.getUser();
-        
+
         if (user?.username) {
           loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
           userInfo.textContent = user.username;
@@ -1953,7 +1966,7 @@ function addOpenRouterModels() {
 
   // Get all OpenRouter models
   const allOpenRouterModels = getAllOpenRouterModels();
-  
+
   // Organize models by category
   const modelCategories = {
     "OpenRouter: OpenAI": [],
@@ -1963,11 +1976,11 @@ function addOpenRouterModels() {
     "OpenRouter: Mistral": [],
     "OpenRouter: Other": []
   };
-  
+
   // Categorize models
   allOpenRouterModels.forEach(model => {
     const modelName = model.toLowerCase();
-    
+
     if (modelName.includes('openai') || modelName.includes('gpt')) {
       modelCategories["OpenRouter: OpenAI"].push(model);
     } else if (modelName.includes('claude') || modelName.includes('anthropic')) {
@@ -1982,23 +1995,23 @@ function addOpenRouterModels() {
       modelCategories["OpenRouter: Other"].push(model);
     }
   });
-  
+
   // Create optgroups for each category
   Object.entries(modelCategories).forEach(([category, models]) => {
     if (models.length === 0) return;
-    
+
     // Create optgroup
     const group = document.createElement('optgroup');
     group.label = category;
-    
+
     // Limit to 10 models per category to avoid overwhelming the dropdown
     const limitedModels = models.slice(0, 10);
-    
+
     // Add models to group
     limitedModels.forEach(model => {
       const option = document.createElement('option');
       option.value = model;
-      
+
       // Format display name 
       let displayName = model.replace('openrouter:', '');
       if (displayName.length > 30) {
@@ -2008,20 +2021,20 @@ function addOpenRouterModels() {
           displayName = displayName.substring(0, 27) + '...';
         }
       }
-      
+
       option.textContent = displayName;
       option.title = model; // Show full model name on hover
       group.appendChild(option);
-      
+
       // Add to enabled models if not already there
       if (!userSettings.enabledModels.includes(model)) {
         userSettings.enabledModels.push(model);
       }
     });
-    
+
     modelSelect.appendChild(group);
   });
-  
+
   saveSettings();
 }
 
@@ -2029,10 +2042,10 @@ function addOpenRouterModels() {
 function updateModelSelectionBasedOnOpenRouterSetting() {
   const modelSelect = document.getElementById('model-select');
   if (!modelSelect) return;
-  
+
   // Clear current selection
   const currentValue = modelSelect.value;
-  
+
   if (userSettings.openRouterEnabled) {
     // Hide non-OpenRouter models
     Array.from(modelSelect.options).forEach(option => {
@@ -2041,7 +2054,7 @@ function updateModelSelectionBasedOnOpenRouterSetting() {
         option.style.display = 'none';
       }
     });
-    
+
     // Show OpenRouter models
     Array.from(modelSelect.options).forEach(option => {
       const optgroup = option.parentNode;
@@ -2049,7 +2062,7 @@ function updateModelSelectionBasedOnOpenRouterSetting() {
         option.style.display = '';
       }
     });
-    
+
     // If current selection is hidden, select first visible option
     if (!currentValue.startsWith('openrouter:')) {
       const firstVisibleOption = Array.from(modelSelect.options).find(opt => opt.style.display !== 'none');
@@ -2062,14 +2075,14 @@ function updateModelSelectionBasedOnOpenRouterSetting() {
     Array.from(modelSelect.options).forEach(option => {
       option.style.display = '';
     });
-    
+
     // If current selection is from OpenRouter, select first standard option
     if (currentValue.startsWith('openrouter:')) {
       const firstStandardOption = Array.from(modelSelect.options).find(opt => {
         const optgroup = opt.parentNode;
         return optgroup && optgroup.tagName === 'OPTGROUP' && !optgroup.label.startsWith('OpenRouter');
       });
-      
+
       if (firstStandardOption) {
         modelSelect.value = firstStandardOption.value;
       }
@@ -2082,32 +2095,32 @@ document.addEventListener('DOMContentLoaded', function() {
   try {
     // Load settings first
     loadSettings();
-    
+
     // Initialize UI components
     renderChat();
-    
+
     // Initialize theme
     const isDarkTheme = userSettings.theme === 'dark';
     const moonIcon = document.getElementById('moon-icon');
     const sunIcon = document.getElementById('sun-icon');
     if (moonIcon) moonIcon.classList.toggle('hidden', isDarkTheme);
     if (sunIcon) sunIcon.classList.toggle('hidden', !isDarkTheme);
-    
+
     // Initialize Puter Auth
     const loginBtn = document.getElementById('puter-login-btn');
     if (loginBtn) {
       loginBtn.addEventListener('click', handlePuterAuth);
     }
-    
+
     // Check auth state
     setTimeout(checkAuthState, 500);
-    
+
     // Add OpenRouter models if enabled
     if (userSettings.openRouterEnabled) {
       addOpenRouterModels();
       updateModelSelectionBasedOnOpenRouterSetting();
     }
-    
+
     // Initialize toggle switches
     const streamingToggle = document.getElementById('streaming-toggle');
     if (streamingToggle) {
@@ -2116,7 +2129,7 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleStreamingMode(this.checked);
       });
     }
-    
+
     const multiToggle = document.getElementById('multi-toggle');
     if (multiToggle) {
       multiToggle.checked = multiModelMode;
@@ -2124,10 +2137,10 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleMultiModel(this.checked);
       });
     }
-    
+
     // Initialize models list in settings
     populateModelsList();
-    
+
     // Mobile optimization
     let resizeTimeout;
     window.addEventListener('resize', () => {
