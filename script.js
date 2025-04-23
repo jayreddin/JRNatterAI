@@ -140,13 +140,16 @@ function renderChat() {
 // ---- CHAT INPUT ----
 document.getElementById('chat-form').onsubmit = async function(e) {
   e.preventDefault();
-  let txt = document.getElementById('chat-input').value.trim();
+  let chatInput = document.getElementById('chat-input');
+  let txt = chatInput.value.trim();
   if (!txt) return;
   const model = document.getElementById('model-select').value;
   const time = nowStr();
   currentChat.push({ role: 'user', content: txt, time, model: null });
   renderChat();
-  document.getElementById('chat-input').value = "";
+  chatInput.value = "";
+  // Reset the height of textarea
+  chatInput.style.height = 'auto';
   await aiSend(txt, model, time);
 }
 
@@ -337,31 +340,40 @@ async function generateImg() {
   if (!prompt) { area.innerHTML = '<div class="text-red-500">Please enter prompt above first.</div>'; return; }
   area.innerHTML = '<div class="w-full h-48 flex flex-col items-center justify-center"><span class="fa fa-spinner fa-spin text-blue-600 text-3xl"></span><span class="text-xs mt-2">Generating Image...</span></div>';
   try {
+    // Use the txt2img API with the prompt (set testMode to false for production)
     const img = await puter.ai.txt2img(prompt, false);
-    let url;
     
-    // Handle different response formats
-    if (img && img.src) {
-      url = img.src;
-    } else if (typeof img === 'string') {
-      url = img;
-    } else if (img instanceof HTMLImageElement) {
-      url = img.src;
-    } else if (img && typeof img.toString === 'function') {
-      url = img.toString();
+    // Append the image to the area
+    area.innerHTML = '';
+    if (img instanceof HTMLImageElement) {
+      img.className = "rounded-cool border mx-auto";
+      img.alt = "AI Generated";
+      area.appendChild(img);
+      
+      // Add save button and info text
+      const saveBtn = document.createElement('button');
+      saveBtn.className = "flat rounded-cool px-3 py-1 mt-2";
+      saveBtn.innerHTML = '<i class="fa fa-download mr-1"></i>Save';
+      saveBtn.onclick = function() {
+        let a = document.createElement('a');
+        a.href = img.src;
+        a.download = "ai_generated.png";
+        a.click();
+      };
+      area.appendChild(saveBtn);
+      
+      const infoText = document.createElement('span');
+      infoText.className = "text-xs block mt-2 text-blue-600";
+      infoText.textContent = "Click image to expand.";
+      area.appendChild(infoText);
+      
+      // Add click handler to open in new window
+      img.onclick = function() {
+        window.open(img.src, '_blank');
+      };
     } else {
-      throw new Error("Received unexpected response format");
+      throw new Error("Failed to generate image");
     }
-    
-    if (!url) throw new Error("Could not extract image URL from response");
-    
-    area.innerHTML = `<img src="${url}" alt="AI Generated" class="rounded-cool border mx-auto">
-        <button class="flat rounded-cool px-3 py-1 mt-2" onclick="saveImageGen('${url}')"><i class="fa fa-download mr-1"></i>Save</button>
-        <span class="text-xs block mt-2 text-blue-600">Click image to expand.</span>`;
-    area.querySelector('img').onclick = () => { window.open(url, '_blank'); };
-    window.saveImageGen = function(src) {
-      let a = document.createElement('a'); a.href = src; a.download = "ai_generate.png"; a.click();
-    };
   } catch (err) {
     console.error("Image generation error:", err);
     area.innerHTML = `<div class="text-red-600">Image generation failed: ${err.message || "Unknown error"}</div>`;
@@ -378,10 +390,16 @@ document.getElementById('generate-code-btn').onclick = async function() {
   let res = document.getElementById('code-result');
   res.textContent = "Generating code...";
   try {
+    // Always use the Codestral model for code generation
     let model = 'codestral-latest';
-    let out = await puter.ai.chat(prompt, { model });
     
-    // Handle different response formats
+    // Create a more code-focused prompt
+    let codePrompt = `Generate code for: ${prompt}\nPlease provide just the code without explanations.`;
+    
+    // Call the AI API with the prompt and model
+    let out = await puter.ai.chat(codePrompt, { model });
+    
+    // Process the response
     let responseText = '';
     if (out.message && out.message.text) {
       responseText = out.message.text;
@@ -395,9 +413,23 @@ document.getElementById('generate-code-btn').onclick = async function() {
       responseText = JSON.stringify(out);
     }
     
-    // Extract code blocks if present
-    let code = responseText.match(/```(?:[a-z]+\n)?([\s\S]*?)```/m);
-    res.textContent = code ? code[1].trim() : responseText;
+    // Extract code blocks if present (looking for markdown code blocks)
+    let codeMatch = responseText.match(/```(?:[a-z]+\n)?([\s\S]*?)```/m);
+    
+    if (codeMatch && codeMatch[1]) {
+      // If we found a code block, use that
+      res.textContent = codeMatch[1].trim();
+    } else {
+      // Otherwise use the whole response but try to clean it up
+      // Remove any explanations or markdown that's not code
+      let cleanedResponse = responseText
+        .replace(/^Here's the code[:\s]*/i, '')
+        .replace(/^I've created[:\s]*/i, '')
+        .replace(/^Here is[:\s]*/i, '')
+        .trim();
+      
+      res.textContent = cleanedResponse;
+    }
   } catch (err) {
     console.error("Code generation error:", err);
     res.textContent = '[ERROR]: ' + (err.message || JSON.stringify(err));
@@ -413,38 +445,323 @@ document.getElementById('preview-code-btn').onclick = function() {
 
 // Settings popup
 document.getElementById('btn-settings').onclick = function() {
-  // text size
+  // Show UI tab by default
+  document.getElementById('ui-tab').click();
+  
+  // Set text size
   document.getElementById('text-size-range').value = userSettings.textSize;
-  // theme
+  
+  // Set theme
   document.getElementById('theme-select').value = userSettings.theme;
-  // models
-  let allModels = [...document.querySelectorAll('#model-select option')].map(x => x.value);
-  document.getElementById('model-incl-excl-list').innerHTML = allModels.map(m =>
-    `<label class="block mx-2 mb-1"><input type="checkbox" class="form-checkbox" value="${m}" ${userSettings.enabledModels.includes(m) ? "checked" : ""}> <span class="text-xs">${m}</span></label>`
-  ).join('');
+  
+  // Setup OpenRouter toggle
+  document.getElementById('openrouter-toggle').checked = userSettings.openRouterEnabled || false;
+  
+  // Populate models list
+  populateModelsList();
+  
   togglePopup('settings', true);
 };
+
+// Tab switching functionality
+document.querySelectorAll('#settings-tabs button').forEach(tab => {
+  tab.addEventListener('click', function() {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(content => {
+      content.classList.add('hidden');
+    });
+    
+    // Remove active class from all tabs
+    document.querySelectorAll('#settings-tabs button').forEach(t => {
+      t.classList.remove('active', 'border-blue-600');
+      t.classList.add('border-transparent');
+    });
+    
+    // Add active class to clicked tab
+    this.classList.add('active', 'border-blue-600');
+    this.classList.remove('border-transparent');
+    
+    // Show corresponding tab content
+    const tabContentId = this.getAttribute('data-tab');
+    document.getElementById(tabContentId).classList.remove('hidden');
+  });
+});
+
 // Text size
 document.getElementById('text-size-range').oninput = function() {
   document.body.style.fontSize = this.value + "px";
   userSettings.textSize = this.value;
   saveSettings();
-}
+};
+
+// Theme selection
 document.getElementById('theme-select').onchange = function(e) {
   setTheme(e.target.value);
-}
-document.getElementById('settings-save-btn').onclick = function() {
-  // models
-  let cheks = [...document.querySelectorAll('#model-incl-excl-list input[type=checkbox]:checked')].map(x => x.value);
-  userSettings.enabledModels = cheks;
-  // update model select dropdown
-  let sel = document.getElementById('model-select');
-  [...sel.options].forEach(o => {
-    o.style.display = userSettings.enabledModels.includes(o.value) ? '' : 'none';
+};
+
+// Model search functionality
+document.getElementById('model-search').addEventListener('input', function() {
+  const searchTerm = this.value.toLowerCase();
+  document.querySelectorAll('#models-list .model-item').forEach(item => {
+    const modelName = item.querySelector('.model-name').textContent.toLowerCase();
+    if (modelName.includes(searchTerm)) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
   });
+});
+
+// OpenRouter toggle
+document.getElementById('openrouter-toggle').addEventListener('change', function() {
+  userSettings.openRouterEnabled = this.checked;
+  populateModelsList();
+});
+
+// Default models to enable
+const defaultModels = [
+  "gpt-4o", "gpt-4.1-mini", "gpt-4.5-preview", "o1-mini", "o3-mini", "o4-mini", 
+  "claude-3-5-sonnet", "claude-3-7-sonnet", "deepseek-chat", "deepseek-reasoner", 
+  "gemini-2.0-flash", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", 
+  "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "mistral-large-latest", "grok-beta"
+];
+
+// Populate the models list
+function populateModelsList() {
+  const modelsList = document.getElementById('models-list');
+  modelsList.innerHTML = '';
+  
+  // Get all available models
+  let allModels = [...document.querySelectorAll('#model-select option')].map(x => x.value);
+  
+  // Add OpenRouter models if enabled
+  if (userSettings.openRouterEnabled) {
+    // Parse the models from the OpenRouter list (first clean up quotes and commas)
+    const openRouterModelsText = openRouterModelsList.replace(/"/g, '').replace(/,/g, '').trim();
+    const openRouterModels = openRouterModelsText.split('\n').map(m => m.trim()).filter(m => m);
+    allModels = [...allModels, ...openRouterModels];
+  }
+  
+  // Ensure userSettings.enabledModels exists
+  if (!userSettings.enabledModels) {
+    userSettings.enabledModels = defaultModels;
+  }
+  
+  // Create a model item for each model
+  allModels.forEach(model => {
+    const modelItem = document.createElement('div');
+    modelItem.className = 'model-item flex items-center justify-between border-b pb-2';
+    
+    const modelNameContainer = document.createElement('div');
+    modelNameContainer.className = 'flex items-center';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'form-checkbox mr-2';
+    checkbox.value = model;
+    checkbox.checked = userSettings.enabledModels.includes(model);
+    
+    const modelName = document.createElement('span');
+    modelName.className = 'model-name text-sm';
+    modelName.textContent = model;
+    
+    modelNameContainer.appendChild(checkbox);
+    modelNameContainer.appendChild(modelName);
+    
+    const infoButton = document.createElement('button');
+    infoButton.className = 'text-blue-500 hover:text-blue-700';
+    infoButton.innerHTML = '<i class="fa fa-plus"></i>';
+    infoButton.setAttribute('title', 'Show details');
+    
+    // Info button click handler
+    infoButton.addEventListener('click', function() {
+      const detailsDiv = modelItem.querySelector('.model-details');
+      if (detailsDiv) {
+        detailsDiv.remove();
+        this.innerHTML = '<i class="fa fa-plus"></i>';
+      } else {
+        const details = document.createElement('div');
+        details.className = 'model-details mt-2 ml-6 text-xs text-gray-600 dark:text-gray-400';
+        details.innerHTML = `
+          <p class="mb-1"><strong>Model ID:</strong> ${model}</p>
+          <p class="mb-1"><strong>Provider:</strong> ${getProviderFromModel(model)}</p>
+          <p>${getModelDescription(model)}</p>
+        `;
+        modelItem.appendChild(details);
+        this.innerHTML = '<i class="fa fa-minus"></i>';
+      }
+    });
+    
+    modelItem.appendChild(modelNameContainer);
+    modelItem.appendChild(infoButton);
+    modelsList.appendChild(modelItem);
+  });
+}
+
+// Helper function to get provider from model name
+function getProviderFromModel(model) {
+  if (model.startsWith('gpt-') || model.startsWith('o1') || model.startsWith('o3') || model.startsWith('o4')) {
+    return 'OpenAI';
+  } else if (model.startsWith('claude-')) {
+    return 'Anthropic';
+  } else if (model.startsWith('gemini-')) {
+    return 'Google';
+  } else if (model.includes('Llama') || model.startsWith('meta-llama')) {
+    return 'Meta';
+  } else if (model.startsWith('mistral') || model.startsWith('codestral') || model.startsWith('pixtral')) {
+    return 'Mistral AI';
+  } else if (model.startsWith('deepseek')) {
+    return 'DeepSeek';
+  } else if (model.startsWith('grok')) {
+    return 'xAI';
+  } else if (model.startsWith('openrouter:')) {
+    return 'OpenRouter - ' + model.split('/')[0].replace('openrouter:', '');
+  }
+  return 'Other';
+}
+
+// Helper function to get model description
+function getModelDescription(model) {
+  const descriptions = {
+    'gpt-4o': 'GPT-4o is OpenAI\'s latest multimodal model with high performance.',
+    'gpt-4o-mini': 'Smaller, faster version of GPT-4o.',
+    'o1': 'Advanced reasoning model from OpenAI.',
+    'o1-mini': 'Compact version of O1 for faster responses.',
+    'o1-pro': 'Professional version of O1 with enhanced capabilities.',
+    'claude-3-7-sonnet': 'Claude 3.7 Sonnet from Anthropic with advanced capabilities.',
+    'claude-3-5-sonnet': 'Claude 3.5 Sonnet from Anthropic with strong reasoning ability.',
+    'deepseek-chat': 'Conversational AI model from DeepSeek.',
+    'deepseek-reasoner': 'Specialized model for complex reasoning tasks.',
+  };
+  
+  return descriptions[model] || 'Advanced language model for tasks including text generation, summarization, and more.';
+}
+
+// Save settings button
+document.getElementById('settings-save-btn').onclick = function() {
+  // Save enabled models from checkboxes
+  const checkedModels = [...document.querySelectorAll('#models-list input[type=checkbox]:checked')].map(x => x.value);
+  userSettings.enabledModels = checkedModels;
+  
+  // Update OpenRouter setting
+  userSettings.openRouterEnabled = document.getElementById('openrouter-toggle').checked;
+  
+  // Update model select dropdown options
+  updateModelSelectOptions();
+  
   saveSettings();
   togglePopup('settings', false);
+};
+
+// Update the model selection dropdown based on enabled models
+function updateModelSelectOptions() {
+  let sel = document.getElementById('model-select');
+  
+  // First, hide all options
+  [...sel.options].forEach(o => {
+    o.style.display = 'none';
+  });
+  
+  // Show only enabled options
+  [...sel.options].forEach(o => {
+    if (userSettings.enabledModels.includes(o.value)) {
+      o.style.display = '';
+    }
+  });
+  
+  // Add OpenRouter models if enabled
+  if (userSettings.openRouterEnabled) {
+    // First check if OpenRouter optgroup exists
+    let openRouterGroup = sel.querySelector('optgroup[label="OpenRouter"]');
+    if (!openRouterGroup) {
+      // If it doesn't exist, create it
+      openRouterGroup = document.createElement('optgroup');
+      openRouterGroup.label = "OpenRouter";
+      sel.appendChild(openRouterGroup);
+    }
+    
+    // Clear existing OpenRouter options
+    openRouterGroup.innerHTML = '';
+    
+    // Add enabled OpenRouter models
+    userSettings.enabledModels.forEach(model => {
+      if (model.startsWith('openrouter:')) {
+        const option = document.createElement('option');
+        option.value = model;
+        option.textContent = model.replace('openrouter:', 'OR: ');
+        openRouterGroup.appendChild(option);
+      }
+    });
+  }
 }
+
+// Store OpenRouter models list
+const openRouterModelsList = `
+    "gpt-4o",
+    "gpt-4o-mini",
+    "o1",
+    "o1-mini",
+    "o1-pro",
+    "o3",
+    "o3-mini",
+    "o4-mini",
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-4.1-nano",
+    "gpt-4.5-preview",
+    "claude-3-7-sonnet-20250219",
+    "claude-3-7-sonnet-latest",
+    "claude-3-5-sonnet-20241022",
+    "claude-3-5-sonnet-latest",
+    "claude-3-5-sonnet-20240620",
+    "claude-3-haiku-20240307",
+    "WhereIsAI/UAE-Large-V1",
+    "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+    "togethercomputer/m2-bert-80M-32k-retrieval",
+    "google/gemma-2-9b-it",
+    "cartesia/sonic",
+    "BAAI/bge-large-en-v1.5",
+    "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+    "meta-llama/Llama-2-13b-chat-hf",
+    "black-forest-labs/FLUX.1-schnell-Free",
+    "black-forest-labs/FLUX.1.1-pro",
+    "Qwen/Qwen2.5-7B-Instruct-Turbo",
+    "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
+    "meta-llama-llama-2-70b-hf",
+    "BAAI/bge-base-en-v1.5",
+    "Gryphe/MythoMax-L2-13b",
+    "google/gemma-2-27b-it",
+    "Qwen/Qwen2-VL-72B-Instruct",
+    "Qwen/QwQ-32B",
+    "meta-llama/LlamaGuard-2-8b",
+    "cartesia/sonic-2",
+    "togethercomputer/m2-bert-80M-8k-retrieval",
+    "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
+    "upstage/SOLAR-10.7B-Instruct-v1.0",
+    "togethercomputer/MoA-1",
+    "meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
+    "mistralai/Mistral-7B-Instruct-v0.2",
+    "togethercomputer/m2-bert-80M-2k-retrieval",
+    "google/gemma-2b-it",
+    "black-forest-labs/FLUX.1-pro",
+    "mistralai/Mistral-Small-24B-Instruct-2501",
+    "Gryphe/MythoMax-L2-13b-Lite",
+    "black-forest-labs/FLUX.1-redux",
+    "scb10x/scb10x-llama3-1-typhoon2-70b-instruct",
+    "meta-llama/Meta-Llama-Guard-3-8B",
+    "arcee-ai/virtuoso-medium-v2",
+    "black-forest-labs/FLUX.1-depth",
+    "black-forest-labs/FLUX.1-canny",
+    "meta-llama/Llama-3-8b-chat-hf",
+    "arcee-ai/caller",
+    "arcee-ai/virtuoso-large",
+    "arcee-ai/maestro-reasoning",
+    "arcee-ai/coder-large",
+    "togethercomputer/MoA-1-Turbo",
+    "mistralai/Mistral-7B-Instruct-v0.1",
+    "scb10x/scb10x-llama3-1-typhoon2-8b-instruct",
+    "mistralai/Mixtral-8x7B-v0.1"
+`;
 
 // ---- STORAGE: SAVE SETTINGS (localStorage) ----
 function saveSettings() {
@@ -454,19 +771,40 @@ function loadSettings() {
   let s = localStorage.getItem("puterChatUserSettings");
   if (s) {
     userSettings = JSON.parse(s);
+    
+    // Apply text size
     document.body.style.fontSize = (userSettings.textSize || 16) + "px";
+    
+    // Apply theme
     setTheme(userSettings.theme || 'light');
-    // update model dropdown
-    let sel = document.getElementById('model-select');
-    [...sel.options].forEach(o => {
-      o.style.display = userSettings.enabledModels.includes(o.value) ? '' : 'none';
+    
+    // Add OpenRouter models if enabled
+    if (userSettings.openRouterEnabled) {
+      addOpenRouterModels();
+    }
+    
+    // Default to common models if none are saved
+    if (!userSettings.enabledModels || userSettings.enabledModels.length === 0) {
+      userSettings.enabledModels = [
+        "gpt-4o", "gpt-4.1-mini", "gpt-4.5-preview", "o1-mini", "o3-mini", "o4-mini", 
+        "claude-3-5-sonnet", "claude-3-7-sonnet", "deepseek-chat", "deepseek-reasoner", 
+        "gemini-2.0-flash", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", 
+        "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "mistral-large-latest", "grok-beta"
+      ];
+    }
+    
+    // Update model dropdown
+    updateModelSelectOptions();
+  }
+  
+  // Load chat history
+  let hist = localStorage.getItem("puterChatHistory");
+  if (hist) {
+    chatHistory = JSON.parse(hist).map(hist => {
+      hist.when = hist.when ? new Date(hist.when) : new Date();
+      return hist;
     });
   }
-  let hist = localStorage.getItem("puterChatHistory");
-  if (hist) chatHistory = JSON.parse(hist).map(hist => {
-    hist.when = hist.when ? new Date(hist.when) : new Date();
-    return hist;
-  });
 }
 window.onbeforeunload = function() {
   saveSettings();
@@ -565,16 +903,17 @@ function addOpenRouterModels() {
 // Function to handle Puter login
 async function initPuterAuth() {
   const loginBtn = document.getElementById('puter-login-btn');
+  const userInfoElement = document.getElementById('user-info');
   
-  if (loginBtn) {
+  if (loginBtn && userInfoElement) {
     loginBtn.addEventListener('click', async function() {
       try {
         // Check if already signed in
         if (puter.auth && puter.auth.isSignedIn()) {
           // Sign out instead
-          puter.auth.signOut();
+          await puter.auth.signOut();
           loginBtn.innerHTML = '<i class="fa fa-user mr-1"></i> Sign In';
-          document.getElementById('user-info').classList.add('hidden');
+          userInfoElement.classList.add('hidden');
           return;
         }
         
@@ -585,15 +924,17 @@ async function initPuterAuth() {
         const user = await puter.auth.getUser();
         if (user && user.username) {
           loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
-          document.getElementById('user-info').textContent = user.username;
-          document.getElementById('user-info').classList.remove('hidden');
+          userInfoElement.textContent = user.username;
+          userInfoElement.classList.remove('hidden');
         }
       } catch (error) {
         console.error('Auth error:', error);
+        // Show friendly error to user
+        alert('Authentication failed. Please try again later.');
       }
     });
   } else {
-    console.warn("Login button not found in the DOM");
+    console.warn("Auth elements not found in the DOM");
   }
 }
 
