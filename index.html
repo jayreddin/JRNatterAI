@@ -25,18 +25,18 @@
   <header
     class="z-50 w-full py-3 px-2 sm:px-6 flex items-center justify-between shadow-md flat rounded-cool mb-4 sticky top-0 bg-white dark:bg-gray-900 backdrop-filter backdrop-blur-sm bg-opacity-95"
     id="main-header">
-    <div class="flex items-center">
-      <div class="flex items-center border border-gray-300 rounded-cool px-3 py-1 mr-2">
+    <div class="flex flex-col items-start">
+      <div id="user-info" class="text-sm font-medium text-gray-700 dark:text-gray-300 hidden border border-black rounded-cool px-3 py-1 mb-1">
         <i class="fa fa-user text-gray-600 dark:text-gray-400 mr-2"></i>
-        <div id="user-info"
-          class="text-sm font-medium text-gray-700 dark:text-gray-300 hidden">
-        </div>
+        <span class="username-text"></span>
+      </div>
+      <div>
         <button id="puter-login-btn"
           class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1 rounded-cool font-semibold focus:outline-none transition ease-in-out duration-150 flat">
           <i class="fa fa-sign-in mr-1"></i> Sign In
         </button>
         <button id="signout-btn"
-          class="bg-red-500 hover:bg-red-600 text-xs px-3 py-1 rounded-cool font-semibold focus:outline-none transition ease-in-out duration-150 flat hidden ml-2">
+          class="bg-red-500 hover:bg-red-600 text-xs px-3 py-1 rounded-cool font-semibold focus:outline-none transition ease-in-out duration-150 flat hidden">
           <i class="fa fa-sign-out mr-1"></i> Sign Out
         </button>
       </div>
@@ -405,19 +405,8 @@
             </select>
           </div>
           
-          <div class="mt-4">
-            <span class="block font-semibold mb-2">Selected Theme</span>
-            <select id="theme-select" class="flat rounded-cool px-3 py-2 w-full dark:bg-gray-800 dark:text-base">
-              <option value="default">Default</option>
-              <option value="light">Light</option>
-              <option value="sunset">Sunset</option>
-              <option value="multicolored">Multicolored</option>
-              <option value="forest">Forest</option>
-              <option value="midnight">Midnight</option>
-              <option value="dark">Dark Mode</option>
-              <option value="custom">Create Custom Theme</option>
-            </select>
-          </div>
+          <!-- Selected Theme dropdown removed -->
+          <input type="hidden" id="theme-select" value="default">
         </div>
         
         <!-- Themes Tab Content -->

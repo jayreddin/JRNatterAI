@@ -60,8 +60,16 @@ async function checkAuthStatus() {
   try {
     const userInfo = await puter.auth.whoami();
     if (userInfo && userInfo.username) {
-      document.getElementById('user-info').textContent = `Signed in as: ${userInfo.username}`;
-      document.getElementById('user-info').classList.remove('hidden');
+      const userInfoElement = document.getElementById('user-info');
+      const usernameText = userInfoElement.querySelector('.username-text');
+      
+      if (usernameText) {
+        usernameText.textContent = userInfo.username;
+      } else {
+        userInfoElement.innerHTML = `<i class="fa fa-user text-gray-600 dark:text-gray-400 mr-2"></i><span class="username-text">${userInfo.username}</span>`;
+      }
+      
+      userInfoElement.classList.remove('hidden');
       document.getElementById('puter-login-btn').classList.add('hidden');
       document.getElementById('signout-btn').classList.remove('hidden');
     } else {
@@ -111,6 +119,9 @@ function setupEventListeners() {
       toggleMultiModel();
     });
   }
+  
+  // Initialize models list in settings
+  populateModelsSettings();
 
   // Feature buttons
   document.getElementById('btn-new-chat').addEventListener('click', startNewChat);
@@ -309,14 +320,65 @@ function toggleMultiModel() {
   if (isMultiModel) {
     // Hide main model select and show multi model UI
     document.getElementById('model-select-container').classList.add('hidden');
-    // Add multi model interface here
+    document.getElementById('multi-model-container').classList.remove('hidden');
+    
+    // Initialize multi model interface if empty
+    const multiModelList = document.getElementById('multi-model-list');
+    if (multiModelList && multiModelList.children.length === 0) {
+      // Add initial model dropdown
+      addMultiModelSelect();
+    }
   } else {
     // Show main model select and hide multi model UI
     document.getElementById('model-select-container').classList.remove('hidden');
-    // Hide multi model interface here
+    document.getElementById('multi-model-container').classList.add('hidden');
   }
 
   saveSettings();
+}
+
+// Add a new model select dropdown to the multi-model interface
+function addMultiModelSelect() {
+  const multiModelList = document.getElementById('multi-model-list');
+  const multiModelActions = document.getElementById('multi-model-actions');
+  
+  if (!multiModelList || !multiModelActions) return;
+  
+  // Create model select container
+  const selectContainer = document.createElement('div');
+  selectContainer.className = 'flex items-center mb-2';
+  
+  // Create model select dropdown
+  const select = document.createElement('select');
+  select.className = 'bg-gray-50 border rounded-cool py-1 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 flat dark:bg-gray-800 mr-2 flex-1';
+  
+  // Populate with same options as main model select
+  if (modelSelect) {
+    const options = modelSelect.innerHTML;
+    select.innerHTML = options;
+  }
+  
+  // Create remove button
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'text-red-500 hover:text-red-700';
+  removeBtn.innerHTML = '<i class="fa fa-times"></i>';
+  removeBtn.addEventListener('click', function() {
+    selectContainer.remove();
+  });
+  
+  // Add elements to container
+  selectContainer.appendChild(select);
+  selectContainer.appendChild(removeBtn);
+  multiModelList.appendChild(selectContainer);
+  
+  // Make sure the add button exists
+  if (multiModelActions.children.length === 0) {
+    const addBtn = document.createElement('button');
+    addBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded-cool';
+    addBtn.innerHTML = '<i class="fa fa-plus mr-1"></i> Add Model';
+    addBtn.addEventListener('click', addMultiModelSelect);
+    multiModelActions.appendChild(addBtn);
+  }
 }
 
 // Toggle OpenRouter models
@@ -330,6 +392,9 @@ function toggleOpenRouter() {
     // Show standard models
     populateModelSelect(false);
   }
+  
+  // Update models settings list
+  populateModelsSettings();
 
   saveSettings();
 }
@@ -532,22 +597,164 @@ function updateModelList() {
   populateModelSelect(openRouterToggle.checked);
 }
 
+// Populate models list in settings
+function populateModelsSettings() {
+  const modelsList = document.getElementById('models-list');
+  if (!modelsList) return;
+  
+  // Clear existing items
+  modelsList.innerHTML = '';
+  
+  // Get models based on OpenRouter toggle
+  const isOpenRouter = openRouterToggle.checked;
+  let modelsToShow = isOpenRouter ? openRouterModels : allModels;
+  
+  // Create model items for each provider and model
+  for (const provider in modelsToShow) {
+    // Provider header
+    const providerHeader = document.createElement('div');
+    providerHeader.className = 'font-medium text-sm border-b border-gray-200 dark:border-gray-700 py-2 mb-2';
+    providerHeader.textContent = provider;
+    modelsList.appendChild(providerHeader);
+    
+    // Models from this provider
+    modelsToShow[provider].forEach(model => {
+      const modelItem = document.createElement('div');
+      modelItem.className = 'model-item flex justify-between items-center py-2 px-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md';
+      
+      const modelInfo = document.createElement('div');
+      modelInfo.className = 'flex-1';
+      
+      const modelName = document.createElement('div');
+      modelName.className = 'model-name font-medium text-sm';
+      modelName.textContent = model.name;
+      
+      const modelProvider = document.createElement('div');
+      modelProvider.className = 'model-provider text-xs text-gray-500';
+      modelProvider.textContent = model.provider;
+      
+      modelInfo.appendChild(modelName);
+      modelInfo.appendChild(modelProvider);
+      
+      const modelToggles = document.createElement('div');
+      modelToggles.className = 'flex items-center space-x-3';
+      
+      // Enabled toggle
+      const enabledLabel = document.createElement('label');
+      enabledLabel.className = 'flex items-center cursor-pointer';
+      enabledLabel.title = 'Enable/Disable Model';
+      
+      const enabledCheckbox = document.createElement('input');
+      enabledCheckbox.type = 'checkbox';
+      enabledCheckbox.className = 'sr-only';
+      enabledCheckbox.checked = model.enabled;
+      enabledCheckbox.addEventListener('change', function() {
+        model.enabled = this.checked;
+        saveSettings();
+        updateModelList();
+      });
+      
+      const enabledToggle = document.createElement('div');
+      enabledToggle.className = 'relative w-10 h-5 bg-gray-300 rounded-full transition';
+      if (model.enabled) {
+        enabledToggle.classList.add('bg-green-500');
+      }
+      
+      const enabledDot = document.createElement('div');
+      enabledDot.className = 'absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition';
+      if (model.enabled) {
+        enabledDot.style.transform = 'translateX(100%)';
+      }
+      
+      enabledToggle.appendChild(enabledDot);
+      enabledLabel.appendChild(enabledCheckbox);
+      enabledLabel.appendChild(enabledToggle);
+      
+      // Streaming toggle
+      const streamingLabel = document.createElement('label');
+      streamingLabel.className = 'flex items-center cursor-pointer';
+      streamingLabel.title = 'Streaming Support';
+      
+      const streamingCheckbox = document.createElement('input');
+      streamingCheckbox.type = 'checkbox';
+      streamingCheckbox.className = 'sr-only';
+      streamingCheckbox.checked = model.streaming;
+      streamingCheckbox.addEventListener('change', function() {
+        model.streaming = this.checked;
+        saveSettings();
+        updateModelList();
+      });
+      
+      const streamingToggle = document.createElement('div');
+      streamingToggle.className = 'relative w-10 h-5 bg-gray-300 rounded-full transition';
+      if (model.streaming) {
+        streamingToggle.classList.add('bg-blue-500');
+      }
+      
+      const streamingDot = document.createElement('div');
+      streamingDot.className = 'absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition';
+      if (model.streaming) {
+        streamingDot.style.transform = 'translateX(100%)';
+      }
+      
+      streamingToggle.appendChild(streamingDot);
+      streamingLabel.appendChild(streamingCheckbox);
+      streamingLabel.appendChild(streamingToggle);
+      
+      modelToggles.appendChild(enabledLabel);
+      modelToggles.appendChild(streamingLabel);
+      
+      modelItem.appendChild(modelInfo);
+      modelItem.appendChild(modelToggles);
+      
+      modelsList.appendChild(modelItem);
+    });
+  }
+}
+
 // Filter models in settings by search term
 function filterModels(searchTerm) {
   const modelsList = document.getElementById('models-list');
+  if (!modelsList) return;
+  
   const items = modelsList.querySelectorAll('.model-item');
+  const headers = modelsList.querySelectorAll('.font-medium.text-sm.border-b');
 
   searchTerm = searchTerm.toLowerCase();
+
+  // Hide/show all headers initially
+  headers.forEach(header => {
+    header.style.display = 'none';
+  });
+
+  // Track which headers have visible items
+  const visibleHeaders = new Set();
 
   items.forEach(item => {
     const modelName = item.querySelector('.model-name').textContent.toLowerCase();
     const modelProvider = item.querySelector('.model-provider').textContent.toLowerCase();
+    const prevHeader = item.previousElementSibling;
 
     if (modelName.includes(searchTerm) || modelProvider.includes(searchTerm)) {
       item.style.display = 'flex';
+      
+      // Find the header for this item
+      let header = item.previousElementSibling;
+      while (header && !header.classList.contains('font-medium')) {
+        header = header.previousElementSibling;
+      }
+      
+      if (header) {
+        visibleHeaders.add(header);
+      }
     } else {
       item.style.display = 'none';
     }
+  });
+
+  // Show headers that have visible items
+  visibleHeaders.forEach(header => {
+    header.style.display = 'block';
   });
 }
 
@@ -620,29 +827,44 @@ async function sendMessageToModel(message, modelId) {
 
     if (isStreaming) {
       // Streaming response
-      const stream = await puter.ai.chat({
-        model: modelId,
-        messages: [{ role: 'user', content: message }],
-        stream: true
-      });
+      try {
+        const stream = await puter.ai.chat({
+          model: modelId,
+          messages: [{ role: 'user', content: message }],
+          stream: true
+        });
 
-      let streamContent = '';
+        let streamContent = '';
 
-      for await (const chunk of stream) {
-        streamContent += chunk.choices[0]?.delta?.content || '';
-        updateMessage(aiMessageId, formatAIResponse(streamContent), modelId);
+        for await (const chunk of stream) {
+          streamContent += chunk.choices[0]?.delta?.content || '';
+          updateMessage(aiMessageId, formatAIResponse(streamContent), modelId);
+        }
+
+        aiResponse = streamContent;
+      } catch (streamError) {
+        console.log("Streaming error:", streamError);
+        throw streamError;
       }
-
-      aiResponse = streamContent;
     } else {
       // Non-streaming response
-      const response = await puter.ai.chat({
-        model: modelId,
-        messages: [{ role: 'user', content: message }]
-      });
+      try {
+        const response = await puter.ai.chat({
+          model: modelId,
+          messages: [{ role: 'user', content: message }]
+        });
 
-      aiResponse = response.choices[0]?.message?.content || 'No response';
-      updateMessage(aiMessageId, formatAIResponse(aiResponse), modelId);
+        if (response && response.choices && response.choices[0] && response.choices[0].message) {
+          aiResponse = response.choices[0].message.content || 'No response';
+        } else {
+          aiResponse = 'Received invalid response format';
+        }
+        
+        updateMessage(aiMessageId, formatAIResponse(aiResponse), modelId);
+      } catch (responseError) {
+        console.log("Response error:", responseError);
+        throw responseError;
+      }
     }
 
     // Cache the response
@@ -1032,6 +1254,13 @@ function togglePopup(popupId, show) {
   if (show) {
     popup.classList.remove('hidden');
     overlay.classList.remove('hidden');
+    
+    // Add click outside to dismiss
+    overlay.onclick = function(event) {
+      if (event.target === overlay) {
+        togglePopup(popupId, false);
+      }
+    };
   } else {
     popup.classList.add('hidden');
     overlay.classList.add('hidden');
@@ -1466,10 +1695,25 @@ function selectThemePreview(theme) {
   applyTheme(theme);
 
   if (theme === 'custom') {
-    toggleCustomThemeEditor();
-  } else {
-    document.getElementById('custom-theme-editor').classList.add('hidden');
+    // Open custom theme editor popup instead
+    togglePopup('custom-theme', true);
   }
+}
+
+// Open custom theme editor
+function openCustomThemeEditor() {
+  togglePopup('custom-theme', true);
+  
+  // Update the color inputs with current custom theme values
+  document.getElementById('custom-background').value = customTheme.background;
+  document.getElementById('custom-text').value = customTheme.text;
+  document.getElementById('custom-header').value = customTheme.header;
+  document.getElementById('custom-footer').value = customTheme.footer;
+  document.getElementById('custom-popups').value = customTheme.popups;
+  document.getElementById('custom-borders').value = customTheme.borders;
+  document.getElementById('custom-user-bubble').value = customTheme.userBubble;
+  document.getElementById('custom-model-bubble').value = customTheme.modelBubble;
+  document.getElementById('custom-dropdowns').value = customTheme.dropdowns;
 }
 
 // Save settings to localStorage
