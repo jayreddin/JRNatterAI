@@ -387,6 +387,32 @@ select#model-select {
   border: 1px solid #163253;
 }
 
+.forest-theme {
+  background: linear-gradient(120deg,#e3ffe7 0%,#d9e7ff 100%);
+}
+
+.forest-theme::after {
+  background: #1e3a23;
+}
+
+.forest-theme::before {
+  background: rgba(240,255,242,0.7);
+  border: 1px solid #1e3a23;
+}
+
+.midnight-theme {
+  background: linear-gradient(120deg,#0f2027 0%,#203a43 50%,#2c5364 100%);
+}
+
+.midnight-theme::after {
+  background: #e0e0e0;
+}
+
+.midnight-theme::before {
+  background: rgba(40,60,70,0.7);
+  border: 1px solid #e0e0e0;
+}
+
 .dark-theme {
   background: #181a1b;
 }
@@ -398,6 +424,71 @@ select#model-select {
 .dark-theme::before {
   background: #333;
   border: 1px solid #555;
+}
+
+.custom-theme {
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #444;
+}
+
+/* Make theme options more attractive */
+.theme-option {
+  border-radius: 10px;
+  padding: 5px;
+  transition: all 0.3s ease;
+}
+
+.theme-option:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+/* Custom theme editor styles */
+#custom-theme-editor {
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+#custom-theme-editor input[type="color"] {
+  cursor: pointer;
+  border: 1px solid #ccc;
+  transition: all 0.2s ease;
+}
+
+#custom-theme-editor input[type="color"]:hover {
+  transform: scale(1.05);
+}
+
+.dark-mode #custom-theme-editor {
+  border-top-color: #444;
+}
+
+/* Make model select scrollable */
+#model-select {
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+#model-select::-webkit-scrollbar {
+  width: 6px;
+}
+
+#model-select::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+#model-select::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+#model-select::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .dark-mode .feature-btn {

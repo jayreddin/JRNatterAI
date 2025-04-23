@@ -326,9 +326,23 @@
                 <div class="theme-preview multicolored-theme"></div>
                 <span>Multicolored</span>
               </div>
+              <div class="theme-option" data-theme="forest" onclick="selectThemePreview('forest')">
+                <div class="theme-preview forest-theme"></div>
+                <span>Forest</span>
+              </div>
+              <div class="theme-option" data-theme="midnight" onclick="selectThemePreview('midnight')">
+                <div class="theme-preview midnight-theme"></div>
+                <span>Midnight</span>
+              </div>
               <div class="theme-option" data-theme="dark" onclick="selectThemePreview('dark')">
                 <div class="theme-preview dark-theme"></div>
                 <span>Dark</span>
+              </div>
+              <div class="theme-option" data-theme="custom" onclick="toggleCustomThemeEditor()">
+                <div class="theme-preview custom-theme">
+                  <i class="fa fa-paint-brush text-xl flex items-center justify-center h-full"></i>
+                </div>
+                <span>Custom</span>
               </div>
             </div>
             <select id="theme-select" class="flat rounded-cool px-3 py-1 dark:bg-gray-800 dark:text-base hidden">
@@ -336,8 +350,62 @@
               <option value="light">Light</option>
               <option value="sunset">Sunset</option>
               <option value="multicolored">Multicolored</option>
+              <option value="forest">Forest</option>
+              <option value="midnight">Midnight</option>
               <option value="dark">Dark Mode</option>
+              <option value="custom">Custom</option>
             </select>
+            
+            <!-- Custom Theme Editor -->
+            <div id="custom-theme-editor" class="mt-4 hidden">
+              <h3 class="font-semibold mb-2">Custom Theme Editor</h3>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Background</label>
+                  <input type="color" id="custom-background" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Text Color</label>
+                  <input type="color" id="custom-text" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Header</label>
+                  <input type="color" id="custom-header" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Footer</label>
+                  <input type="color" id="custom-footer" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Popups</label>
+                  <input type="color" id="custom-popups" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Borders</label>
+                  <input type="color" id="custom-borders" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">User Bubble</label>
+                  <input type="color" id="custom-user-bubble" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Model Bubble</label>
+                  <input type="color" id="custom-model-bubble" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Dropdowns</label>
+                  <input type="color" id="custom-dropdowns" class="w-full h-8 cursor-pointer rounded">
+                </div>
+              </div>
+              <div class="mt-3 flex justify-between">
+                <button id="preview-custom-theme" class="bg-blue-600 hover:bg-blue-700 text-base px-3 py-1 rounded-cool text-sm">
+                  Preview
+                </button>
+                <button id="reset-custom-theme" class="bg-gray-500 hover:bg-gray-600 text-base px-3 py-1 rounded-cool text-sm">
+                  Reset
+                </button>
+              </div>
+            </div>
           </div>
           
           <div class="flex items-center justify-between mt-3 mb-2">
