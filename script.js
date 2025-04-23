@@ -12,7 +12,7 @@ let userSettings = {
 const responseCache = {
   cache: new Map(),
   maxSize: 100,
-  
+
   set(key, value) {
     if (this.cache.size >= this.maxSize) {
       const firstKey = this.cache.keys().next().value;
@@ -23,7 +23,7 @@ const responseCache = {
       timestamp: Date.now()
     });
   },
-  
+
   get(key) {
     const entry = this.cache.get(key);
     if (entry && Date.now() - entry.timestamp < 3600000) { // 1 hour cache
@@ -31,7 +31,7 @@ const responseCache = {
     }
     return null;
   },
-  
+
   clear() {
     this.cache.clear();
   }
@@ -57,12 +57,12 @@ function cleanupChatHistory() {
   if (chatHistory.length > maxMessages) {
     chatHistory = chatHistory.slice(-maxMessages);
   }
-  
+
   // Clean up memory from deleted messages
   if (currentChat.length > maxMessages) {
     currentChat = currentChat.slice(-maxMessages);
   }
-  
+
   // Force garbage collection of unused images
   document.querySelectorAll('img').forEach(img => {
     if (!img.parentNode) {
@@ -85,7 +85,7 @@ function addMessageToThread(message, threadId = null) {
     threadId = Date.now().toString();
     messageThreads.set(threadId, createThread(threadId));
   }
-  
+
   const thread = messageThreads.get(threadId);
   if (thread) {
     thread.messages.push(message);
@@ -97,7 +97,7 @@ function addMessageToThread(message, threadId = null) {
 function renderThreadedChat() {
   const container = document.getElementById('chat-container');
   container.innerHTML = '';
-  
+
   // Render main thread
   messageThreads.forEach((thread, threadId) => {
     if (!thread.parent) {
@@ -109,12 +109,12 @@ function renderThreadedChat() {
 function renderThread(thread, container) {
   const threadDiv = document.createElement('div');
   threadDiv.className = 'thread-container mb-4';
-  
+
   thread.messages.forEach(message => {
     const messageDiv = createMessageElement(message);
     threadDiv.appendChild(messageDiv);
   });
-  
+
   // Render child threads
   thread.children.forEach(childId => {
     const childThread = messageThreads.get(childId);
@@ -125,7 +125,7 @@ function renderThread(thread, container) {
       threadDiv.appendChild(childDiv);
     }
   });
-  
+
   container.appendChild(threadDiv);
 }
 
@@ -305,22 +305,22 @@ document.getElementById('chat-input').addEventListener('keydown', function(e) {
 // send to AI
 async function aiSend(txt, model, usetime) {
   const models = multiModelMode ? selectedModels : [model];
-  
+
   for (const currentModel of models) {
     const idx = currentChat.length;
     currentChat.push({ role: 'model', content: "...", time: nowStr(), model: currentModel });
     renderChat();
-    
+
     try {
       const opts = { 
         model: currentModel,
         stream: streamingMode && isModelStreamCapable(currentModel)
       };
-      
+
       if (opts.stream) {
         let fullResponse = '';
         const stream = await puter.ai.chat(txt, opts);
-        
+
         for await (const chunk of stream) {
           fullResponse += chunk;
           currentChat[idx].content = fullResponse;
@@ -779,8 +779,7 @@ function populateModelsList(showEnabledOnly = false) {
     modelsList.appendChild(providerHeader);
 
     // Add models for this provider
-    modelsByProvider[provider].forEach(model => {
-      const modelItem = document.createElement('div');
+    modelsByProvider[provider].forEach(model => {      const modelItem = document.createElement('div');
       modelItem.className = 'model-item flex items-center justify-between border-b pb-2 mb-2';
       modelItem.dataset.provider = provider;
 
@@ -1151,7 +1150,7 @@ async function handlePuterAuth(event) {
 
     await puter.auth.signIn();
     const user = await puter.auth.getUser();
-    
+
     if (user?.username) {
       loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
       userInfo.textContent = user.username;
@@ -1302,13 +1301,13 @@ function toggleStreamingMode(enabled) {
     userSettings.streamingMode = enabled;
     saveSettings();
     updateModelSelectOptions();
-    
+
     // Update UI to reflect streaming mode
     const streamToggle = document.getElementById('streaming-toggle');
     if (streamToggle) {
       streamToggle.checked = enabled;
     }
-    
+
     // Disable non-streaming models
     const modelSelect = document.getElementById('model-select');
     if (modelSelect) {
@@ -1326,17 +1325,17 @@ function toggleMultiModel(enabled) {
   try {
     multiModelMode = enabled;
     userSettings.multiModelMode = enabled;
-    
+
     // Update UI
     const multiToggle = document.getElementById('multi-toggle');
     if (multiToggle) {
       multiToggle.checked = enabled;
     }
-  
+
   // Update UI for multi-model selection
   const modelSelect = document.getElementById('model-select');
   const container = document.getElementById('model-select-container');
-  
+
   if (enabled) {
     selectedModels = [modelSelect.value];
     // Add multi-select container if it doesn't exist
@@ -1385,7 +1384,7 @@ function toggleMultiModel(enabled) {
 function updateMultiModelDisplay() {
   const container = document.getElementById('multi-model-container');
   if (!container) return;
-  
+
   container.innerHTML = '';
   selectedModels.forEach((model, idx) => {
     const chip = document.createElement('div');
@@ -1412,17 +1411,17 @@ async function initializeApp() {
   try {
     // Load settings first
     loadSettings();
-    
+
     // Initialize UI components
     renderChat();
     initializeTheme();
-    
+
     // Check auth state once
     if (puter.auth.isSignedIn()) {
       const user = await puter.auth.getUser();
       updateAuthUI(user);
     }
-    
+
     // Add models only if OpenRouter is enabled
     if (userSettings.openRouterEnabled) {
       addOpenRouterModels();
@@ -1448,7 +1447,7 @@ function initializeTheme() {
 function updateAuthUI(user) {
   const loginBtn = document.getElementById('puter-login-btn');
   const userInfo = document.getElementById('user-info');
-  
+
   if (user?.username) {
     loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
     userInfo.textContent = user.username;
