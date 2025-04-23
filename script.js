@@ -95,11 +95,21 @@ function togglePopup(name, open) {
 
 // Close all popups when overlay is clicked
 if (popupOverlay) {
-  popupOverlay.onclick = function() {
-    document.querySelectorAll('.popup-ptr').forEach(el => el.classList.add('hidden'));
-    popupOverlay.classList.add('hidden');
+  popupOverlay.onclick = function(event) {
+    // Only close if the overlay itself was clicked, not its children
+    if (event.target === popupOverlay) {
+      document.querySelectorAll('.popup-ptr').forEach(el => el.classList.add('hidden'));
+      popupOverlay.classList.add('hidden');
+    }
   }
 }
+
+// Prevent clicks on popup windows from closing the popup
+document.querySelectorAll('.popup-ptr').forEach(popup => {
+  popup.addEventListener('click', function(event) {
+    event.stopPropagation();
+  });
+});
 
 // ---- CHAT MESSAGE RENDERING ----
 function renderChat() {

@@ -42,12 +42,31 @@ img, video {
 }
 
 .dark-mode .flat,
-.dark-mode #popup-overlay .popup-ptr,
 .dark-mode .popup-ptr,
 .dark-mode #main-header {
   background: #181a1b !important;
   color: #e5e7eb !important;
   border-color: #444;
+}
+
+/* Ensure popup-overlay is transparent and popups are visible */
+#popup-overlay {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode #popup-overlay {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.popup-ptr {
+  position: fixed;
+  z-index: 60;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 90%;
+  max-height: 90%;
+  overflow: auto;
 }
 
 .dark-mode input, 
