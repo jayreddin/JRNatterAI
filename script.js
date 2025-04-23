@@ -1,3 +1,4 @@
+
 // ---- GLOBALS ----
 let chatHistory = [];
 let currentChat = [];
@@ -7,6 +8,15 @@ let selectedModels = [];
 let userSettings = {
   textSize: 16,
   theme: 'light',
+  streamingMode: false,
+  multiModelMode: false,
+  enabledModels: [
+    "gpt-4o-mini", "gpt-4o", "o1", "o1-mini", "o1-pro", "o3", "o3-mini", "o4-mini", "gpt-4.1", "gpt-4.1-mini",
+    "gpt-4.1-nano", "gpt-4.5-preview", "claude-3-7-sonnet", "claude-3-5-sonnet", "deepseek-chat", "deepseek-reasoner",
+    "gemini-2.0-flash", "gemini-1.5-flash", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo", "mistral-large-latest", "pixtral-large-latest", "codestral-latest", "google/gemma-2-27b-it", "grok-beta"
+  ],
+  speechVoice: "en-US" // Add default speech voice
+};
 
 // Response cache implementation
 const responseCache = {
@@ -37,7 +47,6 @@ const responseCache = {
   }
 };
 
-
 // Debouncing implementation
 function debounce(func, wait) {
   let timeout;
@@ -67,6 +76,9 @@ function cleanupChatHistory() {
   document.querySelectorAll('img').forEach(img => {
     if (!img.parentNode) {
       URL.revokeObjectURL(img.src);
+    }
+  });
+}
 
 // Message threading implementation
 const messageThreads = new Map();
@@ -129,22 +141,9 @@ function renderThread(thread, container) {
   container.appendChild(threadDiv);
 }
 
-    }
-  });
-}
-
 // Run cleanup periodically
 setInterval(cleanupChatHistory, 300000); // Every 5 minutes
 
-  streamingMode: false,
-  multiModelMode: false,
-  enabledModels: [
-    "gpt-4o-mini", "gpt-4o", "o1", "o1-mini", "o1-pro", "o3", "o3-mini", "o4-mini", "gpt-4.1", "gpt-4.1-mini",
-    "gpt-4.1-nano", "gpt-4.5-preview", "claude-3-7-sonnet", "claude-3-5-sonnet", "deepseek-chat", "deepseek-reasoner",
-    "gemini-2.0-flash", "gemini-1.5-flash", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo", "mistral-large-latest", "pixtral-large-latest", "codestral-latest", "google/gemma-2-27b-it", "grok-beta"
-  ],
-  speechVoice: "en-US" // Add default speech voice
-};
 let isDarkMode = false;
 // Utility for date/time
 function nowStr() {
@@ -173,13 +172,133 @@ function setTheme(mode) {
   saveSettings();
 }
 
-document.getElementById('toggle-mode').onclick = function() {
-  isDarkMode = !isDarkMode;
-  setTheme(isDarkMode ? 'dark' : 'light');
-  // Show sun or moon icon
-  document.getElementById('moon-icon').classList.toggle('hidden', isDarkMode);
-  document.getElementById('sun-icon').classList.toggle('hidden', !isDarkMode);
+// Toggle streaming mode
+function toggleStreamingMode(enabled) {
+  try {
+    streamingMode = enabled;
+    userSettings.streamingMode = enabled;
+    saveSettings();
+    updateModelSelectOptions();
+
+    // Update UI to reflect streaming mode
+    const streamToggle = document.getElementById('streaming-toggle');
+    if (streamToggle) {
+      streamToggle.checked = enabled;
+    }
+
+    // Disable non-streaming models
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect) {
+      Array.from(modelSelect.options).forEach(option => {
+        option.disabled = enabled && !isModelStreamCapable(option.value);
+      });
+    }
+  } catch (error) {
+    console.error('Error toggling streaming mode:', error);
+  }
 }
+
+// Toggle multi-model mode
+function toggleMultiModel(enabled) {
+  try {
+    multiModelMode = enabled;
+    userSettings.multiModelMode = enabled;
+
+    // Update UI
+    const multiToggle = document.getElementById('multi-toggle');
+    if (multiToggle) {
+      multiToggle.checked = enabled;
+    }
+
+    // Update UI for multi-model selection
+    const modelSelect = document.getElementById('model-select');
+    const container = document.getElementById('model-select-container');
+
+    if (enabled) {
+      selectedModels = [modelSelect.value];
+      // Add multi-select container if it doesn't exist
+      if (!document.getElementById('multi-model-container')) {
+        const multiContainer = document.createElement('div');
+        multiContainer.id = 'multi-model-container';
+        multiContainer.className = 'flex flex-wrap gap-2 mt-2';
+        container.appendChild(multiContainer);
+      }
+      // Add + buttons to options
+      Array.from(modelSelect.options).forEach(opt => {
+        if (!opt.dataset.hasPlus) {
+          const plusBtn = document.createElement('button');
+          plusBtn.innerHTML = '+';
+          plusBtn.className = 'ml-2 px-1 text-xs bg-blue-500 text-white rounded';
+          plusBtn.onclick = (e) => {
+            e.preventDefault();
+            if (!selectedModels.includes(opt.value)) {
+              selectedModels.push(opt.value);
+              updateMultiModelDisplay();
+            }
+          };
+          opt.dataset.hasPlus = 'true';
+          opt.innerHTML += ' ';
+          opt.appendChild(plusBtn);
+        }
+      });
+    } else {
+      selectedModels = [modelSelect.value];
+      // Remove multi-select container
+      const multiContainer = document.getElementById('multi-model-container');
+      if (multiContainer) multiContainer.remove();
+      // Remove + buttons
+      Array.from(modelSelect.options).forEach(opt => {
+        if (opt.dataset.hasPlus) {
+          opt.innerHTML = opt.innerHTML.replace(/ \+$/, '');
+          delete opt.dataset.hasPlus;
+        }
+      });
+    }
+    updateMultiModelDisplay();
+    saveSettings();
+  } catch (error) {
+    console.error('Error toggling multi-model mode:', error);
+  }
+}
+
+// Update multi-model display
+function updateMultiModelDisplay() {
+  const container = document.getElementById('multi-model-container');
+  if (!container) return;
+
+  container.innerHTML = '';
+  selectedModels.forEach((model, idx) => {
+    const chip = document.createElement('div');
+    chip.className = 'bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded-full text-sm flex items-center';
+    chip.innerHTML = `
+      ${model}
+      <button class="ml-2 text-red-500 hover:text-red-700" onclick="removeModel(${idx})">×</button>
+    `;
+    container.appendChild(chip);
+  });
+}
+
+// Remove model from selection
+window.removeModel = function(idx) {
+  selectedModels.splice(idx, 1);
+  if (selectedModels.length === 0) {
+    selectedModels = [document.getElementById('model-select').value];
+  }
+  updateMultiModelDisplay();
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+  const toggleModeButton = document.getElementById('toggle-mode');
+  if (toggleModeButton) {
+    toggleModeButton.onclick = function() {
+      isDarkMode = !isDarkMode;
+      setTheme(isDarkMode ? 'dark' : 'light');
+      // Show sun or moon icon
+      document.getElementById('moon-icon').classList.toggle('hidden', isDarkMode);
+      document.getElementById('sun-icon').classList.toggle('hidden', !isDarkMode);
+    };
+  }
+});
 
 // ---- POPUP DIALOGS ----
 const popupOverlay = document.getElementById('popup-overlay');
@@ -236,7 +355,7 @@ if (popupOverlay) {
       document.querySelectorAll('.popup-ptr').forEach(el => el.classList.add('hidden'));
       popupOverlay.classList.add('hidden');
     }
-  }
+  };
 }
 
 // Prevent clicks on popup windows from closing the popup
@@ -249,6 +368,8 @@ document.querySelectorAll('.popup-ptr').forEach(popup => {
 // ---- CHAT MESSAGE RENDERING ----
 function renderChat() {
   const container = document.getElementById('chat-container');
+  if (!container) return;
+  
   // Newest at top
   container.innerHTML = "";
   for (let i = currentChat.length - 1; i >= 0; i--) {
@@ -273,35 +394,47 @@ function renderChat() {
 }
 
 // ---- CHAT INPUT ----
-document.getElementById('chat-form').onsubmit = async function(e) {
-  e.preventDefault();
-  let chatInput = document.getElementById('chat-input');
-  let txt = chatInput.value.trim();
-  if (!txt) return;
-  const model = document.getElementById('model-select').value;
-  const time = nowStr();
-  currentChat.push({ role: 'user', content: txt, time, model: null });
-  renderChat();
-  chatInput.value = "";
-  // Reset the height of textarea
-  chatInput.style.height = 'auto';
-  await aiSend(txt, model, time);
-}
+document.addEventListener('DOMContentLoaded', function() {
+  const chatForm = document.getElementById('chat-form');
+  if (chatForm) {
+    chatForm.onsubmit = async function(e) {
+      e.preventDefault();
+      let chatInput = document.getElementById('chat-input');
+      let txt = chatInput.value.trim();
+      if (!txt) return;
+      const model = document.getElementById('model-select').value;
+      const time = nowStr();
+      currentChat.push({ role: 'user', content: txt, time, model: null });
+      renderChat();
+      chatInput.value = "";
+      // Reset the height of textarea
+      chatInput.style.height = 'auto';
+      await aiSend(txt, model, time);
+    };
+  }
 
-// Auto-resize textarea as user types
-document.getElementById('chat-input').addEventListener('input', function() {
-  this.style.height = 'auto';
-  this.style.height = (this.scrollHeight) + 'px';
-});
+  // Auto-resize textarea as user types
+  const chatInput = document.getElementById('chat-input');
+  if (chatInput) {
+    chatInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
 
-// Add event listener for Enter key press on the chat input
-document.getElementById('chat-input').addEventListener('keydown', function(e) {
-  // Check if Enter was pressed (without shift for new line)
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault(); // Prevent default to avoid new line
-    document.getElementById('chat-form').dispatchEvent(new Event('submit'));
+    // Add event listener for Enter key press on the chat input
+    chatInput.addEventListener('keydown', function(e) {
+      // Check if Enter was pressed (without shift for new line)
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault(); // Prevent default to avoid new line
+        const chatForm = document.getElementById('chat-form');
+        if (chatForm) {
+          chatForm.dispatchEvent(new Event('submit'));
+        }
+      }
+    });
   }
 });
+
 // send to AI
 async function aiSend(txt, model, usetime) {
   const models = multiModelMode ? selectedModels : [model];
@@ -328,56 +461,65 @@ async function aiSend(txt, model, usetime) {
         }
       } else {
         const resp = await puter.ai.chat(txt, opts);
-    let text = '';
+        let text = '';
 
-    // Handle different response formats
-    if (resp.message && resp.message.text) {
-      text = resp.message.text;
-    } else if (resp.message && resp.message.content) {
-      text = resp.message.content;
-    } else if (resp.text) {
-      text = resp.text;
-    } else if (typeof resp === 'string') {
-      text = resp;
-    } else {
-      // If we get here, format the response as a string
-      text = JSON.stringify(resp);
+        // Handle different response formats
+        if (resp.message && resp.message.text) {
+          text = resp.message.text;
+        } else if (resp.message && resp.message.content) {
+          text = resp.message.content;
+        } else if (resp.text) {
+          text = resp.text;
+        } else if (typeof resp === 'string') {
+          text = resp;
+        } else {
+          // If we get here, format the response as a string
+          text = JSON.stringify(resp);
+        }
+
+        currentChat[idx] = { role: 'model', content: text, time: nowStr(), model: currentModel };
+        renderChat();
+      }
+    } catch (err) {
+      console.error("AI error:", err);
+      currentChat[idx] = { role: 'model', content: "[ERROR]: " + (err.message || JSON.stringify(err)), time: nowStr(), model: currentModel };
+      renderChat();
     }
-
-    currentChat[idx] = { role: 'model', content: text, time: nowStr(), model };
-    renderChat();
-  } catch (err) {
-    console.error("AI error:", err);
-    currentChat[idx] = { role: 'model', content: "[ERROR]: " + (err.message || JSON.stringify(err)), time: nowStr(), model };
-    renderChat();
   }
 }
 
 // ---- MSG ICON TASKS ----
 window.resendMsg = async function(idx) {
   const m = currentChat[idx];
-  if (m.role === 'user') { aiSend(m.content, document.getElementById('model-select').value, nowStr()); }
-  else if (m.role === 'model') {//resend prompt before
+  if (m.role === 'user') { 
+    aiSend(m.content, document.getElementById('model-select').value, nowStr()); 
+  } else if (m.role === 'model') { //resend prompt before
     if (idx > 0 && currentChat[idx - 1].role === 'user') {
       aiSend(currentChat[idx - 1].content, m.model || document.getElementById('model-select').value, nowStr());
     }
   }
 };
+
 window.copyMsg = function(idx) {
   const m = currentChat[idx];
   let txt = typeof m.content === 'string' ? m.content : "";
   if (navigator.clipboard) navigator.clipboard.writeText(txt);
-}
+};
+
 window.deleteMsg = function(idx) {
-  currentChat.splice(idx, 1); renderChat();
-}
+  currentChat.splice(idx, 1); 
+  renderChat();
+};
+
 window.speakMsg = function(idx) {
   const m = currentChat[idx];
   const txt = typeof m.content === 'string' ? m.content : '';
-  const voice = document.getElementById('speech-voice-select').value; // Get selected voice
+  const speechVoiceSelect = document.getElementById('speech-voice-select');
+  const voice = speechVoiceSelect ? speechVoiceSelect.value : userSettings.speechVoice;
+  
   if (txt.length) {
     try {
-      puter.ai.txt2speech(txt, voice) // Use selected voice
+      puter.ai.txt2speech(txt, voice)
         .then(audio => { 
           if (audio) audio.play(); 
         })
@@ -389,23 +531,341 @@ window.speakMsg = function(idx) {
       console.error("Speech error:", err);
     }
   }
-}
+};
 
 // ---- FEATURE BUTTONS ----
-document.getElementById('btn-new-chat').onclick = function() {
-  if (currentChat.length > 0) {
-    // Save current chat to history with automatic topic headline
-    chatHistory.unshift({
-      title: autoTitle(currentChat),
-      when: new Date(),
-      messages: [...currentChat]
-    });
-    // limit history
-    if (chatHistory.length > 50) chatHistory.length = 50;
+document.addEventListener('DOMContentLoaded', function() {
+  const newChatBtn = document.getElementById('btn-new-chat');
+  if (newChatBtn) {
+    newChatBtn.onclick = function() {
+      if (currentChat.length > 0) {
+        // Save current chat to history with automatic topic headline
+        chatHistory.unshift({
+          title: autoTitle(currentChat),
+          when: new Date(),
+          messages: [...currentChat]
+        });
+        // limit history
+        if (chatHistory.length > 50) chatHistory.length = 50;
+      }
+      currentChat = [];
+      renderChat();
+    };
   }
-  currentChat = [];
-  renderChat();
-};
+
+  const historyBtn = document.getElementById('btn-history');
+  if (historyBtn) {
+    historyBtn.onclick = function() {
+      updateHistoryUI();
+      togglePopup('history', true);
+    };
+  }
+
+  const fileBtn = document.getElementById('btn-file');
+  if (fileBtn) {
+    fileBtn.onclick = function() {
+      togglePopup('file', true);
+    };
+  }
+
+  const imageBtn = document.getElementById('btn-image');
+  if (imageBtn) {
+    imageBtn.onclick = function() {
+      togglePopup('image', true);
+    };
+  }
+
+  const codeBtn = document.getElementById('btn-code');
+  if (codeBtn) {
+    codeBtn.onclick = function() {
+      togglePopup('code', true);
+      const codeResult = document.getElementById('code-result');
+      if (codeResult) codeResult.textContent = "";
+    };
+  }
+
+  const settingsBtn = document.getElementById('btn-settings');
+  if (settingsBtn) {
+    settingsBtn.onclick = function() {
+      // Show UI tab by default
+      const uiTab = document.getElementById('ui-tab');
+      if (uiTab) uiTab.click();
+
+      // Set text size
+      const textSizeRange = document.getElementById('text-size-range');
+      if (textSizeRange) textSizeRange.value = userSettings.textSize;
+
+      // Set theme
+      const themeSelect = document.getElementById('theme-select');
+      if (themeSelect) themeSelect.value = userSettings.theme;
+
+      // Setup OpenRouter toggle
+      const openrouterToggle = document.getElementById('openrouter-toggle');
+      if (openrouterToggle) openrouterToggle.checked = userSettings.openRouterEnabled || false;
+
+      // Populate models list
+      populateModelsList();
+
+      // Set speech voice
+      const speechVoiceSelect = document.getElementById('speech-voice-select');
+      if (speechVoiceSelect) speechVoiceSelect.value = userSettings.speechVoice;
+
+      togglePopup('settings', true);
+    };
+  }
+
+  // Setup tab switching functionality
+  document.querySelectorAll('#settings-tabs button').forEach(tab => {
+    tab.addEventListener('click', function() {
+      // Hide all tab contents
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+      });
+
+      // Remove active class from all tabs
+      document.querySelectorAll('#settings-tabs button').forEach(t => {
+        t.classList.remove('active', 'border-blue-600');
+        t.classList.add('border-transparent');
+      });
+
+      // Add active class to clicked tab
+      this.classList.add('active', 'border-blue-600');
+      this.classList.remove('border-transparent');
+
+      // Show corresponding tab content
+      const tabContentId = this.getAttribute('data-tab');
+      const tabContent = document.getElementById(tabContentId);
+      if (tabContent) tabContent.classList.remove('hidden');
+    });
+  });
+
+  // Set up text size range
+  const textSizeRange = document.getElementById('text-size-range');
+  if (textSizeRange) {
+    textSizeRange.oninput = function() {
+      document.body.style.fontSize = this.value + "px";
+      userSettings.textSize = this.value;
+      saveSettings();
+    };
+  }
+
+  // Set up theme selection
+  const themeSelect = document.getElementById('theme-select');
+  if (themeSelect) {
+    themeSelect.onchange = function(e) {
+      setTheme(e.target.value);
+    };
+  }
+
+  // Set up OCR extract text logic
+  const fileInputFile = document.getElementById('file-input-file');
+  if (fileInputFile) {
+    fileInputFile.onchange = async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const previewBox = document.getElementById('file-preview-box');
+      if (!previewBox) return;
+      
+      previewBox.innerHTML = "";
+      if (file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        previewBox.innerHTML = `<img src="${url}" class="rounded-cool border mx-auto mb-2" height="140" style="max-height:140px"><button id="ocr-btn" class="bg-blue-700 text-white flat px-3 py-1 rounded-cool mt-2">Extract Text</button> <div id="ocr-result" class="mt-3"></div>`;
+        
+        const ocrBtn = document.getElementById('ocr-btn');
+        if (ocrBtn) {
+          ocrBtn.onclick = async function() {
+            try {
+              let result = await puter.ai.img2txt(file);
+              result = result.trim() || "[No text detected]";
+              previewBox.innerHTML += `<div class="rounded-cool bg-gray-50 border mt-2 p-2 dark:bg-gray-900" id="ocrTextResult">${result}</div>
+                  <div class="flex mt-2 space-x-2">
+                    <button onclick="copyOCR()" class="feature-btn" title="Copy"><i class="fa fa-copy"></i></button>
+                    <button onclick="editOCR()" class="feature-btn" title="Edit"><i class="fa fa-pen"></i></button>
+                  </div>`;
+              window.copyOCR = function() { navigator.clipboard.writeText(result); };
+              window.editOCR = function() {
+                let cur = document.getElementById('ocrTextResult').textContent;
+                previewBox.innerHTML += `<textarea class='flat rounded-cool w-full mt-2' rows='3' id='ocrEdit'>${cur}</textarea><button onclick="saveOCR()" class="feature-btn mt-2"><i class="fa fa-save"></i></button>`;
+                window.saveOCR = function() {
+                  let v = document.getElementById('ocrEdit').value;
+                  document.getElementById('ocrTextResult').textContent = v;
+                };
+              };
+            } catch (err) {
+              previewBox.innerHTML += "<div class='text-red-600 mt-2'>OCR Error: " + err.message + "</div>";
+            }
+          };
+        }
+      } else if (file.type.startsWith('text/')) {
+        const txt = await file.text();
+        previewBox.innerHTML = `<pre class="rounded-cool bg-gray-100 border p-2 flat">${txt.slice(0, 2048)}</pre>`;
+      } else {
+        previewBox.innerHTML = `<div class='text-gray-500 mt-2'>Unsupported file format.</div>`;
+      }
+    };
+  }
+
+  // Set up generate image button
+  const generateImageBtn = document.getElementById('generate-image-btn');
+  if (generateImageBtn) {
+    generateImageBtn.onclick = generateImg;
+  }
+
+  // Set up refresh image button
+  const refreshImggenBtn = document.getElementById('refresh-imggen-btn');
+  if (refreshImggenBtn) {
+    refreshImggenBtn.onclick = function() {
+      const imageGenArea = document.getElementById('image-gen-area');
+      const imageGenPrompt = document.getElementById('image-gen-prompt');
+      if (imageGenArea) imageGenArea.innerHTML = '';
+      if (imageGenPrompt) imageGenPrompt.value = '';
+    };
+  }
+
+  // Set up generate code button
+  const generateCodeBtn = document.getElementById('generate-code-btn');
+  if (generateCodeBtn) {
+    generateCodeBtn.onclick = async function() {
+      const codeGenPrompt = document.getElementById('code-gen-prompt');
+      const codeResult = document.getElementById('code-result');
+      if (!codeGenPrompt || !codeResult) return;
+      
+      let prompt = codeGenPrompt.value.trim();
+      if (!prompt) return;
+      
+      codeResult.textContent = "Generating code...";
+      try {
+        // Always use the Codestral model for code generation
+        let model = 'codestral-latest';
+
+        // Create a more code-focused prompt
+        let codePrompt = `Generate code for: ${prompt}\nPlease provide just the code without explanations.`;
+
+        // Call the AI API with the prompt and model
+        let out = await puter.ai.chat(codePrompt, { model });
+
+        // Process the response
+        let responseText = '';
+        if (out.message && out.message.text) {
+          responseText = out.message.text;
+        } else if (out.message && out.message.content) {
+          responseText = out.message.content;
+        } else if (out.text) {
+          responseText = out.text;
+        } else if (typeof out === 'string') {
+          responseText = out;
+        } else {
+          responseText = JSON.stringify(out);
+        }
+
+        // Extract code blocks if present (looking for markdown code blocks)
+        let codeMatch = responseText.match(/```(?:[a-z]+\n)?([\s\S]*?)```/m);
+
+        if (codeMatch && codeMatch[1]) {
+          // If we found a code block, use that
+          codeResult.textContent = codeMatch[1].trim();
+        } else {
+          // Otherwise use the whole response but try to clean it up
+          // Remove any explanations or markdown that's not code
+          let cleanedResponse = responseText
+            .replace(/^Here's the code[:\s]*/i, '')
+            .replace(/^I've created[:\s]*/i, '')
+            .replace(/^Here is[:\s]*/i, '')
+            .trim();
+
+          codeResult.textContent = cleanedResponse;
+        }
+      } catch (err) {
+        console.error("Code generation error:", err);
+        codeResult.textContent = '[ERROR]: ' + (err.message || JSON.stringify(err));
+      }
+    };
+  }
+
+  // Set up preview code button
+  const previewCodeBtn = document.getElementById('preview-code-btn');
+  if (previewCodeBtn) {
+    previewCodeBtn.onclick = function() {
+      const codeResult = document.getElementById('code-result');
+      if (!codeResult) return;
+      
+      let code = codeResult.textContent;
+      if (code) {
+        let w = window.open('');
+        w.document.write('<pre>' + code.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c])) + '</pre>');
+      }
+    };
+  }
+
+  // Set up settings save button
+  const settingsSaveBtn = document.getElementById('settings-save-btn');
+  if (settingsSaveBtn) {
+    settingsSaveBtn.onclick = function() {
+      // Save enabled models from checkboxes
+      const checkedModels = [...document.querySelectorAll('#models-list input[type=checkbox]:checked')].map(x => x.value);
+      userSettings.enabledModels = checkedModels;
+
+      // Update OpenRouter setting
+      const openrouterToggle = document.getElementById('openrouter-toggle');
+      if (openrouterToggle) {
+        userSettings.openRouterEnabled = openrouterToggle.checked;
+      }
+
+      // Update speech voice setting
+      const speechVoiceSelect = document.getElementById('speech-voice-select');
+      if (speechVoiceSelect) {
+        userSettings.speechVoice = speechVoiceSelect.value;
+      }
+
+      // Update model select dropdown options
+      updateModelSelectOptions();
+
+      saveSettings();
+      togglePopup('settings', false);
+    };
+  }
+
+  // Set up model search functionality
+  const modelSearch = document.getElementById('model-search');
+  if (modelSearch) {
+    modelSearch.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      document.querySelectorAll('#models-list .model-item').forEach(item => {
+        const modelName = item.querySelector('.model-name').textContent.toLowerCase();
+        if (modelName.includes(searchTerm)) {
+          item.style.display = '';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    });
+  }
+
+  // Set up OpenRouter toggle
+  const openrouterToggle = document.getElementById('openrouter-toggle');
+  if (openrouterToggle) {
+    openrouterToggle.addEventListener('change', function() {
+      userSettings.openRouterEnabled = this.checked;
+      populateModelsList();
+    });
+  }
+
+  // Set up show enabled models only button
+  const showEnabledOnly = document.getElementById('show-enabled-only');
+  if (showEnabledOnly) {
+    showEnabledOnly.addEventListener('click', function() {
+      const isShowingAll = this.textContent.includes('Show Enabled');
+      if (isShowingAll) {
+        populateModelsList(true);
+        this.textContent = 'Show All';
+      } else {
+        populateModelsList(false);
+        this.textContent = 'Show Enabled';
+      }
+    });
+  }
+});
+
 function autoTitle(msgs) {
   // Use first user message or fallback
   if (!msgs || !msgs.length) return "New Chat";
@@ -413,14 +873,16 @@ function autoTitle(msgs) {
   txt = txt.slice(0, 36); if (txt.length >= 36) txt += "...";
   return txt;
 }
-// History popup
-document.getElementById('btn-history').onclick = function() {
-  updateHistoryUI();
-  togglePopup('history', true);
-};
+
 function updateHistoryUI() {
   const list = document.getElementById('history-list');
-  if (!chatHistory.length) { list.innerHTML = "<div class='text-gray-500'>No chat history yet.</div>"; return; }
+  if (!list) return;
+  
+  if (!chatHistory.length) { 
+    list.innerHTML = "<div class='text-gray-500'>No chat history yet.</div>"; 
+    return; 
+  }
+  
   list.innerHTML = '';
   chatHistory.forEach((h, i) => {
     list.innerHTML += `<div class="border flat rounded-cool px-3 py-2 bg-gray-50 dark:bg-gray-900 hover:bg-blue-100 dark:hover:bg-gray-700 cursor-pointer mb-1" onclick="selectHistory(${i})">
@@ -429,79 +891,36 @@ function updateHistoryUI() {
       </div>`;
   });
 }
+
 window.selectHistory = function(idx) {
   currentChat = chatHistory[idx].messages.slice();
   renderChat();
   togglePopup('history', false);
-}
-
-// File & OCR popup
-document.getElementById('btn-file').onclick = function() {
-  togglePopup('file', true);
-};
-// OCR Extract text logic
-document.getElementById('file-input-file').onchange = async function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const previewBox = document.getElementById('file-preview-box');
-  previewBox.innerHTML = "";
-  if (file.type.startsWith('image/')) {
-    const url = URL.createObjectURL(file);
-    previewBox.innerHTML = `<img src="${url}" class="rounded-cool border mx-auto mb-2" height="140" style="max-height:140px"><button id="ocr-btn" class="bg-blue-700 text-white flat px-3 py-1 rounded-cool mt-2">Extract Text</button> <div id="ocr-result" class="mt-3"></div>`;
-    document.getElementById('ocr-btn').onclick = async function() {
-      try {
-        let result = await puter.ai.img2txt(file);
-        result = result.trim() || "[No text detected]";
-        previewBox.innerHTML += `<div class="rounded-cool bg-gray-50 border mt-2 p-2 dark:bg-gray-900" id="ocrTextResult">${result}</div>
-            <div class="flex mt-2 space-x-2">
-              <button onclick="copyOCR()" class="feature-btn" title="Copy"><i class="fa fa-copy"></i></button>
-              <button onclick="editOCR()" class="feature-btn" title="Edit"><i class="fa fa-pen"></i></button>
-            </div>`;
-        window.copyOCR = function() { navigator.clipboard.writeText(result); }
-        window.editOCR = function() {
-          let cur = document.getElementById('ocrTextResult').textContent;
-          previewBox.innerHTML += `<textarea class='flat rounded-cool w-full mt-2' rows='3' id='ocrEdit'>${cur}</textarea><button onclick="saveOCR()" class="feature-btn mt-2"><i class="fa fa-save"></i></button>`;
-          window.saveOCR = function() {
-            let v = document.getElementById('ocrEdit').value;
-            document.getElementById('ocrTextResult').textContent = v;
-          }
-        }
-      } catch (err) {
-        previewBox.innerHTML += "<div class='text-red-600 mt-2'>OCR Error: " + err.message + "</div>";
-      }
-    }
-  } else if (file.type.startsWith('text/')) {
-    const txt = await file.text();
-    previewBox.innerHTML = `<pre class="rounded-cool bg-gray-100 border p-2 flat">${txt.slice(0, 2048)}</pre>`;
-  } else {
-    previewBox.innerHTML = `<div class='text-gray-500 mt-2'>Unsupported file format.</div>`;
-  }
 };
 
-// Image Generation popup
-document.getElementById('btn-image').onclick = function() {
-  togglePopup('image', true);
-};
-document.getElementById('generate-image-btn').onclick = generateImg;
-document.getElementById('refresh-imggen-btn').onclick = function() {
-  document.getElementById('image-gen-area').innerHTML = '';
-  document.getElementById('image-gen-prompt').value = '';
-};
 async function generateImg() {
-  let prompt = document.getElementById('image-gen-prompt').value.trim();
-  let area = document.getElementById('image-gen-area');
-  if (!prompt) { area.innerHTML = '<div class="text-red-500">Please enter prompt above first.</div>'; return; }
-  area.innerHTML = '<div class="w-full h-48 flex flex-col items-center justify-center"><span class="fa fa-spinner fa-spin text-blue-600 text-3xl"></span><span class="text-xs mt-2">Generating Image...</span></div>';
+  const imageGenPrompt = document.getElementById('image-gen-prompt');
+  const imageGenArea = document.getElementById('image-gen-area');
+  if (!imageGenPrompt || !imageGenArea) return;
+  
+  let prompt = imageGenPrompt.value.trim();
+  if (!prompt) { 
+    imageGenArea.innerHTML = '<div class="text-red-500">Please enter prompt above first.</div>'; 
+    return; 
+  }
+  
+  imageGenArea.innerHTML = '<div class="w-full h-48 flex flex-col items-center justify-center"><span class="fa fa-spinner fa-spin text-blue-600 text-3xl"></span><span class="text-xs mt-2">Generating Image...</span></div>';
+  
   try {
     // Use the txt2img API with the prompt (set testMode to false for production)
     const img = await puter.ai.txt2img(prompt, false);
 
     // Append the image to the area
-    area.innerHTML = '';
+    imageGenArea.innerHTML = '';
     if (img instanceof HTMLImageElement) {
       img.className = "rounded-cool border mx-auto";
       img.alt = "AI Generated";
-      area.appendChild(img);
+      imageGenArea.appendChild(img);
 
       // Add save button and info text
       const saveBtn = document.createElement('button');
@@ -513,12 +932,12 @@ async function generateImg() {
         a.download = "ai_generated.png";
         a.click();
       };
-      area.appendChild(saveBtn);
+      imageGenArea.appendChild(saveBtn);
 
       const infoText = document.createElement('span');
       infoText.className = "text-xs block mt-2 text-blue-600";
       infoText.textContent = "Click image to expand.";
-      area.appendChild(infoText);
+      imageGenArea.appendChild(infoText);
 
       // Add click handler to open in new window
       img.onclick = function() {
@@ -529,191 +948,33 @@ async function generateImg() {
     }
   } catch (err) {
     console.error("Image generation error:", err);
-    area.innerHTML = `<div class="text-red-600">Image generation failed: ${err.message || "Unknown error"}</div>`;
+    imageGenArea.innerHTML = `<div class="text-red-600">Image generation failed: ${err.message || "Unknown error"}</div>`;
   }
 }
-// Code Generation popup
-document.getElementById('btn-code').onclick = function() {
-  togglePopup('code', true);
-  document.getElementById('code-result').textContent = "";
-};
-document.getElementById('generate-code-btn').onclick = async function() {
-  let prompt = document.getElementById('code-gen-prompt').value.trim();
-  if (!prompt) return;
-  let res = document.getElementById('code-result');
-  res.textContent = "Generating code...";
-  try {
-    // Always use the Codestral model for code generation
-    let model = 'codestral-latest';
-
-    // Create a more code-focused prompt
-    let codePrompt = `Generate code for: ${prompt}\nPlease provide just the code without explanations.`;
-
-    // Call the AI API with the prompt and model
-    let out = await puter.ai.chat(codePrompt, { model });
-
-    // Process the response
-    let responseText = '';
-    if (out.message && out.message.text) {
-      responseText = out.message.text;
-    } else if (out.message && out.message.content) {
-      responseText = out.message.content;
-    } else if (out.text) {
-      responseText = out.text;
-    } else if (typeof out === 'string') {
-      responseText = out;
-    } else {
-      responseText = JSON.stringify(out);
-    }
-
-    // Extract code blocks if present (looking for markdown code blocks)
-    let codeMatch = responseText.match(/```(?:[a-z]+\n)?([\s\S]*?)```/m);
-
-    if (codeMatch && codeMatch[1]) {
-      // If we found a code block, use that
-      res.textContent = codeMatch[1].trim();
-    } else {
-      // Otherwise use the whole response but try to clean it up
-      // Remove any explanations or markdown that's not code
-      let cleanedResponse = responseText
-        .replace(/^Here's the code[:\s]*/i, '')
-        .replace(/^I've created[:\s]*/i, '')
-        .replace(/^Here is[:\s]*/i, '')
-        .trim();
-
-      res.textContent = cleanedResponse;
-    }
-  } catch (err) {
-    console.error("Code generation error:", err);
-    res.textContent = '[ERROR]: ' + (err.message || JSON.stringify(err));
-  }
-}
-document.getElementById('preview-code-btn').onclick = function() {
-  let code = document.getElementById('code-result').textContent;
-  if (code) {
-    let w = window.open('');
-    w.document.write('<pre>' + code.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c])) + '</pre>');
-  }
-}
-
-// Settings popup
-document.getElementById('btn-settings').onclick = function() {
-  // Show UI tab by default
-  document.getElementById('ui-tab').click();
-
-  // Set text size
-  document.getElementById('text-size-range').value = userSettings.textSize;
-
-  // Set theme
-  document.getElementById('theme-select').value = userSettings.theme;
-
-  // Setup OpenRouter toggle
-  document.getElementById('openrouter-toggle').checked = userSettings.openRouterEnabled || false;
-
-  // Populate models list
-  populateModelsList();
-
-  // Set speech voice
-  document.getElementById('speech-voice-select').value = userSettings.speechVoice;
-
-  togglePopup('settings', true);
-};
-
-// Tab switching functionality
-document.querySelectorAll('#settings-tabs button').forEach(tab => {
-  tab.addEventListener('click', function() {
-    // Hide all tab contents
-    document.querySelectorAll('.tab-content').forEach(content => {
-      content.classList.add('hidden');
-    });
-
-    // Remove active class from all tabs
-    document.querySelectorAll('#settings-tabs button').forEach(t => {
-      t.classList.remove('active', 'border-blue-600');
-      t.classList.add('border-transparent');
-    });
-
-    // Add active class to clicked tab
-    this.classList.add('active', 'border-blue-600');
-    this.classList.remove('border-transparent');
-
-    // Show corresponding tab content
-    const tabContentId = this.getAttribute('data-tab');
-    document.getElementById(tabContentId).classList.remove('hidden');
-  });
-});
-
-// Text size
-document.getElementById('text-size-range').oninput = function() {
-  document.body.style.fontSize = this.value + "px";
-  userSettings.textSize = this.value;
-  saveSettings();
-};
-
-// Theme selection
-document.getElementById('theme-select').onchange = function(e) {
-  setTheme(e.target.value);
-};
-
-// Speech voice selection
-document.getElementById('speech-voice-select').onchange = function(e) {
-  userSettings.speechVoice = e.target.value;
-  saveSettings();
-};
-
-
-// Model search functionality
-document.getElementById('model-search').addEventListener('input', function() {
-  const searchTerm = this.value.toLowerCase();
-  document.querySelectorAll('#models-list .model-item').forEach(item => {
-    const modelName = item.querySelector('.model-name').textContent.toLowerCase();
-    if (modelName.includes(searchTerm)) {
-      item.style.display = '';
-    } else {
-      item.style.display = 'none';
-    }
-  });
-});
-
-// OpenRouter toggle
-document.getElementById('openrouter-toggle').addEventListener('change', function() {
-  userSettings.openRouterEnabled = this.checked;
-  populateModelsList();
-});
-
-// Show enabled models only button
-document.getElementById('show-enabled-only').addEventListener('click', function() {
-  const isShowingAll = this.textContent.includes('Show Enabled');
-  if (isShowingAll) {
-    populateModelsList(true);
-    this.textContent = 'Show All';
-  } else {
-    populateModelsList(false);
-    this.textContent = 'Show Enabled';
-  }
-});
 
 // Add CSS for capability badges
-const style = document.createElement('style');
-style.textContent = `
-  .capability-badge {
-    display: inline-flex;
-    align-items: center;
-    background: rgba(37, 99, 235, 0.1);
-    color: #2563eb;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    margin-right: 4px;
-    margin-bottom: 4px;
-  }
+document.addEventListener('DOMContentLoaded', function() {
+  const style = document.createElement('style');
+  style.textContent = `
+    .capability-badge {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(37, 99, 235, 0.1);
+      color: #2563eb;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      margin-right: 4px;
+      margin-bottom: 4px;
+    }
 
-  .dark-mode .capability-badge {
-    background: rgba(37, 99, 235, 0.2);
-    color: #93c5fd;
-  }
-`;
-document.head.appendChild(style);
+    .dark-mode .capability-badge {
+      background: rgba(37, 99, 235, 0.2);
+      color: #93c5fd;
+    }
+  `;
+  document.head.appendChild(style);
+});
 
 // Default models to enable
 const defaultModels = [
@@ -726,10 +987,16 @@ const defaultModels = [
 // Populate the models list
 function populateModelsList(showEnabledOnly = false) {
   const modelsList = document.getElementById('models-list');
+  if (!modelsList) return;
+  
   modelsList.innerHTML = '';
 
   // Get all available models
-  let allModels = [...document.querySelectorAll('#model-select option')].map(x => x.value);
+  let allModels = [];
+  const modelSelect = document.getElementById('model-select');
+  if (modelSelect) {
+    allModels = [...modelSelect.querySelectorAll('option')].map(x => x.value);
+  }
 
   // Add OpenRouter models if enabled
   if (userSettings.openRouterEnabled) {
@@ -779,7 +1046,8 @@ function populateModelsList(showEnabledOnly = false) {
     modelsList.appendChild(providerHeader);
 
     // Add models for this provider
-    modelsByProvider[provider].forEach(model => {      const modelItem = document.createElement('div');
+    modelsByProvider[provider].forEach(model => {
+      const modelItem = document.createElement('div');
       modelItem.className = 'model-item flex items-center justify-between border-b pb-2 mb-2';
       modelItem.dataset.provider = provider;
 
@@ -943,26 +1211,6 @@ function getModelDescription(model) {
   return descriptions[model] || 'Advanced language model for tasks including text generation, summarization, and more.';
 }
 
-// Save settings button
-document.getElementById('settings-save-btn').onclick = function() {
-  // Save enabled models from checkboxes
-  const checkedModels = [...document.querySelectorAll('#models-list input[type=checkbox]:checked')].map(x => x.value);
-  userSettings.enabledModels = checkedModels;
-
-  // Update OpenRouter setting
-  userSettings.openRouterEnabled = document.getElementById('openrouter-toggle').checked;
-
-  // Update speech voice setting
-  userSettings.speechVoice = document.getElementById('speech-voice-select').value;
-
-
-  // Update model select dropdown options
-  updateModelSelectOptions();
-
-  saveSettings();
-  togglePopup('settings', false);
-};
-
 // Update the model selection dropdown based on enabled models
 function updateModelSelectOptions() {
   let sel = document.getElementById('model-select');
@@ -1089,6 +1337,7 @@ const openRouterModelsList = `
 function saveSettings() {
   localStorage.setItem("puterChatUserSettings", JSON.stringify(userSettings));
 }
+
 function loadSettings() {
   let s = localStorage.getItem("puterChatUserSettings");
   if (s) {
@@ -1117,44 +1366,68 @@ function loadSettings() {
 
     // Update model dropdown
     updateModelSelectOptions();
+
+    // Set up streaming and multi-model modes
+    if (userSettings.streamingMode) {
+      toggleStreamingMode(true);
+    }
+
+    if (userSettings.multiModelMode) {
+      toggleMultiModel(true);
+    }
   }
 
   // Load chat history
   let hist = localStorage.getItem("puterChatHistory");
   if (hist) {
-    chatHistory = JSON.parse(hist).map(hist => {
-      hist.when = hist.when ? new Date(hist.when) : new Date();
-      return hist;
-    });
+    try {
+      chatHistory = JSON.parse(hist).map(hist => {
+        hist.when = hist.when ? new Date(hist.when) : new Date();
+        return hist;
+      });
+    } catch (e) {
+      console.error("Error loading chat history:", e);
+      chatHistory = [];
+    }
   }
 }
+
 window.onbeforeunload = function() {
   saveSettings();
   localStorage.setItem("puterChatHistory", JSON.stringify(chatHistory));
-}
+};
 
 // ---- PUTER AUTH ----
 // Handle Puter Auth
 async function handlePuterAuth(event) {
   try {
-    const isSignedIn = puter.auth.isSignedIn();
+    const isSignedIn = puter && puter.auth && puter.auth.isSignedIn && puter.auth.isSignedIn();
     const loginBtn = document.getElementById('puter-login-btn');
     const userInfo = document.getElementById('user-info');
 
+    if (!loginBtn || !userInfo) return;
+
     if (isSignedIn) {
-      await puter.auth.signOut();
+      if (puter.auth.signOut) {
+        await puter.auth.signOut();
+      }
       loginBtn.innerHTML = '<i class="fa fa-user mr-1"></i> Sign In';
       userInfo.classList.add('hidden');
       return;
     }
 
-    await puter.auth.signIn();
-    const user = await puter.auth.getUser();
-
-    if (user?.username) {
-      loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
-      userInfo.textContent = user.username;
-      userInfo.classList.remove('hidden');
+    if (puter.auth.signIn) {
+      await puter.auth.signIn();
+      
+      if (puter.auth.getUser) {
+        const user = await puter.auth.getUser();
+        
+        if (user?.username) {
+          loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
+          userInfo.textContent = user.username;
+          userInfo.classList.remove('hidden');
+        }
+      }
     }
   } catch (error) {
     console.error('Auth error:', error);
@@ -1162,23 +1435,21 @@ async function handlePuterAuth(event) {
   }
 }
 
-// Initialize auth button
-document.addEventListener('DOMContentLoaded', () => {
-  const loginBtn = document.getElementById('puter-login-btn');
-  if (loginBtn) {
-    loginBtn.addEventListener('click', handlePuterAuth);
-  }
-});
-
 // Check initial auth state
 async function checkAuthState() {
-  if (puter.auth.isSignedIn()) {
+  if (puter && puter.auth && puter.auth.isSignedIn && puter.auth.isSignedIn()) {
     try {
-      const user = await puter.auth.getUser();
-      if (user && user.username) {
-        document.getElementById('puter-login-btn').innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
-        document.getElementById('user-info').textContent = user.username;
-        document.getElementById('user-info').classList.remove('hidden');
+      if (puter.auth.getUser) {
+        const user = await puter.auth.getUser();
+        if (user && user.username) {
+          const loginBtn = document.getElementById('puter-login-btn');
+          const userInfo = document.getElementById('user-info');
+          if (loginBtn) loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
+          if (userInfo) {
+            userInfo.textContent = user.username;
+            userInfo.classList.remove('hidden');
+          }
+        }
       }
     } catch (err) {
       console.error("Error getting user:", err);
@@ -1189,9 +1460,10 @@ async function checkAuthState() {
 // Add OpenRouter models to the list
 function addOpenRouterModels() {
   const modelSelect = document.getElementById('model-select');
+  if (!modelSelect) return;
 
   // Check if the OpenRouter optgroup already exists
-  let openRouterGroup = document.querySelector('optgroup[label="OpenRouter"]');
+  let openRouterGroup = modelSelect.querySelector('optgroup[label="OpenRouter"]');
   if (!openRouterGroup) {
     // Create OpenRouter optgroup
     openRouterGroup = document.createElement('optgroup');
@@ -1231,202 +1503,53 @@ function addOpenRouterModels() {
   }
 }
 
-// ---- PUTER AUTH ----
-// Function to handle Puter login
-async function initPuterAuth() {
-  const loginBtn = document.getElementById('puter-login-btn');
-  const userInfoElement = document.getElementById('user-info');
-
-  if (loginBtn && userInfoElement) {
-    loginBtn.addEventListener('click', async function() {
-      try {
-        // Check if already signed in
-        if (puter.auth && puter.auth.isSignedIn()) {
-          // Sign out instead
-          await puter.auth.signOut();
-          loginBtn.innerHTML = '<i class="fa fa-user mr-1"></i> Sign In';
-          userInfoElement.classList.add('hidden');
-          return;
-        }
-
-        // Attempt to sign in
-        await puter.auth.signIn();
-
-        // Get user information
-        const user = await puter.auth.getUser();
-        if (user && user.username) {
-          loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
-          userInfoElement.textContent = user.username;
-          userInfoElement.classList.remove('hidden');
-        }
-      } catch (error) {
-        console.error('Auth error:', error);
-        // Show friendly error to user
-        alert('Authentication failed. Please try again later.');
-      }
-    });
-  } else {
-    console.warn("Auth elements not found in the DOM");
-  }
-}
-
-// Check initial auth state
-async function checkAuthState() {
-  const userInfoElement = document.getElementById('user-info');
-  const loginBtn = document.getElementById('puter-login-btn');
-
-  if (!loginBtn || !userInfoElement) {
-    console.warn("Auth elements not found in the DOM");
-    return;
-  }
-
-  if (puter.auth && puter.auth.isSignedIn()) {
-    try {
-      const user = await puter.auth.getUser();
-      if (user && user.username) {
-        loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
-        userInfoElement.textContent = user.username;
-        userInfoElement.classList.remove('hidden');
-      }
-    } catch (err) {
-      console.error("Error getting user:", err);
-    }
-  }
-}
-
-// Toggle streaming mode
-function toggleStreamingMode(enabled) {
-  try {
-    streamingMode = enabled;
-    userSettings.streamingMode = enabled;
-    saveSettings();
-    updateModelSelectOptions();
-
-    // Update UI to reflect streaming mode
-    const streamToggle = document.getElementById('streaming-toggle');
-    if (streamToggle) {
-      streamToggle.checked = enabled;
-    }
-
-    // Disable non-streaming models
-    const modelSelect = document.getElementById('model-select');
-    if (modelSelect) {
-      Array.from(modelSelect.options).forEach(option => {
-        option.disabled = enabled && !isModelStreamCapable(option.value);
-      });
-    }
-  } catch (error) {
-    console.error('Error toggling streaming mode:', error);
-  }
-}
-
-// Toggle multi-model mode
-function toggleMultiModel(enabled) {
-  try {
-    multiModelMode = enabled;
-    userSettings.multiModelMode = enabled;
-
-    // Update UI
-    const multiToggle = document.getElementById('multi-toggle');
-    if (multiToggle) {
-      multiToggle.checked = enabled;
-    }
-
-  // Update UI for multi-model selection
-  const modelSelect = document.getElementById('model-select');
-  const container = document.getElementById('model-select-container');
-
-  if (enabled) {
-    selectedModels = [modelSelect.value];
-    // Add multi-select container if it doesn't exist
-    if (!document.getElementById('multi-model-container')) {
-      const multiContainer = document.createElement('div');
-      multiContainer.id = 'multi-model-container';
-      multiContainer.className = 'flex flex-wrap gap-2 mt-2';
-      container.appendChild(multiContainer);
-    }
-    // Add + buttons to options
-    Array.from(modelSelect.options).forEach(opt => {
-      if (!opt.dataset.hasPlus) {
-        const plusBtn = document.createElement('button');
-        plusBtn.innerHTML = '+';
-        plusBtn.className = 'ml-2 px-1 text-xs bg-blue-500 text-white rounded';
-        plusBtn.onclick = (e) => {
-          e.preventDefault();
-          if (!selectedModels.includes(opt.value)) {
-            selectedModels.push(opt.value);
-            updateMultiModelDisplay();
-          }
-        };
-        opt.dataset.hasPlus = 'true';
-        opt.innerHTML += ' ';
-        opt.appendChild(plusBtn);
-      }
-    });
-  } else {
-    selectedModels = [modelSelect.value];
-    // Remove multi-select container
-    const multiContainer = document.getElementById('multi-model-container');
-    if (multiContainer) multiContainer.remove();
-    // Remove + buttons
-    Array.from(modelSelect.options).forEach(opt => {
-      if (opt.dataset.hasPlus) {
-        opt.innerHTML = opt.innerHTML.replace(/ \+$/, '');
-        delete opt.dataset.hasPlus;
-      }
-    });
-  }
-  updateMultiModelDisplay();
-  saveSettings();
-}
-
-// Update multi-model display
-function updateMultiModelDisplay() {
-  const container = document.getElementById('multi-model-container');
-  if (!container) return;
-
-  container.innerHTML = '';
-  selectedModels.forEach((model, idx) => {
-    const chip = document.createElement('div');
-    chip.className = 'bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded-full text-sm flex items-center';
-    chip.innerHTML = `
-      ${model}
-      <button class="ml-2 text-red-500 hover:text-red-700" onclick="removeModel(${idx})">×</button>
-    `;
-    container.appendChild(chip);
-  });
-}
-
-// Remove model from selection
-function removeModel(idx) {
-  selectedModels.splice(idx, 1);
-  if (selectedModels.length === 0) {
-    selectedModels = [document.getElementById('model-select').value];
-  }
-  updateMultiModelDisplay();
-}
-
 // INIT
-async function initializeApp() {
+document.addEventListener('DOMContentLoaded', function() {
   try {
     // Load settings first
     loadSettings();
-
+    
     // Initialize UI components
     renderChat();
-    initializeTheme();
-
-    // Check auth state once
-    if (puter.auth.isSignedIn()) {
-      const user = await puter.auth.getUser();
-      updateAuthUI(user);
+    
+    // Initialize theme
+    const isDarkTheme = userSettings.theme === 'dark';
+    const moonIcon = document.getElementById('moon-icon');
+    const sunIcon = document.getElementById('sun-icon');
+    if (moonIcon) moonIcon.classList.toggle('hidden', isDarkTheme);
+    if (sunIcon) sunIcon.classList.toggle('hidden', !isDarkTheme);
+    
+    // Initialize Puter Auth
+    const loginBtn = document.getElementById('puter-login-btn');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', handlePuterAuth);
     }
-
-    // Add models only if OpenRouter is enabled
+    
+    // Check auth state
+    setTimeout(checkAuthState, 500);
+    
+    // Add OpenRouter models if enabled
     if (userSettings.openRouterEnabled) {
       addOpenRouterModels();
     }
-
+    
+    // Initialize toggle switches
+    const streamingToggle = document.getElementById('streaming-toggle');
+    if (streamingToggle) {
+      streamingToggle.checked = streamingMode;
+      streamingToggle.addEventListener('change', function() {
+        toggleStreamingMode(this.checked);
+      });
+    }
+    
+    const multiToggle = document.getElementById('multi-toggle');
+    if (multiToggle) {
+      multiToggle.checked = multiModelMode;
+      multiToggle.addEventListener('change', function() {
+        toggleMultiModel(this.checked);
+      });
+    }
+    
     // Mobile optimization
     let resizeTimeout;
     window.addEventListener('resize', () => {
@@ -1436,23 +1559,4 @@ async function initializeApp() {
   } catch (error) {
     console.error('Initialization error:', error);
   }
-}
-
-function initializeTheme() {
-  const isDarkTheme = userSettings.theme === 'dark';
-  document.getElementById('moon-icon')?.classList.toggle('hidden', isDarkTheme);
-  document.getElementById('sun-icon')?.classList.toggle('hidden', !isDarkTheme);
-}
-
-function updateAuthUI(user) {
-  const loginBtn = document.getElementById('puter-login-btn');
-  const userInfo = document.getElementById('user-info');
-
-  if (user?.username) {
-    loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
-    userInfo.textContent = user.username;
-    userInfo.classList.remove('hidden');
-  }
-}
-
-document.addEventListener('DOMContentLoaded', initializeApp);
+});
