@@ -1,0 +1,881 @@
+
+IMPORTANT: This file contains the concatenated documentation for puter.js, a JavaScript SDK for the Puter Web OS. Use this documentation to answer questions about puter.js, its features, usage, and APIs. 
+WAIT FOR MY QUESTIONS BEFORE PROVIDING ANY INFORMATION. DO NOT SAY ANYTHING UNTIL I START ASKING QUESTIONS.
+
+
+
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------
+--------------------------------------------
+
+The following document is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License. 
+
+--------------------------------------------
+--------------------------------------------
+
+<!--
+File: AI/chat.md
+-->
+
+Given a prompt returns the completion that best matches the prompt.
+
+## Syntax
+```js
+puter.ai.chat(prompt)
+puter.ai.chat(prompt, options = {})
+puter.ai.chat(prompt, testMode = false, options = {})
+puter.ai.chat(prompt, imageURL, testMode = false, options = {})
+puter.ai.chat(prompt, [imageURLArray], testMode = false, options = {})
+puter.ai.chat([messages], testMode = false, options = {})
+```
+
+## Parameters
+#### `prompt` (String)
+A string containing the prompt you want to complete.
+
+#### `options` (Object) (Optional)
+An object containing the following properties:
+- `model` (String) - The model you want to use for the completion. Defaults to `gpt-4o-mini`. The following models are available:
+    - `gpt-4o-mini` (default)
+    - `gpt-4o`
+    - `o1`
+    - `o1-mini`
+    - `o1-pro`
+    - `o3`
+    - `o3-mini`
+    - `o4-mini`
+    - `gpt-4.1`
+    - `gpt-4.1-mini`
+    - `gpt-4.1-nano`
+    - `gpt-4.5-preview`
+    - `claude-3-7-sonnet`
+    - `claude-3-5-sonnet`
+    - `deepseek-chat`
+    - `deepseek-reasoner`
+    - `gemini-2.0-flash`
+    - `gemini-1.5-flash`
+    - `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo`
+    - `meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo`
+    - `meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo`
+    - `mistral-large-latest`
+    - `pixtral-large-latest`
+    - `codestral-latest`
+    - `google/gemma-2-27b-it`
+    - `grok-beta`
+- `stream` (Boolean) - A boolean indicating whether you want to stream the completion. Defaults to `false`.
+- `tools` (Array) (Optional) - An array of function definitions that the AI can call. Each function definition should have:
+    - `type` (String) - Must be "function"
+    - `function` (Object):
+        - `name` (String) - The name of the function
+        - `description` (String) - A description of what the function does
+        - `parameters` (Object) - JSON Schema object describing the parameters
+        - `strict` (Boolean) - Whether to enforce strict parameter validation
+
+#### `testMode` (Boolean) (Optional)
+A boolean indicating whether you want to use the test API. Defaults to `false`. This is useful for testing your code without using up API credits.
+
+#### `imageURL` (String)
+A string containing the URL of an image you want to provide as context for the completion. Also known as "GPT Vision".
+
+#### `imageURLArray` (Array)
+An array of strings containing the URLs of images you want to provide as context for the completion. 
+
+#### `messages` (Array)
+An array of objects containing the messages you want to complete. Each object must have a `role` and a `content` property. The `role` property must be one of `system`, `assistant`, `user`, or `function`. The `content` property must be a string containing the message. An example of a valid `messages` parameter is:
+
+```js
+[
+    {
+        role: 'system',
+        content: 'Hello, how are you?'
+    },
+    {
+        role: 'user',
+        content: 'I am doing well, how are you?'
+    },
+]
+```
+
+Providing a messages array is especially useful for building chatbots where you want to provide context to the completion.
+
+## Return value
+
+When `stream` is set to `false` (default):
+- Will resolve to a response object containing the completion message
+- If a function call is made, the response will include `tool_calls` array containing:
+  - `id` (String) - Unique identifier for the function call
+  - `function` (Object):
+    - `name` (String) - Name of function to call
+    - `arguments` (String) - JSON string of function arguments
+
+When `stream` is set to `true`:
+- Returns an async iterable object that you can use with a `for await...of` loop to receive the response in parts as they become available.
+
+In case of an error, the `Promise` will reject with an error message.
+
+## Vendors
+
+We use the following vendors to provide AI services:
+
+- `gpt-4o-mini` (default): OpenAI
+- `gpt-4o`: OpenAI 
+- `o3-mini`: OpenAI
+- `o1-mini`: OpenAI
+- `claude-3-5-sonnet`: Anthropic
+- `deepseek-chat`: High-Flyer (DeepSeek)
+- `deepseek-reasoner`: High-Flyer (DeepSeek)
+- `gemini-2.0-flash`: Google
+- `gemini-1.5-flash`: Google
+- `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo`: Together.ai
+- `meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo`: Together.ai
+- `meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo`: Together.ai
+- `mistral-large-latest`: Mistral AI
+- `pixtral-large-latest`: Mistral AI 
+- `codestral-latest`: Mistral AI
+- `google/gemma-2-27b-it`: Groq
+- `grok-beta`: xAI
+
+
+## Examples
+
+<strong class="example-title">Ask GPT-4o mini a question</strong>
+
+```html;ai-chatgpt
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        puter.ai.chat(`What is life?`).then(puter.print);
+    </script>
+</body>
+</html>
+```
+
+<strong class="example-title">GPT-4 Vision</strong>
+
+```html;ai-gpt-vision
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <img src="https://assets.puter.site/doge.jpeg" style="display:block;">
+    <script>
+        puter.ai.chat(
+            `What do you see?`, 
+            `https://assets.puter.site/doge.jpeg`)
+        .then(puter.print);
+    </script>
+</body>
+</html>
+```
+
+<strong class="example-title">Stream the response</strong>
+
+```html;ai-chat-stream
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+    (async () => {
+        const resp = await puter.ai.chat('Tell me in detail what Rick and Morty is all about.', {model: 'claude', stream: true });
+        for await ( const part of resp ) document.write(part?.text.replaceAll('\n', '<br>'));
+    })();
+    </script>
+</body>
+</html>
+```
+
+<strong class="example-title">Function Calling</strong>
+
+```html;ai-function-calling
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Weather Function Calling Demo</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://js.puter.com/v2/"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #ccc;
+        }
+        #response {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Weather Function Calling Demo</h1>
+        <input type="text" id="userInput" value="Paris" placeholder="Ask about the weather (e.g. What's the weather in Paris?)" />
+        <button id="submit">Submit</button>
+        <div id="response"></div>
+    </div>
+
+    <script>
+        // Mock weather function - in a real app, this would call a weather API
+        function getWeather(location) {
+            const mockWeatherData = {
+                'Paris': '22°C, Partly Cloudy',
+                'London': '18°C, Rainy',
+                'New York': '25°C, Sunny',
+                'Tokyo': '28°C, Clear'
+            };
+            return mockWeatherData[location] || '20°C, Unknown';
+        }
+
+        // Define the tools (functions) available to the AI
+        const tools = [{
+            type: "function",
+            function: {
+                name: "get_weather",
+                description: "Get current weather for a given location",
+                parameters: {
+                    type: "object",
+                    properties: {
+                        location: {
+                            type: "string",
+                            description: "City name e.g. Paris, London"
+                        }
+                    },
+                    required: ["location"],
+                    additionalProperties: false
+                },
+                strict: true
+            }
+        }];
+
+        async function handleSubmit() {
+            const userInput = $('#userInput').val();
+            if (!userInput) return;
+
+            // Disable button and show loading state
+            $('#submit').prop('disabled', true).text('Loading...');
+            $('#response').hide();
+
+            try {
+                // First message to get function call
+                const completion = await puter.ai.chat(userInput, { tools });
+                let finalResponse;
+
+                // Check if we got a function call
+                if (completion.message.tool_calls && completion.message.tool_calls.length > 0) {
+                    const toolCall = completion.message.tool_calls[0];
+                    if (toolCall.function.name === 'get_weather') {
+                        // Parse the arguments and get weather data
+                        const args = JSON.parse(toolCall.function.arguments);
+                        const weatherData = getWeather(args.location);
+                        // Send the result back to AI for final response
+                        finalResponse = await puter.ai.chat([
+                            { role: "user", content: userInput },
+                            completion.message,
+                            { 
+                                role: "tool",
+                                tool_call_id: toolCall.id,
+                                content: weatherData
+                            }
+                        ]);
+                    }
+                } else {
+                    finalResponse = completion;
+                }
+
+                // Display the response
+                $('#response').html(`<strong>Response:</strong><br>${finalResponse}`).show();
+            } catch (error) {
+                $('#response').html(`<strong>Error:</strong><br>${error.message}`).show();
+            }
+
+            // Reset button state
+            $('#submit').prop('disabled', false).text('Submit');
+        }
+
+        // Event handlers
+        $(document).ready(function() {
+            $('#submit').click(handleSubmit);
+            $('#userInput').keypress(function(e) {
+                if (e.which == 13) handleSubmit();
+            });
+        });
+    </script>
+</body>
+</html>```
+
+
+<!--
+File: AI/img2txt.md
+-->
+
+Given an image will return the text contained in the image. Also known as OCR (Optical Character Recognition), this API can be used to extract text from images of printed text, handwriting, or any other text-based content.
+
+## Syntax
+```js
+puter.ai.img2txt(image, testMode = false)
+```
+
+## Parameters
+#### `image` (String|File|Blob) (required)
+A string containing the URL, or path (on Puter) of the image you want to recognize, or a `File` or `Blob` object containing the image. 
+
+#### `testMode` (Boolean) (Optional)
+A boolean indicating whether you want to use the test API. Defaults to `false`. This is useful for testing your code without using up API credits.
+
+## Return value
+A `Promise` that will resolve to a string containing the text contained in the image.
+
+In case of an error, the `Promise` will reject with an error message.
+
+## Examples
+
+<strong class="example-title">Extract the text contained in an image</strong>
+
+```html;ai-img2txt
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        puter.ai.img2txt('https://cdn.handwrytten.com/www/2020/02/home-hero-photo2%402x.png').then(puter.print);
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: AI/txt2img.md
+-->
+
+Given a prompt, generate an image using AI.
+
+## Syntax
+
+```js
+puter.ai.txt2img(prompt, testMode = false)
+```
+
+## Parameters
+#### `prompt` (String) (required)
+A string containing the prompt you want to generate an image from.
+
+#### `testMode` (Boolean) (Optional)
+A boolean indicating whether you want to use the test API. Defaults to `false`. This is useful for testing your code without using up API credits.
+
+## Return value
+A `Promise` that will resolve to an image data URL when the image has been generated.
+
+## Examples
+
+<strong class="example-title">Generate an image of a cat using DALL·E 3</strong>
+
+```html;ai-txt2img
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        // Generate an image of a cat using DALL·E 3. Please note that testMode is set to true so that you can test this code without using up API credits.
+        puter.ai.txt2img('A picture of a cat.', true).then((image)=>{
+            document.body.appendChild(image);
+        });
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: AI/txt2speech.md
+-->
+
+Converts text into speech using AI. Supports multiple languages and voices.
+
+## Syntax
+
+```js
+puter.ai.txt2speech(text)
+puter.ai.txt2speech(text, language = 'en-US')
+puter.ai.txt2speech(text, language = 'en-US', testMode = false)
+```
+
+## Parameters
+#### `text` (String) (required)
+A string containing the text you want to convert to speech. The text must be less than 3000 characters long.
+
+#### `language` (String) (optional)
+The language to use for speech synthesis. Defaults to `en-US`. The following languages are supported:
+
+- Arabic (`ar-AE`)
+- Catalan (`ca-ES`)
+- Chinese (Cantonese) (`yue-CN`)
+- Chinese (Mandarin) (`cmn-CN`)
+- Danish (`da-DK`)
+- Dutch (Belgian) (`nl-BE`)
+- Dutch (`nl-NL`)
+- English (Australian) (`en-AU`)
+- English (British) (`en-GB`)
+- English (Indian) (`en-IN`)
+- English (New Zealand) (`en-NZ`)
+- English (South African) (`en-ZA`)
+- English (US) (`en-US`)
+- English (Welsh) (`en-GB-WLS`)
+- Finnish (`fi-FI`)
+- French (`fr-FR`)
+- French (Belgian) (`fr-BE`)
+- French (Canadian) (`fr-CA`)
+- German (`de-DE`)
+- German (Austrian) (`de-AT`)
+- Hindi (`hi-IN`)
+- Icelandic (`is-IS`)
+- Italian (`it-IT`)
+- Japanese (`ja-JP`)
+- Korean (`ko-KR`)
+- Norwegian (`nb-NO`)
+- Polish (`pl-PL`)
+- Portuguese (Brazilian) (`pt-BR`)
+- Portuguese (European) (`pt-PT`)
+- Romanian (`ro-RO`)
+- Russian (`ru-RU`)
+- Spanish (European) (`es-ES`)
+- Spanish (Mexican) (`es-MX`)
+- Spanish (US) (`es-US`)
+- Swedish (`sv-SE`)
+- Turkish (`tr-TR`)
+- Welsh (`cy-GB`)
+
+#### `testMode` (Boolean) (Optional)
+A boolean indicating whether you want to use the test API. Defaults to `false`. This is useful for testing your code without using up API credits.
+
+## Return value
+A `Promise` that will resolve to an MP3 stream when the speech has been synthesized.
+
+## Examples
+
+<strong class="example-title">Convert text to speech</strong>
+
+```html;ai-txt2speech
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <button id="play">Speak!</button>
+    <script>
+        document.getElementById('play').addEventListener('click', ()=>{
+            puter.ai.txt2speech(`Hello world! Puter is pretty amazing, don't you agree?`).then((audio)=>{
+                audio.play();
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: Apps/create.md
+-->
+
+Creates a Puter app with the given name. The app will be created in the user's apps, and will be accessible to this app. The app will be created with no permissions, and will not be able to access any data until permissions are granted to it.
+
+## Syntax
+```js
+puter.apps.create(name, indexURL)
+puter.apps.create(name, indexURL, title)
+puter.apps.create(name, indexURL, title, description)
+puter.apps.create(options)
+```
+
+## Parameters
+#### `name` (required)
+The name of the app to create. This name must be unique to the user's apps. If an app with this name already exists, the promise will be rejected.
+
+#### `indexURL` (required)
+The URL of the app's index page. This URL must be accessible to the user. If this parameter is not provided, the app will be created with no index page. The index page is the page that will be displayed when the app is started.
+
+**IMPORTANT**: The URL *must* start with either `http://` or `https://`. Any other protocols (including `file://`, `ftp://`, etc.) are not allowed and will result in an error. For example:
+
+✅ `https://example.com/app/index.html` <br>
+✅ `http://localhost:3000/index.html` <br>
+❌ `file:///path/to/index.html` <br>
+❌ `ftp://example.com/index.html` <br>
+
+#### `title` (required)
+The title of the app. If this parameter is not provided, the app will be created with `name` as its title.
+
+#### `description` (optional)
+The description of the app aimed at the end user. If this parameter is not provided, the app will be created with no description.
+
+#### `options` (required)
+An object containing the options for the app to create. The object can contain the following properties:
+- `name` (required): The name of the app to create. This name must be unique to the user's apps. If an app with this name already exists, the promise will be rejected.
+- `indexURL` (required): The URL of the app's index page. This URL must be accessible to the user. If this parameter is not provided, the app will be created with no index page.
+- `title` (optional): The human-readable title of the app. If this parameter is not provided, the app will be created with `name` as its title.
+- `description` (optional): The description of the app aimed at the end user. If this parameter is not provided, the app will be created with no description.
+- `icon` (optional): The new icon of the app.
+- `maximizeOnStart` (optional): Whether the app should be maximized when it is started. Defaults to `false`.
+- `filetypeAssociations` (optional): An array of strings representing the filetypes that the app can open. Defaults to `[]`. File extentions and MIME types are supported; For example, `[".txt", ".md", "application/pdf"]` would allow the app to open `.txt`, `.md`, and PDF files.
+
+## Return value
+A `Promise` that will resolve to the [`app`](/Objects/app/) that was created.
+
+## Examples
+
+<strong class="example-title">Create an app pointing to https://example.com</strong>
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Generate a random app name
+            let appName = puter.randName();
+
+            // (2) Create the app and prints its UID to the page
+            let app = await puter.apps.create(appName, "https://example.com");
+            puter.print(`Created app "${app.name}". UID: ${app.uid}`);
+
+            // (3) Delete the app (cleanup)
+            await puter.apps.delete(appName);
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: Apps/delete.md
+-->
+
+Deletes an app with the given name.
+
+## Syntax
+```js
+puter.apps.delete(name)
+```
+
+## Parameters
+#### `name` (required)
+The name of the app to delete.
+
+## Return value
+A `Promise` that will resolve to the app that was deleted.
+
+## Examples
+
+<strong class="example-title">Create a random app then delete it</strong>
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Generate a random app name to make sure it doesn't already exist
+            let appName = puter.randName();
+
+            // (2) Create the app
+            await puter.apps.create(appName, "https://example.com");
+            puter.print(`"${appName}" created<br>`);
+
+            // (3) Delete the app
+            await puter.apps.delete(appName);
+            puter.print(`"${appName}" deleted<br>`);
+
+            // (4) Try to retrieve the app (should fail)
+            puter.print(`Trying to retrieve "${appName}"...<br>`);
+            try {
+                await puter.apps.get(appName);
+            } catch (e) {
+                puter.print(`"${appName}" could not be retrieved<br>`);
+            }
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: Apps/get.md
+-->
+
+Returns an app with the given name. If the app does not exist, the promise will be rejected.
+
+## Syntax
+```js
+puter.apps.get(name)
+puter.apps.get(name, options)
+```
+
+## Parameters
+#### `name` (required)
+The name of the app to get.
+
+### options (optional)
+
+An object containing the following properties:
+
+- `stats_period` (optional): A string representing the period for which to get the user and open count. Possible values are `today`, `yesterday`, `7d`, `30d`, `this_month`, `last_month`, `this_year`, `last_year`, `month_to_date`, `year_to_date`, `last_12_months`. Default is `all` (all time).
+
+- `icon_size` (optional): An integer representing the size of the icons to return. Possible values are `null`, `16`, `32`, `64`, `128`, `256`, and `512`. Default is `null` (the original size).
+
+## Return value
+A `Promise` that will resolve to the [`app`](/Objects/app/) with the given name.
+
+## Examples
+
+<strong class="example-title">Create a random app then get it</strong>
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Generate a random app name to make sure it doesn't already exist
+            let appName = puter.randName();
+
+            // (2) Create the app
+            await puter.apps.create(appName, "https://example.com");
+            puter.print(`"${appName}" created<br>`);
+
+            // (3) Retrieve the app using get()
+            let app = await puter.apps.get(appName);
+            puter.print(`"${appName}" retrieved using get(): id: ${app.uid}<br>`);
+
+            // (4) Delete the app (cleanup)
+            await puter.apps.delete(appName);
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: Apps/list.md
+-->
+
+Returns an array of all apps belonging to the user and that this app has access to. If the user has no apps, the array will be empty.
+
+## Syntax
+```js
+puter.apps.list()
+puter.apps.list(options)
+```
+
+## Parameters
+
+### options (optional)
+
+An object containing the following properties:
+
+- `stats_period` (optional): A string representing the period for which to get the user and open count. Possible values are `today`, `yesterday`, `7d`, `30d`, `this_month`, `last_month`, `this_year`, `last_year`, `month_to_date`, `year_to_date`, `last_12_months`. Default is `all` (all time).
+
+- `icon_size` (optional): An integer representing the size of the icons to return. Possible values are `null`, `16`, `32`, `64`, `128`, `256`, and `512`. Default is `null` (the original size).
+
+## Return value
+A `Promise` that will resolve to an array of all [`app`s](/Objects/app/) belonging to the user that this app has access to.
+
+## Examples
+
+<strong class="example-title">Create 3 random apps and then list them</strong>
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Generate 3 random app names
+            let appName_1 = puter.randName();
+            let appName_2 = puter.randName();
+            let appName_3 = puter.randName();
+
+            // (2) Create 3 apps
+            await puter.apps.create(appName_1, 'https://example.com');
+            await puter.apps.create(appName_2, 'https://example.com');
+            await puter.apps.create(appName_3, 'https://example.com');
+
+            // (3) Get all apps (list)
+            let apps = await puter.apps.list();
+
+            // (4) Display the names of the apps
+            puter.print(JSON.stringify(apps.map(app => app.name)));
+
+            // (5) Delete the 3 apps we created earlier (cleanup)
+            await puter.apps.delete(appName_1);
+            await puter.apps.delete(appName_2);
+            await puter.apps.delete(appName_3);
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: Apps/update.md
+-->
+
+Updates attributes of the app with the given name.
+
+## Syntax
+```js
+puter.apps.update(name, attributes)
+```
+
+## Parameters
+#### `name` (required)
+The name of the app to update.
+
+#### `attributes` (required)
+An object containing the attributes to update. The object can contain the following properties:
+- `name` (optional): The new name of the app. This name must be unique to the user's apps. If an app with this name already exists, the promise will be rejected.
+- `indexURL` (optional): The new URL of the app's index page. This URL must be accessible to the user.
+- `title` (optional): The new title of the app.
+- `description` (optional): The new description of the app aimed at the end user.
+- `icon` (optional): The new icon of the app.
+- `maximizeOnStart` (optional): Whether the app should be maximized when it is started. Defaults to `false`.
+- `filetypeAssociations` (optional): An array of strings representing the filetypes that the app can open. Defaults to `[]`. File extentions and MIME types are supported; For example, `[".txt", ".md", "application/pdf"]` would allow the app to open `.txt`, `.md`, and PDF files.
+
+## Return value
+A `Promise` that will resolve to the [`app`](/Objects/app/) that was updated.
+
+## Examples
+
+<strong class="example-title">Create a random app then change its title</strong>
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Create a random app
+            let appName = puter.randName();
+            await puter.apps.create(appName, "https://example.com")
+            puter.print(`"${appName}" created<br>`);
+
+            // (2) Update the app
+            let updated_app = await puter.apps.update(appName, {title: "My Updated Test App!"})
+            puter.print(`Changed title to "${updated_app.title}"<br>`);
+
+            // (3) Delete the app (cleanup)
+            await puter.apps.delete(appName)
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: Auth/getUser.md
+-->
+
+Returns the user's basic information.
+
+
+## Syntax
+
+```js
+puter.auth.getUser();
+```
+
+## Parameters
+
+None
+
+## Return value
+
+A promise that resolves to an object containing the user's basic information. The user's basic information is an object with the following properties:
+
+- `uuid` - The user's UUID. This is a unique identifier that can be used to identify the user.
+- `username` - The user's username.
+- `email_confirmed` - Whether the user has confirmed their email address.
+
+## Example
+
+```html;auth-get-user
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        puter.auth.getUser().then(function(user) {
+            puter.print(JSON.stringify(user));
+        });
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: Auth/isSignedIn.md
+-->
+
+Checks whether the user is signed into the application.
+
+## Syntax
+
+```js
+puter.auth.isSignedIn();
+```
+
+## Parameters
+
+None
+
+## Return value
+
+Returns `true` if the user is signed in, `false` otherwise.
+
+## Example
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        puter.print(puter.auth.isSignedIn());
+    </script>
+</body>
+</html>
+```
+

@@ -1,0 +1,832 @@
+<!--
+File: UI/showFontPicker.md
+-->
+
+Presents the user with a list of fonts allowing them to preview and select a font.
+
+## Syntax
+```js
+puter.ui.showFontPicker()
+puter.ui.showFontPicker(defaultFont)
+puter.ui.showFontPicker(options)
+```
+
+## Parameters
+#### `defaultFont` (String)
+The default font to select when the font picker is opened.
+
+
+## Examples
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <h1>A cool Font Picker demo!</h1>
+
+    <script>
+        puter.ui.showFontPicker().then((font)=>{
+            document.body.style.fontFamily = font.fontFamily;
+        })
+    </script>
+</body>
+</html>
+```
+
+<!--
+File: UI/showOpenFilePicker.md
+-->
+
+Presents the user with a file picker dialog allowing them to pick a file from their Puter cloud storage.
+
+## Syntax
+```js
+puter.ui.showOpenFilePicker()
+puter.ui.showOpenFilePicker(options)
+```
+
+## Parameters
+
+#### `options` (optional)
+A set of key/value pairs that configure the file picker dialog.
+* `multiple` (Boolean): if set to `true`, user will be able to select multiple files. Default is `false`.
+* `accept` (String): The list of MIME types or file extensions that are accepted by the file picker. Default is `*/*`.
+    - Example: `image/*` will allow the user to select any image file.
+    - Example: `['.jpg', '.png']` will allow the user to select files with `.jpg` or `.png` extensions.
+
+## Return value 
+A `Promise` that resolves to either one <code>FSItem</code> or an array of <code>FSItem</code> objects, depending on how many files were selected by the user. 
+
+## Examples
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+
+    <h1 id="file-name"></h1>
+
+    <button id="open-file-picker">Open file picker</button>
+    <pre><code id="file-content"></code></pre>
+
+    <script>
+        document.getElementById('open-file-picker').addEventListener('click', ()=>{
+            puter.ui.showOpenFilePicker().then(async (file)=>{
+                // print file name
+                document.getElementById('file-name').innerHTML = file.name;
+                // print file content
+                document.getElementById('file-content').innerText = await (await file.read()).text();
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+<!--
+File: UI/showSaveFilePicker.md
+-->
+
+Presents the user with a file picker dialog allowing them to specify where and with what name to save a file.
+
+## Syntax
+```js
+puter.ui.showSaveFilePicker()
+puter.ui.showSaveFilePicker(data, defaultFileName)
+```
+
+## Parameters
+#### `defaultFileName` (String)
+The default file name to use.
+
+## Examples
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <h1 id="file-name"></h1>
+
+    <button id="save-file">Save file</button>
+    <pre><code id="file-content"></code></pre>
+
+    <script>
+        document.getElementById('save-file').addEventListener('click', ()=>{
+            puter.ui.showSaveFilePicker("Hello world! I'm the content of this file.", 'Untitled.txt').then(async (file)=>{
+                // print file name
+                document.getElementById('file-name').innerHTML = file.name;
+                // print file content
+                document.getElementById('file-content').innerText = await (await file.read()).text();
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: UI/socialShare.md
+-->
+
+Presents a dialog to the user allowing them to share a link on various social media platforms.
+
+## Syntax
+
+```js
+puter.ui.socialShare(url)
+puter.ui.socialShare(url, message)
+puter.ui.socialShare(url, message, options)
+```
+
+## Parameters
+
+#### `url` (required)
+
+The URL to share.
+
+
+#### `message` (optional)
+
+The message to prefill in the social media post. This parameter is only supported by some social media platforms.
+
+#### `options` (optional)
+
+A set of key/value pairs that configure the social share dialog. The following options are supported:
+
+* `left` (Number): The distance from the left edge of the window to the dialog. Default is `0`.
+* `top` (Number): The distance from the top edge of the window to the dialog. Default is `0`.
+
+<!--
+File: UI/wasLaunchedWithItems.md
+-->
+
+Returns whether the app was launched to open one or more items. Use this in conjunction with `onLaunchedWithItems()` to, for example, determine whether to display an empty state or wait for items to be provided.
+
+## Syntax
+```js
+puter.ui.wasLaunchedWithItems()
+```
+
+## Return value
+Returns `true` if the app was launched to open items (via double-clicking, 'Open With...' menu, etc.), `false` otherwise.
+
+
+<!--
+File: Utils/appID.md
+-->
+
+A property of the `puter` object that returns the App ID of the running application.
+
+## Syntax
+
+```js
+puter.appID
+```
+
+## Examples
+
+<strong class="example-title">Get the ID of the current application</strong>
+
+<div style="position: relative;">
+
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        puter.print("App ID: " + puter.appID);
+    </script>
+</body>
+</html>
+```
+
+</div>
+
+<!--
+File: Utils/env.md
+-->
+
+A property of the `puter` object that returns the environment in which Puter.js is being used.
+
+## Syntax
+
+```js
+puter.env
+```
+
+## Return value
+
+A string containing the environment in which Puter.js is being used:
+
+- `app` - Puter.js is running inside a Puter application. e.g. `https://puter.com/app/editor` 
+
+- `web` - Puter.js is running inside a web page outside of the Puter environment. e.g. `https://example.com/index.html`
+
+- `gui` - Puter.js is running inside the Puter GUI. e.g. `https://puter.com/`
+
+## Examples
+
+<strong class="example-title">Get the environment in which Puter.js is running</strong>
+
+<div style="position: relative;">
+
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        puter.print("Environment: " + puter.env);
+    </script>
+</body>
+</html>
+```
+
+</div>
+
+<!--
+File: Utils/print.md
+-->
+
+Prints a string by appending it to the body of the document. This is useful for debugging and testing purposes and is not recommended for production use.
+
+## Syntax
+
+```js
+puter.print(text);
+```
+
+## Parameters
+
+#### `text` (String)
+The text to print.
+
+## Examples
+
+<strong class="example-title">Print "Hello, world!"</strong>
+
+<div style="position: relative;">
+
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        puter.print("Hello, world!");
+    </script>
+</body>
+</html>
+```
+
+</div>
+
+<!--
+File: Utils/randName.md
+-->
+
+A function that generates a domain-safe name by combining a random adjective, a random noun, and a random number (between 0 and 9999). The result is returned as a string with components separated by hyphens by default. You can change the separator by passing a string as the first argument to the function.
+
+## Syntax
+
+```js
+puter.randName()
+puter.randName(separator)
+```
+
+## Parameters
+
+#### `separator` (String)
+The separator to use between components. Defaults to `-`.
+
+## Examples
+
+<strong class="example-title">Generate a random name</strong>
+
+<div style="position: relative;">
+
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        puter.print(puter.randName());
+    </script>
+</body>
+</html>
+```
+
+</div>
+
+<!--
+File: examples.md
+-->
+
+<div style="">
+
+<div class="example-card">
+    <a href="/playground/?example=app-ai-chat&autorun=1" target="_blank">
+        <figure>
+            <div class="example-thumb" style="background-image:url(/assets/img/example-ai-chat.png);"></div>
+        </figure>
+    </a>
+    <div class="example-card-desc">
+        <h2><a href="/playground/?example=app-ai-chat&autorun=1" target="_blank">AI Chat</a></h2>
+        <p>A chat app with AI using the Puter AI module. This app is powered by OpenAI GPT-4o mini.</p>
+    </div>
+</div>
+
+<div class="example-card">
+    <a href="/playground/?example=app-todo&autorun=1" target="_blank">
+        <figure>
+            <div class="example-thumb" style="background-image:url(/assets/img/example-todo.png);"></div>
+        </figure>
+    </a>
+    <div class="example-card-desc">
+        <h2><a href="/playground/?example=app-todo&autorun=1" target="_blank">To Do List</a></h2>
+        <p>A simple to do list app with cloud functionalities powered by the Puter Key-Value Store.</p>
+    </div>
+</div>
+
+<div class="example-card">
+    <a href="https://puter.com/app/notepad-example" target="_blank">
+        <figure>
+            <div class="example-thumb" style="background-image:url(/assets/img/example-notepad.png);"></div>
+        </figure>
+    </a>
+    <div class="example-card-desc">
+        <h2><a href="https://puter.com/app/notepad-example" target="_blank">Notepad</a></h2>
+        <p>A simple notepad app with cloud functionalities.</p>
+        <p><a href="https://github.com/HeyPuter/notepad" target="_blank">Source Code</a></p>
+    </div>
+</div>
+
+<div class="example-card">
+    <a href="/playground/?example=app-camera&autorun=1" target="_blank">
+        <figure>
+            <div class="example-thumb" style="background-image:url(/assets/img/example-camera.png);"></div>
+        </figure>
+    </a>
+    <div class="example-card-desc">
+        <h2><a href="/playground/?example=app-camera&autorun=1" target="_blank">Image Describer</a></h2>
+        <p>Allows you take a picture and describe it using the Puter AI module. This app is powered by OpenAI GPT-4 Vision.</p>
+    </div>
+</div>
+
+<div class="example-card">
+    <a href="/playground/?example=app-summarizer&autorun=1" target="_blank">
+        <figure>
+            <div class="example-thumb" style="background-image:url(/assets/img/example-summarizer.png); background-position: initial;"></div>
+        </figure>
+    </a>
+    <div class="example-card-desc">
+        <h2><a href="/playground/?example=app-summarizer&autorun=1" target="_blank">Text Summarizer</a></h2>
+        <p>Uses the Puter AI module to summarize a given long text. The model used in the background is GPT-4o mini.</p>
+    </div>
+</div>
+
+</div>
+
+<!--
+File: getting-started.md
+-->
+
+
+## Installation
+
+To begin using Puter.js, simply add it to your HTML file using the following script tag:
+
+```html
+<script src="https://js.puter.com/v2/"></script>
+```
+
+That's it! You're now ready to start using Puter.js in your web application. No need to install any dependencies or set up a server. No API keys or configuration required.
+
+## Basic Usage
+Once you've added the Puter.js script to your web application, a global `puter` object will be available for you to use. This object contains all of the functionality provided by Puter.js. For example, to use GPT-4o mini, you can call the `puter.ai.chat` function:
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        puter.ai.chat(`Why did the chicken cross the road?`).then(puter.print);
+    </script>
+</body>
+</html>
+```
+
+This is all you need to use GPT-4o mini in your app. No backend code, no configuration, and no API keys. Just include the Puter.js script, and you're ready to start.
+
+## Where to Go From Here
+
+To learn more about the capabilities of Puter.js and how to use them in your web application, check out
+
+- [Tutorials](https://developer.puter.com/tutorials): Step-by-step guides to help you get started with Puter.js and build powerful applications.
+
+- [Playground](https://docs.puter.com/playground): Experiment with Puter.js in your browser and see the results in real-time. Many examples are available to help you understand how to use Puter.js effectively.
+
+- [Examples](https://docs.puter.com/examples): A collection of code snippets and full applications that demonstrate how to use Puter.js to solve common problems and build innovative applications.
+
+<!--
+File: introduction.md
+-->
+
+## Puter.js
+
+Puter.js brings serverless auth, cloud, and AI services directly to your browser-side JavaScript with no backend code or configuration required. Just include a single `<script>` tag and you can instantly use file storage, databases, GPT-4, DALL-E, and more right from your frontend code. Puter is forever free for developers!
+
+<div class="browser-window">
+    <div class="titlebar">
+        <div class="buttons">
+            <div class="button close"></div>
+            <div class="button minimize"></div>
+            <div class="button maximize"></div>
+        </div>
+    </div>
+    <div class="address-bar" style="display: flex; align-items: center;">
+        <svg style="margin-right: 15px; width: 15px;" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="24px" height="24px" viewBox="0 0 24 24"><g transform="translate(0, 0)"><path d="M8.293,4.293l-7,7a1,1,0,0,0,0,1.414l7,7a1,1,0,0,0,1.414-1.414L4.414,13H22a1,1,0,0,0,0-2H4.414L9.707,5.707A1,1,0,1,0,8.293,4.293Z" fill="#444444"></path></g></svg>
+        <svg style="width: 15px; margin-right: 20px;" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="24px" height="24px" viewBox="0 0 24 24"><g transform="translate(0, 0)"><path d="M15.707,19.707l7-7a1,1,0,0,0,0-1.414l-7-7a1,1,0,0,0-1.414,1.414L19.586,11H2a1,1,0,0,0,0,2H19.586l-5.293,5.293a1,1,0,0,0,1.414,1.414Z" fill="#444444"></path></g></svg>
+        <svg style="margin-right: 15px; width: 15px;" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="24px" height="24px" viewBox="0 0 24 24" stroke-width="2"><g stroke-width="2" transform="translate(0, 0)"><polyline points="21.034 1.13 21.763 6.927 16.071 5.341" fill="none" stroke="#444444" stroke-linecap="square" stroke-miterlimit="10" stroke-width="2" stroke-linejoin="miter"></polyline><path data-cap="butt" d="M21.763,6.927A11,11,0,1,0,23,12" fill="none" stroke="#444444" stroke-miterlimit="10" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"></path></g></svg>
+        <span style="flex-grow: 1; padding: 5px; background: white; border-radius: 15px; padding-left: 20px; display: flex; align-items: center; font-size: 13px;">
+            <svg style="width:15px; height:15px; margin-right: 5px;" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="24px" height="24px" viewBox="0 0 24 24"><g transform="translate(0, 0)"><path d="M20,10H4c-1.105,0-2,.895-2,2v10c0,1.105,.895,2,2,2H20c1.105,0,2-.895,2-2V12c0-1.105-.895-2-2-2Zm-8,9c-1.105,0-2-.895-2-2s.895-2,2-2,2,.895,2,2-.895,2-2,2Z" fill="#00bc2f"></path><path data-color="color-2" d="M18,8h-2v-2c.023-2.184-1.727-3.974-3.911-4h-.042c-2.197-.038-4.009,1.711-4.047,3.908,0,.001,0,.002,0,.003v2.089h-2v-2.1C6.033,2.636,8.685,.006,11.949,0h.061c3.302-.006,5.984,2.666,5.99,5.968,0,.014,0,.028,0,.042v1.99Z" fill="#00bc2f"></path></g></svg>
+            https://super-magical-website.com
+        </span>
+    </div>
+    <div class="content" style="position: relative; margin-top: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; margin-bottom: 40px;">
+        <div style="width: 620px; height: 120px; position: relative; font-weight: 500;">
+            <div style="width: 100px; height: 100px; position: absolute; left:10px;">
+                <div class="feature-name-top">GPT-4o</div>
+                <div  class="feature-line-top"></div><div></div>
+            </div>
+            <div style="width: 100px; height: 65px; position: absolute; left: 120px; bottom: 20px;">
+                <div class="feature-name-top">Cloud Storage</div>
+                <div  class="feature-line-top"></div><div></div>
+            </div>
+            <div style="width: 150px; height: 100px; position: absolute; left: 230px;">
+                <div class="feature-name-top">Claude 3.7 Sonnet</div>
+                <div  class="feature-line-top"></div><div></div>
+            </div>
+            <div style="width: 100px; height: 70px; position: absolute; left: 400px; bottom: 20px;">
+                <div class="feature-name-top">DALL·E 3</div>
+                <div  class="feature-line-top"></div><div></div>
+            </div>
+            <div style="width: 100px; height: 100px; position: absolute; left: 500px;">
+                <div class="feature-name-top">NoSQL</div>
+                <div  class="feature-line-top"></div><div></div>
+            </div>
+        </div>
+        <p class="script-tag">&lt;script src=&quot;<span class="url">https://js.puter.com/v2/</span>&quot;&gt;&lt;/script&gt;</p>
+        <div style="width: 620px; height: 120px; position: relative; font-weight: 500;">
+            <div style="width: 150px; height: 100px; position: absolute; left:10px;">
+                <div>
+                    <div style="width: 50%; float: left; border-right: 1px dotted; height: calc(100% - 30px);"></div>
+                    <div></div>
+                </div>
+                <div style="width: 100%; text-align:center; position: absolute; bottom: 0;">Publish web pages</div>
+            </div>
+            <div style="width: 100px; height: 130px; position: absolute; left:160px;">
+                <div>
+                    <div style="width: 50%; float: left; border-right: 1px dotted; height: calc(100% - 30px);"></div>
+                    <div></div>
+                </div>
+                <div style="width: 100%; text-align:center; position: absolute; bottom: 0;">Auth</div>
+            </div>
+            <div style="width: 150px; height: 100px; position: absolute; left:250px;">
+                <div>
+                    <div style="width: 50%; float: left; border-right: 1px dotted; height: calc(100% - 30px);"></div>
+                    <div></div>
+                </div>
+                <div style="width: 100%; text-align:center; position: absolute; bottom: 0;">UI Components</div>
+            </div>
+            <div style="width: 100px; height: 150px; position: absolute; left:400px;">
+                <div>
+                    <div style="width: 50%; float: left; border-right: 1px dotted; height: calc(100% - 30px);"></div>
+                    <div></div>
+                </div>
+                <div style="width: 100%; text-align:center; position: absolute; bottom: 0;">Text to Image</div>
+            </div>
+            <div style="width: 105px; height: 100px; position: absolute; left:500px;">
+                <div>
+                    <div style="width: 50%; float: left; border-right: 1px dotted; height: calc(100% - 30px);"></div>
+                    <div></div>
+                </div>
+                <div style="width: 100%; text-align:center; position: absolute; bottom: 0;">Text to Speech</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+Additionally, Puter.js works in a way that every user of your app will cover their own costs, so whether you have 1 user or 1 million users, your app won't cost you anything to run. In other words, Puter.js gives your app infinitely scalable Cloud and AI for free.
+
+Puter.js is powered by [Puter](https://github.com/HeyPuter/puter), the open-source cloud operating system with a heavy focus on privacy. Puter does not use tracking technologies and does not monetize or even collect personal information.
+
+<h2 style="margin-top: 60px;">Examples</h2>
+<div style="overflow:hidden; margin-bottom: 30px;">
+    <div class="example-group active" data-section="ai" data-icon="ai_outline" data-icon-active="ai_active"><i class="icon"></i><span>AI</span></div>
+    <div class="example-group" data-section="fs" data-icon="fs_outline" data-icon-active="fs_active"><i class="icon"></i><span>Cloud Storage</span></div>
+    <div class="example-group" data-section="kv" data-icon="kv_outline" data-icon-active="kv_active"><i class="icon"></i><span>NoSQL</span></div>
+    <div class="example-group" data-section="hosting" data-icon="hosting_outline" data-icon-active="hosting_active"><i class="icon"></i><span>Hosting</span></div>
+    <div class="example-group" data-section="auth" data-icon="auth_outline" data-icon-active="auth_active"><i class="icon"></i><span>Auth</span></div>
+</div>
+
+<div class="example-content" data-section="fs">
+
+#### Write a file to the cloud
+
+```html;intro-fs-write
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        // Create a new file called "hello.txt" containing "Hello, world!"
+        puter.fs.write('hello.txt', 'Hello, world!').then((file) => {
+            puter.print(`File written successfully at: ${file.path}`);
+        })
+    </script>
+</body>
+</html>
+```
+
+<strong class="example-title" style="margin-top: 40px;">Read a file from the cloud</strong>
+
+```html;fs-read
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Create a random text file
+            let filename = puter.randName() + ".txt";
+            await puter.fs.write(filename, "Hello world! I'm a file!");
+            puter.print(`"${filename}" created<br>`);
+
+            // (2) Read the file and print its contents
+            let blob = await puter.fs.read(filename);
+            let content = await blob.text();
+            puter.print(`"${filename}" read (content: "${content}")<br>`);
+        })();
+    </script>
+</body>
+</html>
+```
+
+</div>
+
+<div class="example-content" data-section="kv">
+
+#### Save user preference in the cloud Key-Value Store
+
+```html;intro-kv-set
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        // (1) Save user preference
+        puter.kv.set('userPreference', 'darkMode').then(() => {
+            // (2) Get user preference
+            puter.kv.get('userPreference').then(value => {
+                puter.print(`User preference: ${value}`);
+            });
+        })
+    </script>
+</body>
+</html>
+```
+
+</div>
+
+
+<div class="example-content" data-section="ai" style="display:block;">
+
+
+#### Chat with GPT-4o mini
+
+```html;intro-chatgpt
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        // Chat with GPT-4o mini
+        puter.ai.chat(`What is life?`).then(puter.print);
+    </script>
+</body>
+</html>
+```
+
+<p><strong class="example-title" style="margin-top:40px;">GPT-4 Vision</strong></p>
+
+```html;intro-gpt-vision
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <img src="https://assets.puter.site/doge.jpeg" style="display:block;">
+    <script>
+        puter.ai.chat(
+            `What do you see?`, 
+            `https://assets.puter.site/doge.jpeg`)
+        .then(puter.print);
+    </script>
+</body>
+</html>
+```
+
+<strong class="example-title" style="margin-top:40px;">Generate an image of a cat using DALL·E 3</strong>
+
+```html;ai-txt2img
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        // Generate an image of a cat using DALL·E 3. Please note that testMode is set to true so that you can test this code without using up API credits.
+        puter.ai.txt2img('A picture of a cat.', true).then((image)=>{
+            document.body.appendChild(image);
+        });
+    </script>
+</body>
+</html>
+```
+
+
+<p><strong class="example-title" style="margin-top:40px;">Stream the response</strong></p>
+
+```html;ai-chat-stream
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+    (async () => {
+        const resp = await puter.ai.chat('Tell me in detail what Rick and Morty is all about.', {model: 'claude', stream: true });
+        for await ( const part of resp ) puter.print(part?.text?.replaceAll('\n', '<br>'));
+    })();
+    </script>
+</body>
+</html>
+```
+
+
+</div>
+
+<div class="example-content" data-section="hosting"> 
+
+#### Publish a static website
+
+```html;intro-hosting
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Create a random directory
+            let dirName = puter.randName();
+            await puter.fs.mkdir(dirName)
+
+            // (2) Create 'index.html' in the directory with the contents "Hello, world!"
+            await puter.fs.write(`${dirName}/index.html`, '<h1>Hello, world!</h1>');
+
+            // (3) Host the directory under a random subdomain
+            let subdomain = puter.randName();
+            const site = await puter.hosting.create(subdomain, dirName)
+
+            puter.print(`Website hosted at: <a href="https://${site.subdomain}.puter.site" target="_blank">https://${site.subdomain}.puter.site</a>`);
+        })();
+    </script>
+</body>
+</html>
+```
+
+</div>
+
+<div class="example-content" data-section="auth">
+
+#### Authenticate a user
+
+```html;intro-auth
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <button id="sign-in">Sign in</button>
+    <script>
+        // Because signIn() opens a popup window, it must be called from a user action.
+        document.getElementById('sign-in').addEventListener('click', async () => {
+            // signIn() will resolve when the user has signed in.
+            await puter.auth.signIn().then((res) => {
+                puter.print('Signed in<br>' + JSON.stringify(res));
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+</div>
+
+<!--
+File: security.md
+-->
+
+In this document we will cover the security model of Puter.js and how it manages apps' access to user data and cloud resources.
+
+## Authentication
+
+If Puter.js is being used in a website, as opposed to a puter.com app, the user will have to authenticate with Puter.com first, or in other words, the user needs to give your website permission before you can use any of the cloud services on their behalf. 
+
+Fortunately, Puter.js handles this automatically and the user will be prompted to sign in with their Puter.com account when your code tries to access any cloud services. If the user is already signed in, they will not be prompted to sign in again. You can build your app as if the user is already signed in, and Puter.js will handle the authentication process for you whenever it's needed.
+
+<figure style="margin: 40px 0;">
+    <img src="/assets/img/auth.png" style="width: 100%; max-width: 600px; margin: 0px auto; display:block;">
+    <figcaption style="text-align: center; font-size: 13px; color: #777;">The user will be automatically prompted to sign in with their Puter.com account when your code tries to access any cloud services or resources.</figcaption>
+</figure>
+
+If Puter.js is being used in an app published on Puter.com, the user will be automatically signed in and your app will have full access to all cloud services. 
+
+## Default permissions
+
+Once the user has been authenticated, your app will get a few things by default:
+
+- **An app directory** in the user's cloud storage. This is where your app can freely store files and directories. The path to this directory will look like `~/AppData/<your-app-id>/`. This directory is automatically created for your app when the user has been authenticated the first time. Your app will not be able to access any files or data outside of this directory by default.
+
+- **A key-value store** in the user's space. Your app will have its own sandboxed key-value store that it can freely write to and read from. Only your app will be able to access this key-value store, and no other apps will be able to access it. Your app will not be able to access any other key-value stores by default either.
+
+<div class="info"><strong>Apps are sandboxed by default!</strong> Apps are not able to access any files, directories, or data outside of their own directory and key-value store within a user's account. This is to ensure that apps can't access any data or resources that they shouldn't have access to.</div>
+
+Your app will also be able to use the following services by default:
+
+- **AI**: Your app will be able to use the AI services provided by Puter.com. This includes chat, txt2img, img2txt, and more.
+
+- **Hosting**: Your app will be able to use puter to create and publish websites on the user's behalf.
+
+
+<!--
+File: user-pays-model.md
+-->
+
+The User Pays Model is the underlying business and operational approach that allows Puter.js to offer its services for free to developers. Under this model, each user of your application pays for their own consumption of resources (storage, AI requests, computing power) through their Puter account, rather than the developer bearing these costs.
+
+When a user interacts with your Puter.js-powered application, they authenticate with their Puter account, and any resources consumed (such as cloud storage used or AI API calls made) are charged to their account—not to you as the developer.
+
+<br><br>
+
+# Advantages of the User Pays Model
+
+## 1. Zero Infrastructure Costs for Developers
+
+Perhaps the most significant advantage is that you, as a developer, don't pay anything for infrastructure costs when using Puter.js for your infrastructure. Whether your app serves one user or one million users, your costs remain the same: zero.
+
+## 2. No Need for API Key Management
+
+You don't need to:
+- Register for various AI and cloud service providers
+- Manage and rotate API keys
+- Worry about securing your API keys
+- Monitor usage and billing for each service
+- Pay for services that you don't use
+
+
+## 3. Built-in Security
+
+The authentication and authorization are handled by Puter's infrastructure:
+- Users authenticate directly with Puter
+- Your app operates within the permissions granted by the user
+- Data is protected through Puter's security mechanisms
+
+## 4. No Anti-Abuse Implementation Required
+
+You don't need to implement:
+- Rate limiting
+- CAPTCHA verification
+- IP blocking
+- Usage quotas
+- Fraud detection
+
+Bad actors have no incentive to abuse the system because they are paying for their own usage.
+
+## 5. Simpler Codebase
+
+Since authentication, storage, and API access are all handled through Puter.js:
+- Your codebase is significantly simpler
+- You can focus entirely on your application's unique functionality
+- Frontend-only development is possible for many applications
+
+## 6. No Need to Ask Users for Their API Keys
+
+Many AI applications require users to provide their own API keys for services like OpenAI. With Puter.js:
+- Users don't need to have their own API keys
+- Users don't need to understand how to get or manage API keys
+- You avoid the security and UX concerns of handling user API keys
+
+## 7. Simplified User Experience
+
+For your users:
+- Single sign-on through Puter
+- Unified billing through their existing Puter account
+- No need to create accounts with multiple service providers
+
+<br>
+
+## Everybody wins!
+
+The User Pays Model enables Puter.js to provide a truly serverless development experience where you can build sophisticated applications with AI, cloud storage, and authentication—all from the frontend—without worrying about infrastructure costs, security, or scaling. It creates a win-win situation where developers can build without overhead costs, and users pay only for the resources they actually consume.

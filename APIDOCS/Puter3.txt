@@ -1,0 +1,1045 @@
+
+<!--
+File: FS/delete.md
+-->
+
+Deletes a file or directory.
+
+## Syntax
+```js
+puter.fs.delete(path)
+puter.fs.delete(path, options)
+```
+
+## Parameters
+#### `path` (String) (required)
+Path of the file or directory to delete.
+If `path` is not absolute, it will be resolved relative to the app's root directory.
+
+#### `options` (Object) (optional)
+The options for the `delete` operation. The following options are supported:
+- `recursive` (Boolean) - Whether to delete the directory recursively. Defaults to `true`.
+- `descendantsOnly` (Boolean) - Whether to delete only the descendants of the directory and not the directory itself. Defaults to `false`.
+
+
+## Return value
+A `Promise` that will resolve when the file or directory is deleted.
+
+## Examples
+
+
+<strong class="example-title">Delete a file</strong>
+
+```html;fs-delete
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Create a random file
+            let filename = puter.randName();
+            await puter.fs.write(filename, 'Hello, world!');
+            puter.print('File created successfully<br>');
+
+            // (2) Delete the file
+            await puter.fs.delete(filename);
+            puter.print('File deleted successfully');
+        })();
+    </script>
+</body>
+</html>
+```
+
+<strong class="example-title">Delete a directory</strong>
+
+```html;fs-delete-directory
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Create a random directory
+            let dirname = puter.randName();
+            await puter.fs.mkdir(dirname);
+            puter.print('Directory created successfully<br>');
+
+            // (2) Delete the directory
+            await puter.fs.delete(dirname);
+            puter.print('Directory deleted successfully');
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: FS/mkdir.md
+-->
+
+Allows you to create a directory.
+
+## Syntax
+```js
+puter.fs.mkdir(path)
+puter.fs.mkdir(path, options)
+```
+
+## Parameters
+#### `path` (string) (required)
+The path to the directory to create.
+If path is not absolute, it will be resolved relative to the app's root directory.
+
+#### `options` (object)
+The options for the `mkdir` operation. The following options are supported:
+- `overwrite` (boolean) - Whether to overwrite the directory if it already exists. Defaults to `false`.
+- `dedupeName` (boolean) - Whether to deduplicate the directory name if it already exists. Defaults to `false`.
+- `createMissingParents` (boolean) - Whether to create missing parent directories. Defaults to `false`.
+
+## Return value
+Returns a promise that resolves to the directory object of the created directory.
+
+## Examples
+
+<strong class="example-title">Create a new directory</strong>
+
+```html;fs-mkdir
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        // Create a directory with random name
+        let dirName = puter.randName();
+        puter.fs.mkdir(dirName).then((directory) => {
+            puter.print(`"${dirName}" created at ${directory.path}`);
+        }).catch((error) => {
+            puter.print('Error creating directory:', error);
+        });
+    </script>
+</body>
+</html>
+```
+
+<strong class="example-title">Demonstrate the use of `dedupeName`</strong>
+
+```html;fs-mkdir-dedupe
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // create a directory named 'hello'
+            let dir_1 = await puter.fs.mkdir('hello');
+            puter.print(`Directory 1: ${dir_1.name}<br>`);
+            // create a directory named 'hello' again, it should be automatically renamed to 'hello (n)' where n is the next available number
+            let dir_2 = await puter.fs.mkdir('hello', { dedupeName: true });
+            puter.print(`Directory 2: ${dir_2.name}<br>`);
+        })();
+    </script>
+</body>
+</html>
+```
+
+<strong class="example-title">Demonstrate the use of `createMissingParents`</strong>
+
+```html;fs-mkdir-create-missing-parents
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // Create a directory named 'hello' in a directory that does not exist
+            let dir = await puter.fs.mkdir('my-directory/another-directory/hello', { createMissingParents: true });
+            puter.print(`Directory created at: ${dir.path}<br>`);
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: FS/move.md
+-->
+
+Moves a file or a directory from one location to another.
+
+## Syntax
+
+```js
+puter.fs.move(source, destination)
+puter.fs.move(source, destination, options)
+```
+
+## Parameters
+#### `source` (String) (Required)
+The path to the file or directory to move.
+
+#### `destination` (String) (Required)
+The path to the destination directory. If destination is a directory then the file or directory will be moved into that directory using the same name as the source file or directory. If the destination is a file, we overwrite if overwrite is `true`, otherwise we error.
+
+#### `options` (Object) (Optional)
+The options for the `move` operation. The following options are supported:
+- `overwrite` (Boolean) - Whether to overwrite the destination file or directory if it already exists. Defaults to `false`.
+- `dedupeName` (Boolean) - Whether to deduplicate the file or directory name if it already exists. Defaults to `false`.
+- `createMissingParents` (Boolean) - Whether to create missing parent directories. Defaults to `false`.
+
+## Return value
+A `Promise` that will resolve to the moved file or directory. If the source file or directory does not exist, the promise will be rejected with an error.
+
+## Examples
+
+<strong class="example-title"> Move a file</strong>
+
+```html;fs-move
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+    (async () => {
+        // (1) Create a random text file
+        let filename = puter.randName() + '.txt';
+        await puter.fs.write(filename, 'Hello, world!');
+        puter.print(`Created file: ${filename}<br>`);
+
+        // (2) create a random directory
+        let dirname = puter.randName();
+        await puter.fs.mkdir(dirname);
+        puter.print(`Created directory: ${dirname}<br>`);
+
+        // (3) Move the file into the directory
+        await puter.fs.move(filename, dirname);
+        puter.print(`Moved file: ${filename} to directory ${dirname}<br>`);
+
+        // (4) Delete the file and directory (cleanup)
+        await puter.fs.delete(dirname + '/' + filename);
+        await puter.fs.delete(dirname);
+    })();
+    </script>
+</body>
+</html>
+```
+
+<strong class="example-title"> Demonstrate the `createMissingParents` option</strong>
+
+```html;fs-move-create-missing-parents
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+    (async () => {
+        // (1) Create a random file
+        let filename = puter.randName() + '.txt';
+        await puter.fs.write(filename, 'Hello, world!');
+        puter.print('Created file: ' + filename + '<br>');
+
+        // (2) Move the file into a non-existent directory
+        let dirname = puter.randName();
+        await puter.fs.move(filename, dirname + '/' + filename, { createMissingParents: true });
+        puter.print(`Moved ${filename} to ${dirname}<br>`);
+
+        // (3) Delete the file and directory (cleanup)
+        await puter.fs.delete('non-existent-directory/' + filename);
+        await puter.fs.delete('non-existent-directory');
+    })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: FS/read.md
+-->
+
+Reads data from a file.
+
+## Syntax
+```js
+puter.fs.read(path)
+```
+
+## Parameters
+#### `path` (String) (required)
+Path of the file to read.
+If `path` is not absolute, it will be resolved relative to the app's root directory.
+
+## Return value
+A `Promise` that will resolve to a `Blob` object containing the contents of the file.
+
+## Examples
+
+<strong class="example-title">Read a file</strong>
+
+```html;fs-read
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Create a random text file
+            let filename = puter.randName() + ".txt";
+            await puter.fs.write(filename, "Hello world! I'm a file!");
+            puter.print(`"${filename}" created<br>`);
+
+            // (2) Read the file and print its contents
+            let blob = await puter.fs.read(filename);
+            let content = await blob.text();
+            puter.print(`"${filename}" read (content: "${content}")<br>`);
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: FS/readdir.md
+-->
+
+Reads the contents of a directory, returning an array of items (files and directories) within it. This method is useful for listing all items in a specified directory in the Puter cloud storage.
+
+## Syntax
+```js
+puter.fs.readdir(path)
+```
+
+## Parameters
+`path` (string)
+The path to the directory to read.
+If `path` is not absolute, it will be resolved relative to the app's root directory.
+
+## Return value
+A `Promise` that resolves to an array of [`fsitem`s](/Objects/fsitem/) (files and directories) within the specified directory.
+
+## Examples
+
+<strong class="example-title">Read a directory</strong>
+
+```html;fs-readdir
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        puter.fs.readdir('./').then((items) => {
+            // print the path of each item in the directory
+            puter.print(`Items in the directory:<br>${items.map((item) => item.path)}<br>`);
+        }).catch((error) => {
+            puter.print(`Error reading directory: ${error}`);
+        });
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: FS/rename.md
+-->
+
+Renames a file or directory to a new name. This method allows you to change the name of a file or directory in the Puter cloud storage.
+
+## Syntax
+```js
+puter.fs.rename(path, newName)
+```
+
+## Parameters
+#### `path` (string)
+The path to the file or directory to rename.
+If `path` is not absolute, it will be resolved relative to the app's root directory.
+
+#### `newName` (string)
+The new name of the file or directory.
+
+## Return value
+Returns a promise that resolves to the file or directory object of the renamed file or directory.
+
+## Examples
+
+<strong class="example-title">Rename a file</strong>
+
+```html;fs-rename
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // Create hello.txt
+            await puter.fs.write('hello.txt', 'Hello, world!');
+            puter.print(`"hello.txt" created<br>`);
+
+            // Rename hello.txt to hello-world.txt
+            await puter.fs.rename('hello.txt', 'hello-world.txt')
+            puter.print(`"hello.txt" renamed to "hello-world.txt"<br>`);
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: FS/space.md
+-->
+
+Returns the storage space capacity and usage for the current user.
+
+<div class="info">
+<svg style="margin-right:15px;" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="48px" height="48px" viewBox="0 0 48 48" stroke-width="2"><g stroke-width="2" transform="translate(0, 0)"><circle data-color="color-2" data-stroke="none" cx="24" cy="35" r="1" fill="#ffffff"></circle><circle cx="24" cy="24" r="22" fill="none" stroke="#fff" stroke-linecap="square" stroke-miterlimit="10" stroke-width="2" stroke-linejoin="miter"></circle><line data-color="color-2" x1="24" y1="12" x2="24" y2="28" fill="none" stroke="#ffffff" stroke-linecap="square" stroke-miterlimit="10" stroke-width="2" stroke-linejoin="miter"></line><circle data-color="color-2" cx="24" cy="35" r="1" fill="none" stroke="#ffffff" stroke-linecap="square" stroke-miterlimit="10" stroke-width="2" stroke-linejoin="miter"></circle></g></svg>
+This method requires permission to access the user's storage space. If the user has not granted permission, the method will return an error.</div>
+
+## Syntax
+```js
+puter.fs.space()
+```
+
+## Parameters
+None.
+
+## Return value
+A `Promise` that will resolve to an object with the following properties:
+- `capacity` (Number): The total amount of storage capacity available to the user, in bytes.
+- `used` (Number): The amount of storage space used by the user, in bytes.
+
+
+## Examples
+
+```html
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        // Retrieves the storage space capacity and usage for the current user, and prints them to the browser console
+        puter.space().then((space)=>{
+            console.log(space)
+        });
+    </script>
+</body>
+</html>
+```
+
+<!--
+File: FS/stat.md
+-->
+
+This method allows you to get information about a file or directory.
+
+## Syntax
+
+```js
+puter.fs.stat(path)
+```
+
+## Parameters
+#### `path` (string) (required)
+The path to the file or directory to get information about.
+If `path` is not absolute, it will be resolved relative to the app's root directory.
+
+## Return value
+A `Promise` that resolves to the [`fsitem`](/Objects/fsitem/) of the specified file or directory.
+
+## Examples
+
+<strong class="example-title">Get information about a file</strong>
+
+```html;fs-stat
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // () create a file
+            await puter.fs.write('hello.txt', 'Hello, world!');
+            puter.print('hello.txt created<br>');
+
+            // (2) get information about hello.txt
+            const file = await puter.fs.stat('hello.txt');
+            puter.print(`hello.txt name: ${file.name}<br>`);
+            puter.print(`hello.txt path: ${file.path}<br>`);
+            puter.print(`hello.txt size: ${file.size}<br>`);
+            puter.print(`hello.txt created: ${file.created}<br>`);
+        })()
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: FS/upload.md
+-->
+
+Given a number of local items, upload them to the Puter filesystem.
+
+## Syntax
+
+```js
+puter.fs.upload(items)
+puter.fs.upload(items, dirPath)
+puter.fs.upload(items, dirPath, options)
+```
+
+## Parameters
+#### `items` (Array) (required)
+The items to upload to the Puter filesystem. `items` can be an `InputFileList`, `FileList`, `Array` of `File` objects, or an `Array` of `Blob` objects.
+
+#### `dirPath` (String) (optional)
+The path of the directory to upload the items to. If not set, the items will be uploaded to the app's root directory.
+
+#### `options` (Object) (optional)
+A set of key/value pairs that configure the upload process. 
+
+
+## Return value
+Returns a promise that resolves to an array of file objects of the uploaded files.
+
+## Examples
+
+<strong class="example-title">Upload a file from a file input</strong>
+
+```html;fs-upload
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <input type="file" id="file-input" />
+    <script>
+        // File input
+        let fileInput = document.getElementById('file-input');
+
+        // Upload the file when the user selects it
+        fileInput.onchange = () => {
+            puter.fs.upload(fileInput.files).then((file) => {
+                puter.print(`File uploaded successfully to: ${file.path}`);                
+            })
+        };
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: FS/write.md
+-->
+
+Writes data to a specified file path. This method is useful for creating new files or modifying existing ones in the Puter cloud storage.
+
+## Syntax
+
+```js
+puter.fs.write(path)
+puter.fs.write(path, data)
+puter.fs.write(path, data, options)
+```
+
+## Parameters
+#### `path` (string) (required)
+The path to the file to write to.
+If path is not absolute, it will be resolved relative to the app's root directory.
+
+#### `data` (string|File|Blob)
+The data to write to the file.
+
+#### `options` (object)
+The options for the `write` operation. The following options are supported:
+- `overwrite` (boolean) - Whether to overwrite the file if it already exists. Defaults to `true`.
+- `dedupeName` (boolean) - Whether to deduplicate the file name if it already exists. Defaults to `false`.
+- `createMissingParents` (boolean) - Whether to create missing parent directories. Defaults to `false`.
+
+## Return value
+Returns a promise that resolves to the file object of the written file.
+
+## Examples
+
+<strong class="example-title">Create a new file containing "Hello, world!"</strong>
+
+```html;fs-write
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        // Create a new file called "hello.txt" containing "Hello, world!"
+        puter.fs.write('hello.txt', 'Hello, world!').then(() => {
+            puter.print('File written successfully');
+        })
+    </script>
+</body>
+</html>
+```
+
+<strong class="example-title">Create a new file with input coming from a file input</strong>
+
+```html;fs-write-from-input
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <input type="file" id="file-input">
+    <script>
+        // Example: Writing a file with input coming from a file input
+        document.getElementById('file-input').addEventListener('change', (event) => {
+            puter.fs.write('hello.txt', event.target.files[0]).then(() => {
+                puter.print('File written successfully');
+            }).catch((error) => {
+                puter.print('Error writing file:', error);
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+<strong class="example-title">Demonstrate the use of `dedupeName`</strong>
+
+```html;fs-write-dedupe
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // create a file named 'hello.txt'
+            let file_1 = await puter.fs.write('hello.txt', 'Hello, world!');
+            puter.print(`File 1: ${file_1.name}<br>`);
+            // create a file named 'hello.txt' again, it should be automatically renamed to 'hello (n).txt' where n is the next available number
+            let file_2 = await puter.fs.write('hello.txt', 'Hello, world!', { dedupeName: true });
+            puter.print(`File 2: ${file_2.name}<br>`);
+        })();
+    </script>
+</body>
+</html>
+```
+
+<strong class="example-title">Demonstrate the use of `createMissingParents`</strong>
+
+```html;fs-write-create-missing-parents
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // create a file named 'hello.txt' in a directory that does not exist
+            let file = await puter.fs.write('my-directory/another-directory/hello.txt', 'Hello, world!', { createMissingParents: true });
+            puter.print(`File created at: ${file.path}<br>`);
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: Hosting/create.md
+-->
+
+Will create a new subdomain that will be served by the hosting service. Optionally, you can specify a path to a directory that will be served by the subdomain.
+
+## Syntax
+
+```js
+puter.hosting.create(subdomain, dirPath)
+```
+
+## Parameters
+#### `subdomain` (String) (required)
+A string containing the name of the subdomain you want to create.
+
+#### `dirPath` (String) (optional)
+A string containing the path to the directory you want to serve. If not specified, the subdomain will be created without a directory.
+
+## Return value
+A `Promise` that will resolve to a [`subdomain`](/Objects/subdomain/) object when the subdomain has been created. If a subdomain with the given name already exists, the promise will be rejected with an error. If the path does not exist, the promise will be rejected with an error.
+
+## Examples
+
+<strong class="example-title">Create a simple website displaying "Hello world!"</strong>
+
+```html;hosting-create
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Create a random directory
+            let dirName = puter.randName();
+            await puter.fs.mkdir(dirName)
+
+            // (2) Create 'index.html' in the directory with the contents "Hello, world!"
+            await puter.fs.write(`${dirName}/index.html`, '<h1>Hello, world!</h1>');
+
+            // (3) Host the directory under a random subdomain
+            let subdomain = puter.randName();
+            const site = await puter.hosting.create(subdomain, dirName)
+
+            puter.print(`Website hosted at: <a href="https://${site.subdomain}.puter.site" target="_blank">https://${site.subdomain}.puter.site</a>`);
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: Hosting/delete.md
+-->
+
+Deletes a subdomain from your account. The subdomain will no longer be served by the hosting service. If the subdomain has a directory, it will be disconnected from the subdomain. The associated directory will not be deleted.
+
+## Syntax
+
+```js
+puter.hosting.delete(subdomain)
+```
+
+## Parameters
+#### `subdomain` (String) (required)
+A string containing the name of the subdomain you want to delete.
+
+## Return value
+A `Promise` that will resolve to `true` when the subdomain has been deleted. If a subdomain with the given name does not exist, the promise will be rejected with an error.
+
+## Examples
+
+<strong class="example-title">Create a random website then delete it</strong>
+
+```html;hosting-delete
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Create a random website
+            let subdomain = puter.randName();
+            const site = await puter.hosting.create(subdomain)
+            puter.print(`Website hosted at: ${site.subdomain}.puter.site (This is an empty website with no files)<br>`);
+
+            // (2) Delete the website using delete()
+            const site2 = await puter.hosting.delete(site.subdomain);
+            puter.print('Website deleted<br>');
+
+            // (3) Try to retrieve the website (should fail)
+            puter.print('Trying to retrieve website... (should fail)<br>');
+            try {
+                await puter.hosting.get(site.subdomain);
+            } catch (e) {
+                puter.print('Website could not be retrieved<br>');
+            }
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: Hosting/get.md
+-->
+
+Returns a subdomain. If the subdomain does not exist, the promise will be rejected with an error.
+
+## Syntax
+
+```js
+puter.hosting.get(subdomain)
+```
+
+## Parameters
+#### `subdomain` (String) (required)
+A string containing the name of the subdomain you want to retrieve.
+
+## Return value
+A `Promise` that will resolve to a [`subdomain`](/Objects/subdomain/) object when the subdomain has been retrieved. If a subdomain with the given name does not exist, the promise will be rejected with an error.
+
+## Examples
+
+<strong class="example-title">Get a subdomain</strong>
+
+```html;hosting-get
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Create a random website
+            let subdomain = puter.randName();
+            const site = await puter.hosting.create(subdomain)
+            puter.print(`Website hosted at: ${site.subdomain}.puter.site (This is an empty website with no files)<br>`);
+
+            // (2) Retrieve the website using get()
+            const site2 = await puter.hosting.get(site.subdomain);
+            puter.print(`Website retrieved: subdomain=${site2.subdomain}.puter.site UID=${site2.uid}<br>`);
+
+            // (3) Delete the website (cleanup)
+            await puter.hosting.delete(subdomain);
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: Hosting/list.md
+-->
+
+Returns an array of all subdomains in the user's subdomains that this app has access to. If the user has no subdomains, the array will be empty.
+
+## Syntax
+```js
+puter.hosting.list()
+```
+
+## Parameters
+None
+
+## Return value
+A `Promise` that will resolve to an array of all [`subdomain`s](/Objects/subdomain/) belonging to the user that this app has access to. 
+
+## Examples
+
+<strong class="example-title">Create 3 random websites and then list them</strong>
+
+```html;hosting-list
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Generate 3 random subdomains
+            let site_1 = puter.randName();
+            let site_2 = puter.randName();
+            let site_3 = puter.randName();
+
+            // (2) Create 3 empty websites with the subdomains we generated
+            await puter.hosting.create(site_1);
+            await puter.hosting.create(site_2);
+            await puter.hosting.create(site_3);
+
+            // (3) Get all subdomains
+            let sites = await puter.hosting.list();
+
+            // (4) Display the names of the websites
+            puter.print(sites.map(site => site.subdomain));
+
+            // Delete all sites (cleanup)
+            await puter.hosting.delete(site_1);
+            await puter.hosting.delete(site_2);
+            await puter.hosting.delete(site_3);
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: Hosting/update.md
+-->
+
+Updates a subdomain to point to a new directory. If directory is not specified, the subdomain will be disconnected from its directory.
+
+## Syntax
+
+```js
+puter.hosting.update(subdomain, dirPath)
+```
+
+## Parameters
+#### `subdomain` (String) (required)
+A string containing the name of the subdomain you want to update.
+
+#### `dirPath` (String) (optional)
+A string containing the path to the directory you want to serve. If not specified, the subdomain will be disconnected from its directory.
+
+## Return value
+A `Promise` that will resolve to a [`subdomain`](/Objects/subdomain/) object when the subdomain has been updated. If a subdomain with the given name does not exist, the promise will be rejected with an error. If the path does not exist, the promise will be rejected with an error.
+
+## Examples
+
+<strong class="example-title">Update a subdomain to point to a new directory</strong>
+
+```html;hosting-update
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Create a random website
+            let subdomain = puter.randName();
+            const site = await puter.hosting.create(subdomain)
+            puter.print(`Website hosted at: ${site.subdomain}.puter.site<br>`);
+
+            // (2) Create a random directory
+            let dirName = puter.randName();
+            let dir = await puter.fs.mkdir(dirName)
+            puter.print(`Created directory "${dir.path}"<br>`);
+
+            // (3) Update the site with the new random directory
+            await puter.hosting.update(subdomain, dirName)
+            puter.print(`Changed subdomain's root directory to "${dir.path}"<br>`);
+
+            // (4) Delete the app (cleanup)
+            await puter.hosting.delete(updatedSite.subdomain)
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: KV/decr.md
+-->
+
+Decrements the value of a key. If the key does not exist, it is initialized with 0 before performing the operation. An error is returned if the key contains a value of the wrong type or contains a string that can not be represented as integer.
+
+
+## Syntax
+
+```js
+puter.kv.decr(key)
+puter.kv.decr(key, amount)
+```
+
+## Parameters
+
+#### `key` (string) (required)
+
+The key of the value to decrement.
+
+#### `amount` (integer) (optional)
+
+The amount to decrement the value by. Defaults to 1.
+
+## Return Value
+
+Returns the new value of the key after the decrement operation.
+
+## Examples
+
+<strong class="example-title">Decrement the value of a key</strong>
+
+```html;kv-decr
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        puter.kv.decr('testIncrKey').then((newValue) => {
+            puter.print(`New value: ${newValue}`);
+        });
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: KV/del.md
+-->
+
+When passed a key, will remove that key from the key-value storage. If there is no key with the given name in the key-value storage, nothing will happen.
+
+## Syntax
+```js
+puter.kv.del(key)
+```
+
+## Parameters
+#### `key` (String) (required)
+A string containing the name of the key you want to remove.
+
+## Return value 
+A `Promise` that will resolve to `true` when the key has been removed.
+
+## Examples
+
+<strong class="example-title">Delete the key 'name'</strong>
+
+```html;kv-del
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // create a new key-value pair
+            await puter.kv.set('name', 'Puter Smith');
+            puter.print("Key-value pair 'name' created/updated<br>");
+
+            // delete the key 'name'
+            await puter.kv.del('name');
+            puter.print("Key-value pair 'name' deleted<br>");
+
+            // try to retrieve the value of key 'name'
+            const name = await puter.kv.get('name');
+            puter.print(`Name is now: ${name}`);
+        })();
+    </script>
+</body>
+</html>
+```
+
+
+<!--
+File: KV/flush.md
+-->
+
+Will remove all key-value pairs from the user's key-value store for the current app.
+
+## Syntax
+```js
+puter.kv.flush()
+```
+
+## Parameters
+None
+
+## Return value
+A `Promise` that will resolve to `true` when the key-value store has been flushed (emptied). The promise will never reject.
+
+## Examples
+
+```html;kv-flush
+<html>
+<body>
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        (async () => {
+            // (1) Create a number of key-value pairs
+            await puter.kv.set('name', 'Puter Smith');
+            await puter.kv.set('age', 21);
+            await puter.kv.set('isCool', true);
+            puter.print("Key-value pairs created/updated<br>");
+
+            // (2) Rretrieve all keys
+            const keys = await puter.kv.list();
+            puter.print(`Keys are: ${keys}<br>`);
+
+            // (3) Flush the key-value store
+            await puter.kv.flush();
+            puter.print('Key-value store flushed<br>');
+
+            // (4) Retrieve all keys again, should be empty
+            const keys2 = await puter.kv.list();
+            puter.print(`Keys are now: ${keys2}<br>`);
+        })();
+    </script>
+</body>
+```
+
+
+<!--
+File: KV/get.md
+-->
+
+When passed a key, will return that key's value, or `null` if the key does not exist.
+
+## Syntax
+```js
+puter.kv.get(key)
+```
+
+## Parameters
+#### `key` (String) (required)
+A string containing the name of the key you want to retrieve the value of.
+
+## Return value 
+A `Promise` that will resolve to a string containing the value of the key. If the key does not exist, it will resolve to `null`.
