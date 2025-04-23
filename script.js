@@ -7,6 +7,135 @@ let selectedModels = [];
 let userSettings = {
   textSize: 16,
   theme: 'light',
+
+// Response cache implementation
+const responseCache = {
+  cache: new Map(),
+  maxSize: 100,
+  
+  set(key, value) {
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    this.cache.set(key, {
+      value,
+      timestamp: Date.now()
+    });
+  },
+  
+  get(key) {
+    const entry = this.cache.get(key);
+    if (entry && Date.now() - entry.timestamp < 3600000) { // 1 hour cache
+      return entry.value;
+    }
+    return null;
+  },
+  
+  clear() {
+    this.cache.clear();
+  }
+};
+
+
+// Debouncing implementation
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Garbage collection for chat history
+function cleanupChatHistory() {
+  const maxMessages = 1000;
+  if (chatHistory.length > maxMessages) {
+    chatHistory = chatHistory.slice(-maxMessages);
+  }
+  
+  // Clean up memory from deleted messages
+  if (currentChat.length > maxMessages) {
+    currentChat = currentChat.slice(-maxMessages);
+  }
+  
+  // Force garbage collection of unused images
+  document.querySelectorAll('img').forEach(img => {
+    if (!img.parentNode) {
+      URL.revokeObjectURL(img.src);
+
+// Message threading implementation
+const messageThreads = new Map();
+
+function createThread(messageId) {
+  return {
+    id: messageId,
+    messages: [],
+    children: new Set(),
+    parent: null
+  };
+}
+
+function addMessageToThread(message, threadId = null) {
+  if (!threadId) {
+    threadId = Date.now().toString();
+    messageThreads.set(threadId, createThread(threadId));
+  }
+  
+  const thread = messageThreads.get(threadId);
+  if (thread) {
+    thread.messages.push(message);
+    return threadId;
+  }
+  return null;
+}
+
+function renderThreadedChat() {
+  const container = document.getElementById('chat-container');
+  container.innerHTML = '';
+  
+  // Render main thread
+  messageThreads.forEach((thread, threadId) => {
+    if (!thread.parent) {
+      renderThread(thread, container);
+    }
+  });
+}
+
+function renderThread(thread, container) {
+  const threadDiv = document.createElement('div');
+  threadDiv.className = 'thread-container mb-4';
+  
+  thread.messages.forEach(message => {
+    const messageDiv = createMessageElement(message);
+    threadDiv.appendChild(messageDiv);
+  });
+  
+  // Render child threads
+  thread.children.forEach(childId => {
+    const childThread = messageThreads.get(childId);
+    if (childThread) {
+      const childDiv = document.createElement('div');
+      childDiv.className = 'ml-8 border-l-2 pl-4 mt-2';
+      renderThread(childThread, childDiv);
+      threadDiv.appendChild(childDiv);
+    }
+  });
+  
+  container.appendChild(threadDiv);
+}
+
+    }
+  });
+}
+
+// Run cleanup periodically
+setInterval(cleanupChatHistory, 300000); // Every 5 minutes
+
   streamingMode: false,
   multiModelMode: false,
   enabledModels: [
@@ -1168,16 +1297,41 @@ async function checkAuthState() {
 
 // Toggle streaming mode
 function toggleStreamingMode(enabled) {
-  streamingMode = enabled;
-  userSettings.streamingMode = enabled;
-  saveSettings();
-  updateModelSelectOptions(); // Refresh model list to show only streaming models
+  try {
+    streamingMode = enabled;
+    userSettings.streamingMode = enabled;
+    saveSettings();
+    updateModelSelectOptions();
+    
+    // Update UI to reflect streaming mode
+    const streamToggle = document.getElementById('streaming-toggle');
+    if (streamToggle) {
+      streamToggle.checked = enabled;
+    }
+    
+    // Disable non-streaming models
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect) {
+      Array.from(modelSelect.options).forEach(option => {
+        option.disabled = enabled && !isModelStreamCapable(option.value);
+      });
+    }
+  } catch (error) {
+    console.error('Error toggling streaming mode:', error);
+  }
 }
 
 // Toggle multi-model mode
 function toggleMultiModel(enabled) {
-  multiModelMode = enabled;
-  userSettings.multiModelMode = enabled;
+  try {
+    multiModelMode = enabled;
+    userSettings.multiModelMode = enabled;
+    
+    // Update UI
+    const multiToggle = document.getElementById('multi-toggle');
+    if (multiToggle) {
+      multiToggle.checked = enabled;
+    }
   
   // Update UI for multi-model selection
   const modelSelect = document.getElementById('model-select');
