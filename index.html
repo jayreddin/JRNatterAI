@@ -13,6 +13,12 @@
 <body class="transition-colors duration-300">
   <!-- HEADER -->
   <header class="z-50 w-full py-3 px-2 sm:px-6 flex items-center justify-between shadow flat rounded-cool mb-2 sticky top-0 bg-white dark:bg-gray-900" id="main-header">
+    <div class="flex items-center">
+      <button id="puter-login-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool font-semibold focus:outline-none transition ease-in-out duration-150 flat text-sm">
+        <i class="fa fa-user mr-1"></i> Sign In
+      </button>
+      <div id="user-info" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300 hidden"></div>
+    </div>
     <div class="flex flex-1 items-center justify-center">
       <div class="relative w-full max-w-xs mx-auto text-center">
         <select id="model-select" class="bg-gray-50 border rounded-cool py-1 px-3 pr-7 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base font-semibold appearance-none flat dark:bg-gray-800 dark:text-white">

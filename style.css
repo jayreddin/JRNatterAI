@@ -220,6 +220,24 @@ select option {
   color: #ffc12b;
 }
 
+/* User login styles */
+#puter-login-btn {
+  transition: all 0.2s ease-in-out;
+}
+
+#puter-login-btn:hover {
+  transform: translateY(-2px);
+}
+
+#user-info {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.dark-mode #user-info {
+  color: #93c5fd;
+}
+
 @media (max-width: 767px) {
   .md\:flex-row {
     flex-direction: column;

@@ -561,11 +561,76 @@ function addOpenRouterModels() {
   }
 }
 
-// INIT
-loadSettings();
-renderChat();
-checkAuthState();
-addOpenRouterModels();
+// ---- PUTER AUTH ----
+// Function to handle Puter login
+async function initPuterAuth() {
+  const loginBtn = document.getElementById('puter-login-btn');
+  
+  if (loginBtn) {
+    loginBtn.addEventListener('click', async function() {
+      try {
+        // Check if already signed in
+        if (puter.auth && puter.auth.isSignedIn()) {
+          // Sign out instead
+          puter.auth.signOut();
+          loginBtn.innerHTML = '<i class="fa fa-user mr-1"></i> Sign In';
+          document.getElementById('user-info').classList.add('hidden');
+          return;
+        }
+        
+        // Attempt to sign in
+        await puter.auth.signIn();
+        
+        // Get user information
+        const user = await puter.auth.getUser();
+        if (user && user.username) {
+          loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
+          document.getElementById('user-info').textContent = user.username;
+          document.getElementById('user-info').classList.remove('hidden');
+        }
+      } catch (error) {
+        console.error('Auth error:', error);
+      }
+    });
+  } else {
+    console.warn("Login button not found in the DOM");
+  }
+}
 
-// ---- MOBILE: Keep input at bottom ----
-window.addEventListener('resize', function() { setTimeout(() => window.scrollTo(0, 0), 100); });
+// Check initial auth state
+async function checkAuthState() {
+  const userInfoElement = document.getElementById('user-info');
+  const loginBtn = document.getElementById('puter-login-btn');
+  
+  if (!loginBtn || !userInfoElement) {
+    console.warn("Auth elements not found in the DOM");
+    return;
+  }
+
+  if (puter.auth && puter.auth.isSignedIn()) {
+    try {
+      const user = await puter.auth.getUser();
+      if (user && user.username) {
+        loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
+        userInfoElement.textContent = user.username;
+        userInfoElement.classList.remove('hidden');
+      }
+    } catch (err) {
+      console.error("Error getting user:", err);
+    }
+  }
+}
+
+// INIT
+document.addEventListener('DOMContentLoaded', function() {
+  loadSettings();
+  renderChat();
+  initPuterAuth();
+  setTimeout(checkAuthState, 500); // Slight delay to ensure Puter.js is fully loaded
+  addOpenRouterModels();
+  
+  // MOBILE: Keep input at bottom
+  window.addEventListener('resize', function() { 
+    setTimeout(() => window.scrollTo(0, 0), 100); 
+  });
+});
