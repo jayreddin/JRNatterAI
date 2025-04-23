@@ -153,6 +153,64 @@ video {
   color: #e3a01a;
 }
 
+/* OpenRouter Toggle Styles */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #10b981;
+}
+
+input:focus + .toggle-slider {
+  box-shadow: 0 0 1px #10b981;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.dark-mode .toggle-slider {
+  background-color: #555;
+}
+
+.dark-mode input:checked + .toggle-slider {
+  background-color: #10b981;
+}
+
 .dark-mode option,
 .dark-mode optgroup {
   background-color: #1e1e1e;
@@ -169,6 +227,11 @@ select optgroup {
 select option {
   padding: 5px;
   padding-left: 15px;
+  font-size: 1.1rem;
+}
+
+select#model-select {
+  font-size: 1.1rem;
 }
 
 .dark-mode .feature-btn {
@@ -234,10 +297,18 @@ select option {
 #user-info {
   color: #2563eb;
   font-weight: 500;
+  font-size: 0.9rem;
+  width: 100%;
+  text-align: center;
 }
 
 .dark-mode #user-info {
   color: #93c5fd;
+}
+
+#puter-login-btn {
+  font-size: 0.9rem;
+  padding: 0.5rem 0.75rem;
 }
 
 @media (max-width: 767px) {

@@ -32,7 +32,7 @@
           class="bg-gray-50 border rounded-cool py-1 px-3 pr-7 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base font-semibold appearance-none flat dark:bg-gray-800 dark:text-base text-center"
           style="height: 68px;">
           <!-- OpenAI Models -->
-          <optgroup label="OpenAI">
+          <optgroup label="📊 OpenAI">
             <option value="gpt-4o-mini" selected>GPT-4o mini</option>
             <option value="gpt-4o">GPT-4o</option>
             <option value="gpt-4.1">GPT-4.1</option>
@@ -48,40 +48,40 @@
           </optgroup>
 
           <!-- Anthropic Models -->
-          <optgroup label="Anthropic">
+          <optgroup label="💬 Anthropic">
             <option value="claude-3-7-sonnet">Claude-3.7 Sonnet</option>
             <option value="claude-3-5-sonnet">Claude-3.5 Sonnet</option>
           </optgroup>
 
           <!-- DeepSeek Models -->
-          <optgroup label="DeepSeek">
+          <optgroup label="🔍 DeepSeek">
             <option value="deepseek-chat">DeepSeek Chat</option>
             <option value="deepseek-reasoner">DeepSeek Reasoner</option>
           </optgroup>
 
           <!-- Google Models -->
-          <optgroup label="Google">
+          <optgroup label="🔰 Google">
             <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
             <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
             <option value="google/gemma-2-27b-it">Gemma 2 27B IT</option>
           </optgroup>
 
           <!-- Meta Models -->
-          <optgroup label="Meta">
+          <optgroup label="📘 Meta">
             <option value="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo">Llama 3.1 8B Turbo</option>
             <option value="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo">Llama 3.1 70B Turbo</option>
             <option value="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo">Llama 3.1 405B Turbo</option>
           </optgroup>
 
           <!-- Mistral Models -->
-          <optgroup label="Mistral">
+          <optgroup label="💨 Mistral">
             <option value="mistral-large-latest">Mistral Large</option>
             <option value="pixtral-large-latest">Pixtral Large</option>
             <option value="codestral-latest">Codestral Latest</option>
           </optgroup>
 
           <!-- Other Models -->
-          <optgroup label="Other">
+          <optgroup label="❇️ Other">
             <option value="grok-beta">Grok Beta</option>
           </optgroup>
         </select>
@@ -124,8 +124,8 @@
         <button id="toggle-mode"
           class="focus:outline-none w-5 h-5 flex items-center justify-center flat rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
           title="Toggle light/dark mode">
-          <i class="fa fa-moon text-xs dark:hidden"></i>
-          <i class="fa fa-sun text-xs hidden dark:inline"></i>
+          <i class="fa fa-moon text-xs" id="moon-icon"></i>
+          <i class="fa fa-sun text-xs hidden" id="sun-icon"></i>
         </button>
       </div>
     </div>
@@ -277,14 +277,17 @@
 
         <!-- Models Tab Content -->
         <div id="models-tab-content" class="tab-content hidden">
-          <div class="mb-4 flex items-center">
-            <label class="inline-flex items-center cursor-pointer">
-              <input type="checkbox" id="openrouter-toggle" class="sr-only peer">
-              <div
-                class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
-              </div>
-              <span class="ms-3 text-sm font-medium">OpenRouter</span>
-            </label>
+          <div class="mb-4 flex items-center justify-between">
+            <div class="flex items-center">
+              <label class="toggle-switch mr-2">
+                <input type="checkbox" id="openrouter-toggle">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="text-sm font-medium">OpenRouter</span>
+            </div>
+            <button id="show-enabled-only" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool text-sm">
+              Show Enabled
+            </button>
           </div>
 
           <div class="mb-4">

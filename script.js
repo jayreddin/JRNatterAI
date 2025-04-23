@@ -42,8 +42,8 @@ document.getElementById('toggle-mode').onclick = function() {
   isDarkMode = !isDarkMode;
   setTheme(isDarkMode ? 'dark' : 'light');
   // Show sun or moon icon
-  document.querySelector('.fa-moon').classList.toggle('hidden', isDarkMode);
-  document.querySelector('.fa-sun').classList.toggle('hidden', !isDarkMode);
+  document.getElementById('moon-icon').classList.toggle('hidden', isDarkMode);
+  document.getElementById('sun-icon').classList.toggle('hidden', !isDarkMode);
 }
 
 // ---- POPUP DIALOGS ----
@@ -518,6 +518,40 @@ document.getElementById('openrouter-toggle').addEventListener('change', function
   populateModelsList();
 });
 
+// Show enabled models only button
+document.getElementById('show-enabled-only').addEventListener('click', function() {
+  const isShowingAll = this.textContent.includes('Show Enabled');
+  if (isShowingAll) {
+    populateModelsList(true);
+    this.textContent = 'Show All';
+  } else {
+    populateModelsList(false);
+    this.textContent = 'Show Enabled';
+  }
+});
+
+// Add CSS for capability badges
+const style = document.createElement('style');
+style.textContent = `
+  .capability-badge {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+  
+  .dark-mode .capability-badge {
+    background: rgba(37, 99, 235, 0.2);
+    color: #93c5fd;
+  }
+`;
+document.head.appendChild(style);
+
 // Default models to enable
 const defaultModels = [
   "gpt-4o", "gpt-4.1-mini", "gpt-4.5-preview", "o1-mini", "o3-mini", "o4-mini", 
@@ -527,7 +561,7 @@ const defaultModels = [
 ];
 
 // Populate the models list
-function populateModelsList() {
+function populateModelsList(showEnabledOnly = false) {
   const modelsList = document.getElementById('models-list');
   modelsList.innerHTML = '';
   
@@ -547,55 +581,156 @@ function populateModelsList() {
     userSettings.enabledModels = defaultModels;
   }
   
-  // Create a model item for each model
+  // Filter models if showing enabled only
+  if (showEnabledOnly) {
+    allModels = allModels.filter(model => userSettings.enabledModels.includes(model));
+  }
+
+  // Group models by provider
+  const modelsByProvider = {};
+  
   allModels.forEach(model => {
-    const modelItem = document.createElement('div');
-    modelItem.className = 'model-item flex items-center justify-between border-b pb-2';
-    
-    const modelNameContainer = document.createElement('div');
-    modelNameContainer.className = 'flex items-center';
-    
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.className = 'form-checkbox mr-2';
-    checkbox.value = model;
-    checkbox.checked = userSettings.enabledModels.includes(model);
-    
-    const modelName = document.createElement('span');
-    modelName.className = 'model-name text-sm';
-    modelName.textContent = model;
-    
-    modelNameContainer.appendChild(checkbox);
-    modelNameContainer.appendChild(modelName);
-    
-    const infoButton = document.createElement('button');
-    infoButton.className = 'text-blue-500 hover:text-blue-700';
-    infoButton.innerHTML = '<i class="fa fa-plus"></i>';
-    infoButton.setAttribute('title', 'Show details');
-    
-    // Info button click handler
-    infoButton.addEventListener('click', function() {
-      const detailsDiv = modelItem.querySelector('.model-details');
-      if (detailsDiv) {
-        detailsDiv.remove();
-        this.innerHTML = '<i class="fa fa-plus"></i>';
-      } else {
-        const details = document.createElement('div');
-        details.className = 'model-details mt-2 ml-6 text-xs text-gray-600 dark:text-gray-400';
-        details.innerHTML = `
-          <p class="mb-1"><strong>Model ID:</strong> ${model}</p>
-          <p class="mb-1"><strong>Provider:</strong> ${getProviderFromModel(model)}</p>
-          <p>${getModelDescription(model)}</p>
-        `;
-        modelItem.appendChild(details);
-        this.innerHTML = '<i class="fa fa-minus"></i>';
-      }
-    });
-    
-    modelItem.appendChild(modelNameContainer);
-    modelItem.appendChild(infoButton);
-    modelsList.appendChild(modelItem);
+    const provider = getProviderFromModel(model);
+    if (!modelsByProvider[provider]) {
+      modelsByProvider[provider] = [];
+    }
+    modelsByProvider[provider].push(model);
   });
+  
+  // Create provider sections
+  Object.keys(modelsByProvider).sort().forEach(provider => {
+    // Create provider header
+    const providerHeader = document.createElement('div');
+    providerHeader.className = 'provider-header flex items-center my-3 pb-1 border-b border-gray-300 dark:border-gray-700';
+    
+    const providerIcon = document.createElement('i');
+    providerIcon.className = getProviderIcon(provider);
+    providerIcon.style.marginRight = '8px';
+    
+    const providerName = document.createElement('span');
+    providerName.className = 'font-bold text-md';
+    providerName.textContent = provider;
+    
+    providerHeader.appendChild(providerIcon);
+    providerHeader.appendChild(providerName);
+    modelsList.appendChild(providerHeader);
+    
+    // Add models for this provider
+    modelsByProvider[provider].forEach(model => {
+      const modelItem = document.createElement('div');
+      modelItem.className = 'model-item flex items-center justify-between border-b pb-2 mb-2';
+      modelItem.dataset.provider = provider;
+      
+      const modelNameContainer = document.createElement('div');
+      modelNameContainer.className = 'flex items-center';
+      
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'form-checkbox mr-2';
+      checkbox.value = model;
+      checkbox.checked = userSettings.enabledModels.includes(model);
+      
+      const modelName = document.createElement('span');
+      modelName.className = 'model-name text-sm';
+      modelName.textContent = model;
+      
+      modelNameContainer.appendChild(checkbox);
+      modelNameContainer.appendChild(modelName);
+      
+      const infoButton = document.createElement('button');
+      infoButton.className = 'text-blue-500 hover:text-blue-700';
+      infoButton.innerHTML = '<i class="fa fa-plus"></i>';
+      infoButton.setAttribute('title', 'Show details');
+      
+      // Info button click handler
+      infoButton.addEventListener('click', function() {
+        const detailsDiv = modelItem.querySelector('.model-details');
+        if (detailsDiv) {
+          detailsDiv.remove();
+          this.innerHTML = '<i class="fa fa-plus"></i>';
+        } else {
+          const details = document.createElement('div');
+          details.className = 'model-details mt-2 w-full text-xs text-gray-600 dark:text-gray-400';
+          
+          const capabilities = getModelCapabilities(model);
+          
+          details.innerHTML = `
+            <div class="p-2 bg-gray-100 dark:bg-gray-800 rounded-cool">
+              <p class="mb-1"><strong>Model ID:</strong> ${model}</p>
+              <p class="mb-1"><strong>Provider:</strong> ${getProviderFromModel(model)}</p>
+              <p class="mb-2"><strong>Description:</strong> ${getModelDescription(model)}</p>
+              <div class="mb-1"><strong>Capabilities:</strong></div>
+              <div class="grid grid-cols-2 gap-1">
+                ${capabilities.code ? '<div class="capability-badge"><i class="fa fa-code mr-1"></i> Code</div>' : ''}
+                ${capabilities.vision ? '<div class="capability-badge"><i class="fa fa-eye mr-1"></i> Vision</div>' : ''}
+                ${capabilities.reasoning ? '<div class="capability-badge"><i class="fa fa-brain mr-1"></i> Reasoning</div>' : ''}
+                ${capabilities.streaming ? '<div class="capability-badge"><i class="fa fa-stream mr-1"></i> Streaming</div>' : ''}
+                ${capabilities.longContext ? '<div class="capability-badge"><i class="fa fa-file-alt mr-1"></i> Long Context</div>' : ''}
+              </div>
+            </div>
+          `;
+          modelItem.appendChild(details);
+          this.innerHTML = '<i class="fa fa-minus"></i>';
+        }
+      });
+      
+      modelItem.appendChild(modelNameContainer);
+      modelItem.appendChild(infoButton);
+      modelsList.appendChild(modelItem);
+    });
+  });
+}
+
+// Get provider icon
+function getProviderIcon(provider) {
+  const icons = {
+    'OpenAI': 'fa fa-robot',
+    'Anthropic': 'fa fa-comment-dots',
+    'Google': 'fab fa-google',
+    'Meta': 'fab fa-facebook',
+    'Mistral AI': 'fa fa-wind',
+    'DeepSeek': 'fa fa-search',
+    'xAI': 'fa fa-times',
+    'Other': 'fa fa-cube'
+  };
+  
+  // Check if provider contains OpenRouter
+  if (provider.includes('OpenRouter')) {
+    return 'fa fa-random';
+  }
+  
+  return icons[provider] || 'fa fa-cube';
+}
+
+// Get model capabilities
+function getModelCapabilities(model) {
+  // Default capabilities
+  const capabilities = {
+    code: false,
+    vision: false,
+    reasoning: false,
+    streaming: true,
+    longContext: false
+  };
+  
+  // Set capabilities based on model name
+  if (model.includes('codestral') || model.includes('code') || model.includes('coder')) {
+    capabilities.code = true;
+  }
+  
+  if (model.includes('vision') || model.includes('vl') || model.includes('pixtral') || model.includes('gpt-4') || model.includes('o3') || model.includes('o4') || model.includes('claude-3')) {
+    capabilities.vision = true;
+  }
+  
+  if (model.includes('reasoner') || model.includes('reasoning') || model.includes('o1') || model.includes('gpt-4') || model.includes('claude-3')) {
+    capabilities.reasoning = true;
+  }
+  
+  if (model.includes('32k') || model.includes('128k') || model.includes('gemini-1.5') || model.includes('claude-3') || model.includes('o1-pro')) {
+    capabilities.longContext = true;
+  }
+  
+  return capabilities;
 }
 
 // Helper function to get provider from model name
@@ -969,6 +1104,11 @@ document.addEventListener('DOMContentLoaded', function() {
   initPuterAuth();
   setTimeout(checkAuthState, 500); // Slight delay to ensure Puter.js is fully loaded
   addOpenRouterModels();
+  
+  // Initialize dark mode toggle state
+  const isDarkTheme = userSettings.theme === 'dark';
+  document.getElementById('moon-icon').classList.toggle('hidden', isDarkTheme);
+  document.getElementById('sun-icon').classList.toggle('hidden', !isDarkTheme);
   
   // MOBILE: Keep input at bottom
   window.addEventListener('resize', function() { 
