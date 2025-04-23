@@ -19,7 +19,7 @@ let userSettings = {
 };
 
 // Define toggle functions
-function toggleStreamingMode(enabled) {
+window.toggleStreamingMode = function(enabled) {
   try {
     streamingMode = enabled;
     userSettings.streamingMode = enabled;
@@ -42,9 +42,9 @@ function toggleStreamingMode(enabled) {
   } catch (error) {
     console.error('Error toggling streaming mode:', error);
   }
-}
+};
 
-function toggleMultiModel(enabled) {
+window.toggleMultiModel = function(enabled) {
   try {
     multiModelMode = enabled;
     userSettings.multiModelMode = enabled;
@@ -63,8 +63,8 @@ function toggleMultiModel(enabled) {
     if (!modelSelect || !container) return;
 
     if (enabled) {
-      // Shrink main model dropdown
-      modelSelect.style.width = '80%'; 
+      // Hide main model dropdown
+      modelSelect.style.display = 'none';
       
       // Initialize selected models with the current selection if empty
       if (selectedModels.length === 0) {
@@ -81,7 +81,21 @@ function toggleMultiModel(enabled) {
         // Add model selector with + button
         const modelSelectorContainer = document.createElement('div');
         modelSelectorContainer.id = 'model-selector-container';
-        modelSelectorContainer.className = 'flex items-center mt-2';
+        modelSelectorContainer.className = 'flex items-center justify-center w-full mt-2';
+        
+        // Create new dropdown for model selection
+        const newModelSelect = document.createElement('select');
+        newModelSelect.id = 'multi-model-select';
+        newModelSelect.className = 'bg-gray-50 border rounded-cool py-1 px-3 text-sm dark:bg-gray-800';
+        
+        // Clone options from main model select
+        Array.from(modelSelect.options).forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt.value;
+          option.textContent = opt.textContent;
+          option.disabled = selectedModels.includes(opt.value);
+          newModelSelect.appendChild(option);
+        });
         
         const addButton = document.createElement('button');
         addButton.id = 'add-model-btn';
@@ -89,31 +103,31 @@ function toggleMultiModel(enabled) {
         addButton.className = 'ml-2 px-2 py-1 bg-blue-600 text-white rounded-full hover:bg-blue-700';
         addButton.onclick = (e) => {
           e.preventDefault();
-          // Get current model value
-          const selectedValue = modelSelect.value;
+          const selectedValue = newModelSelect.value;
           if (selectedValue && !selectedModels.includes(selectedValue)) {
             selectedModels.push(selectedValue);
             updateMultiModelDisplay();
+            
+            // Disable this option in the dropdown
+            const option = newModelSelect.querySelector(`option[value="${selectedValue}"]`);
+            if (option) option.disabled = true;
+            
+            // Select first non-disabled option
+            const firstAvailableOption = newModelSelect.querySelector('option:not([disabled])');
+            if (firstAvailableOption) newModelSelect.value = firstAvailableOption.value;
           }
         };
         
-        // Add button next to model select
-        const selectWrapper = document.createElement('div');
-        selectWrapper.className = 'flex items-center justify-center';
-        selectWrapper.style.width = '100%';
-        
-        // Reorganize the model-select and add button
-        const parent = modelSelect.parentNode;
-        if (parent) {
-          parent.insertBefore(addButton, modelSelect.nextSibling);
-        }
+        modelSelectorContainer.appendChild(newModelSelect);
+        modelSelectorContainer.appendChild(addButton);
+        container.appendChild(modelSelectorContainer);
       }
     } else {
       // Keep only the first selected model when turning off multi-model mode
       selectedModels = selectedModels.length > 0 ? [selectedModels[0]] : [modelSelect.value];
       
-      // Restore full width to the model select dropdown
-      modelSelect.style.width = '100%';
+      // Restore visibility to the model select dropdown
+      modelSelect.style.display = '';
       
       // Clean up the UI
       const multiContainer = document.getElementById('multi-model-container');
@@ -124,6 +138,9 @@ function toggleMultiModel(enabled) {
       
       const modelSelectorContainer = document.getElementById('model-selector-container');
       if (modelSelectorContainer) modelSelectorContainer.remove();
+      
+      const multiModelSelect = document.getElementById('multi-model-select');
+      if (multiModelSelect) multiModelSelect.remove();
     }
     
     updateMultiModelDisplay();
@@ -1397,8 +1414,12 @@ function populateModelsList(showEnabledOnly = false) {
 
       const modelName = document.createElement('span');
       modelName.className = 'model-name text-sm';
-      // Truncate long model names
-      modelName.textContent = model.length > 40 ? model.substring(0, 37) + '...' : model;
+      // Format OpenRouter models or truncate long model names
+      if (model.startsWith('openrouter:')) {
+        modelName.textContent = formatOpenRouterModelName(model);
+      } else {
+        modelName.textContent = model.length > 40 ? model.substring(0, 37) + '...' : model;
+      }
       modelName.title = model; // Full name on hover
 
       modelNameContainer.appendChild(checkbox);
@@ -1577,7 +1598,23 @@ function getProviderFromModel(model) {
   } else if (model.startsWith('grok')) {
     return 'xAI';
   } else if (model.startsWith('openrouter:')) {
-    return 'OpenRouter - ' + model.split('/')[0].replace('openrouter:', '');
+    // Get provider from OpenRouter model
+    const modelPath = model.replace('openrouter:', '');
+    if (modelPath.includes('openai') || modelPath.includes('gpt')) {
+      return 'OpenRouter - OpenAI';
+    } else if (modelPath.includes('anthropic') || modelPath.includes('claude')) {
+      return 'OpenRouter - Anthropic';
+    } else if (modelPath.includes('google') || modelPath.includes('gemini')) {
+      return 'OpenRouter - Google';
+    } else if (modelPath.includes('llama') || modelPath.includes('meta')) {
+      return 'OpenRouter - Meta';
+    } else if (modelPath.includes('mistral') || modelPath.includes('pixtral')) {
+      return 'OpenRouter - Mistral';
+    } else if (modelPath.includes('deepseek')) {
+      return 'OpenRouter - DeepSeek';
+    } else {
+      return 'OpenRouter - Other';
+    }
   }
   return 'Other';
 }
@@ -1597,6 +1634,40 @@ function getModelDescription(model) {
   };
 
   return descriptions[model] || 'Advanced language model for tasks including text generation, summarization, and more.';
+}
+
+// Format OpenRouter model name for display
+function formatOpenRouterModelName(model) {
+  if (!model.startsWith('openrouter:')) return model;
+  
+  // Extract model name from path
+  const modelPath = model.replace('openrouter:', '');
+  let displayName = '';
+  
+  // Parse out a readable name
+  if (modelPath.includes('/')) {
+    // Handle format like openrouter:provider/model-name
+    const parts = modelPath.split('/');
+    const modelName = parts[1] || '';
+    
+    // Clean up model name
+    displayName = modelName
+      .replace('llama-', 'Llama ')
+      .replace('gemma-', 'Gemma ')
+      .replace('gpt-', 'GPT-')
+      .replace('claude-', 'Claude ')
+      .replace('mistral-', 'Mistral ')
+      .replace('deepseek-', 'DeepSeek ')
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase()); // Capitalize words
+  } else {
+    // Handle format without provider
+    displayName = modelPath
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase());
+  }
+  
+  return 'OR: ' + displayName;
 }
 
 // Update the model selection dropdown based on enabled models
@@ -1629,26 +1700,39 @@ function updateModelSelectOptions() {
 
   // Add OpenRouter models if enabled
   if (userSettings.openRouterEnabled) {
-    // First check if OpenRouter optgroup exists
-    let openRouterGroup = sel.querySelector('optgroup[label="OpenRouter"]');
-    if (!openRouterGroup) {
-      // If it doesn't exist, create it
-      openRouterGroup = document.createElement('optgroup');
-      openRouterGroup.label = "OpenRouter";
-      sel.appendChild(openRouterGroup);
-    }
-
-    // Clear existing OpenRouter options
-    openRouterGroup.innerHTML = '';
-
-    // Add enabled OpenRouter models
-    userSettings.enabledModels.forEach(model => {
-      if (model.startsWith('openrouter:')) {
+    // Group OpenRouter models by provider
+    const openRouterModelsByProvider = {};
+    
+    userSettings.enabledModels
+      .filter(model => model.startsWith('openrouter:'))
+      .forEach(model => {
+        const provider = getProviderFromModel(model);
+        if (!openRouterModelsByProvider[provider]) {
+          openRouterModelsByProvider[provider] = [];
+        }
+        openRouterModelsByProvider[provider].push(model);
+      });
+    
+    // Create or update optgroups for each provider
+    Object.keys(openRouterModelsByProvider).forEach(provider => {
+      // Find or create optgroup
+      let providerGroup = sel.querySelector(`optgroup[label="${provider}"]`);
+      if (!providerGroup) {
+        providerGroup = document.createElement('optgroup');
+        providerGroup.label = provider;
+        sel.appendChild(providerGroup);
+      }
+      
+      // Clear existing options
+      providerGroup.innerHTML = '';
+      
+      // Add models for this provider
+      openRouterModelsByProvider[provider].forEach(model => {
         const option = document.createElement('option');
         option.value = model;
-        option.textContent = model.replace('openrouter:', 'OR: ');
-        openRouterGroup.appendChild(option);
-      }
+        option.textContent = formatOpenRouterModelName(model);
+        providerGroup.appendChild(option);
+      });
     });
   }
 }

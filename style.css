@@ -283,6 +283,57 @@ select option {
 
 select#model-select {
   font-size: 1.1rem;
+  max-width: 100%;
+  position: relative;
+  z-index: 10;
+}
+
+#model-select-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  padding: 0 10px;
+  max-width: 100%;
+}
+
+#main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+}
+
+@media (max-width: 768px) {
+  #main-header {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+  
+  #model-select-container {
+    order: 0;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}
+
+/* Multi-model mode styles */
+#multi-model-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  max-height: 8rem;
+  overflow-y: auto;
+  width: 100%;
+  justify-content: center;
+}
+
+#multi-model-select {
+  min-width: 200px;
+  height: 36px;
 }
 
 .dark-mode .feature-btn {
