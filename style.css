@@ -41,13 +41,22 @@ img, video {
   color: #e5e7eb !important;
 }
 
-.dark-mode .flat {
+.dark-mode .flat,
+.dark-mode #popup-overlay .popup-ptr,
+.dark-mode .popup-ptr,
+.dark-mode #main-header {
   background: #181a1b !important;
   color: #e5e7eb !important;
   border-color: #444;
 }
 
-.dark-mode input, .dark-mode textarea {
+.dark-mode input, 
+.dark-mode textarea, 
+.dark-mode select,
+.dark-mode #chat-input,
+.dark-mode .address-bar,
+.dark-mode .model-select,
+.dark-mode #code-result {
   background-color: #1e1e1e !important;
   color: #e5e7eb !important;
   border-color: #333;
@@ -55,6 +64,34 @@ img, video {
 
 .dark-mode .fa-moon, .dark-mode .fa-sun {
   color: #e3a01a;
+}
+
+.dark-mode option,
+.dark-mode optgroup {
+  background-color: #1e1e1e;
+  color: #e5e7eb;
+}
+
+/* Improve select dropdown styling */
+select optgroup {
+  font-weight: bold;
+  font-style: normal;
+  padding: 5px;
+}
+
+select option {
+  padding: 5px;
+  padding-left: 15px;
+}
+
+.dark-mode .feature-btn {
+  background-color: #1e1e1e !important;
+  color: #e5e7eb !important;
+}
+
+.dark-mode .feature-btn:hover {
+  background-color: #444 !important;
+  color: #ffc12b !important;
 }
 
 /* Invisble scrollbars, but scrollable for chat/message/history/file/image/code/settings popups */

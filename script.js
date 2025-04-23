@@ -49,28 +49,56 @@ document.getElementById('toggle-mode').onclick = function() {
 // ---- POPUP DIALOGS ----
 const popupOverlay = document.getElementById('popup-overlay');
 function togglePopup(name, open) {
+  // Ensure all popups are hidden first
   document.querySelectorAll('.popup-ptr').forEach(el => el.classList.add('hidden'));
+  
   if (open) {
+    // Show the overlay and the requested popup
     popupOverlay.classList.remove('hidden');
-    document.getElementById('popup-' + name).classList.remove('hidden');
+    const popup = document.getElementById('popup-' + name);
+    if (popup) {
+      popup.classList.remove('hidden');
+    } else {
+      console.error(`Popup with id 'popup-${name}' not found`);
+    }
   } else {
+    // Hide the overlay
     popupOverlay.classList.add('hidden');
-    document.getElementById('popup-' + name).classList.add('hidden');
-    // cleanup for certain popups
+    
+    // Hide the specific popup if it exists
+    const popup = document.getElementById('popup-' + name);
+    if (popup) {
+      popup.classList.add('hidden');
+    }
+    
+    // Cleanup for certain popups
     if (name === 'file') {
-      document.getElementById('file-input-file').value = ""; document.getElementById('file-preview-box').innerHTML = '';
+      const fileInput = document.getElementById('file-input-file');
+      const previewBox = document.getElementById('file-preview-box');
+      if (fileInput) fileInput.value = "";
+      if (previewBox) previewBox.innerHTML = '';
     }
     if (name === 'image') {
-      document.getElementById('image-gen-prompt').value = ''; document.getElementById('image-gen-area').innerHTML = '';
+      const promptInput = document.getElementById('image-gen-prompt');
+      const genArea = document.getElementById('image-gen-area');
+      if (promptInput) promptInput.value = '';
+      if (genArea) genArea.innerHTML = '';
     }
     if (name === 'code') {
-      document.getElementById('code-gen-prompt').value = ''; document.getElementById('code-result').textContent = '';
+      const codePrompt = document.getElementById('code-gen-prompt');
+      const codeResult = document.getElementById('code-result');
+      if (codePrompt) codePrompt.value = '';
+      if (codeResult) codeResult.textContent = '';
     }
   }
 }
-popupOverlay.onclick = function() {
-  document.querySelectorAll('.popup-ptr').forEach(el => el.classList.add('hidden'));
-  popupOverlay.classList.add('hidden');
+
+// Close all popups when overlay is clicked
+if (popupOverlay) {
+  popupOverlay.onclick = function() {
+    document.querySelectorAll('.popup-ptr').forEach(el => el.classList.add('hidden'));
+    popupOverlay.classList.add('hidden');
+  }
 }
 
 // ---- CHAT MESSAGE RENDERING ----
@@ -111,6 +139,15 @@ document.getElementById('chat-form').onsubmit = async function(e) {
   document.getElementById('chat-input').value = "";
   await aiSend(txt, model, time);
 }
+
+// Add event listener for Enter key press on the chat input
+document.getElementById('chat-input').addEventListener('keydown', function(e) {
+  // Check if Enter was pressed (without shift for new line)
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault(); // Prevent default to avoid new line
+    document.getElementById('chat-form').dispatchEvent(new Event('submit'));
+  }
+});
 // send to AI
 async function aiSend(txt, model, usetime) {
   const idx = currentChat.length;
@@ -120,7 +157,7 @@ async function aiSend(txt, model, usetime) {
   try {
     const opts = { model };
     const resp = await puter.ai.chat(txt, opts);
-    let text = resp.message.text || '';
+    let text = resp.message?.text || resp.text || '';
     currentChat[idx] = { role: 'model', content: text, time: nowStr(), model };
     renderChat();
   } catch (err) {
