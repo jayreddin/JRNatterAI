@@ -401,30 +401,85 @@ function toggleOpenRouter() {
 
 // Initialize models list
 function initializeModels() {
-  // Standard models initialization
-  const standardModels = {};
-
-  // Add standard model groups from HTML
-  const optgroups = modelSelect.querySelectorAll('optgroup');
-  optgroups.forEach(group => {
-    const provider = group.label.trim().replace(/^[📊💬🔍🔰📘💨❇️]\s*/, '');
-    if (provider && provider !== '') {
-      standardModels[provider] = [];
-
-      const options = group.querySelectorAll('option');
-      options.forEach(option => {
-        standardModels[provider].push({
-          id: option.value,
-          name: option.textContent,
-          provider,
-          enabled: true,
-          streaming: true
-        });
-      });
-    }
-  });
+  // Standard models initialization - with all Puter models
+  const standardModels = {
+    "OpenAI": [
+      { id: "gpt-4o-mini", name: "GPT-4o mini", provider: "OpenAI", enabled: true, streaming: true },
+      { id: "gpt-4o", name: "GPT-4o", provider: "OpenAI", enabled: true, streaming: true },
+      { id: "o1", name: "O1", provider: "OpenAI", enabled: true, streaming: true },
+      { id: "o1-mini", name: "O1-mini", provider: "OpenAI", enabled: true, streaming: true },
+      { id: "o1-pro", name: "O1-pro", provider: "OpenAI", enabled: true, streaming: true },
+      { id: "o3", name: "O3", provider: "OpenAI", enabled: true, streaming: true },
+      { id: "o3-mini", name: "O3-mini", provider: "OpenAI", enabled: true, streaming: true },
+      { id: "o4-mini", name: "O4-mini", provider: "OpenAI", enabled: true, streaming: true },
+      { id: "gpt-4.1", name: "GPT-4.1", provider: "OpenAI", enabled: true, streaming: true },
+      { id: "gpt-4.1-mini", name: "GPT-4.1 mini", provider: "OpenAI", enabled: true, streaming: true },
+      { id: "gpt-4.1-nano", name: "GPT-4.1 nano", provider: "OpenAI", enabled: true, streaming: true },
+      { id: "gpt-4.5-preview", name: "GPT-4.5 preview", provider: "OpenAI", enabled: true, streaming: true }
+    ],
+    "Anthropic": [
+      { id: "claude-3-7-sonnet", name: "Claude-3.7 Sonnet", provider: "Anthropic", enabled: true, streaming: true },
+      { id: "claude-3-5-sonnet", name: "Claude-3.5 Sonnet", provider: "Anthropic", enabled: true, streaming: true }
+    ],
+    "DeepSeek": [
+      { id: "deepseek-chat", name: "DeepSeek Chat", provider: "DeepSeek", enabled: true, streaming: true },
+      { id: "deepseek-reasoner", name: "DeepSeek Reasoner", provider: "DeepSeek", enabled: true, streaming: true }
+    ],
+    "Google": [
+      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "Google", enabled: true, streaming: true },
+      { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", provider: "Google", enabled: true, streaming: true },
+      { id: "google/gemini-2.5-flash-preview", name: "Gemini 2.5 Flash Preview", provider: "Google", enabled: true, streaming: true },
+      { id: "google/gemini-2.5-flash-preview:thinking", name: "Gemini 2.5 Flash Preview (Thinking)", provider: "Google", enabled: true, streaming: true },
+      { id: "google/gemini-2.5-pro-exp-03-25:free", name: "Gemini 2.5 Pro Experimental", provider: "Google", enabled: true, streaming: true },
+      { id: "google/gemini-2.0-flash-lite-001", name: "Gemini 2.0 Flash Lite", provider: "Google", enabled: true, streaming: true },
+      { id: "google/gemma-2-27b-it", name: "Gemma 2 27B IT", provider: "Google", enabled: true, streaming: true }
+    ],
+    "Meta": [
+      { id: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", name: "Llama 3.1 8B Turbo", provider: "Meta", enabled: true, streaming: true },
+      { id: "meta-llama/llama-4-maverick", name: "Llama 4 Maverick", provider: "Meta", enabled: true, streaming: true },
+      { id: "meta-llama/llama-4-scout", name: "Llama 4 Scout", provider: "Meta", enabled: true, streaming: true },
+      { id: "meta-llama/llama-3.3-70b-instruct", name: "Llama 3.3 70B Instruct", provider: "Meta", enabled: true, streaming: true },
+      { id: "meta-llama/llama-guard-3-8b", name: "Llama Guard 3 8B", provider: "Meta", enabled: true, streaming: true },
+      { id: "meta-llama/llama-guard-2-8b", name: "Llama Guard 2 8B", provider: "Meta", enabled: true, streaming: true },
+      { id: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", name: "Llama 3.1 70B Turbo", provider: "Meta", enabled: true, streaming: true },
+      { id: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo", name: "Llama 3.1 405B Turbo", provider: "Meta", enabled: true, streaming: true }
+    ],
+    "Mistral": [
+      { id: "mistral-large-latest", name: "Mistral Large", provider: "Mistral", enabled: true, streaming: true },
+      { id: "pixtral-large-latest", name: "Pixtral Large", provider: "Mistral", enabled: true, streaming: true },
+      { id: "codestral-latest", name: "Codestral Latest", provider: "Mistral", enabled: true, streaming: true }
+    ],
+    "Other": [
+      { id: "grok-beta", name: "Grok Beta", provider: "Other", enabled: true, streaming: true },
+      { id: "x-ai/grok-3-beta", name: "Grok 3 Beta", provider: "Other", enabled: true, streaming: true }
+    ]
+  };
 
   allModels = standardModels;
+
+  // If DOM is ready, update the model select dropdown
+  if (modelSelect) {
+    // Add standard model groups to HTML
+    modelSelect.innerHTML = '';
+    for (const provider in standardModels) {
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = provider;
+      
+      standardModels[provider].forEach(model => {
+        const option = document.createElement('option');
+        option.value = model.id;
+        option.textContent = model.name;
+        
+        if (model.id === currentModel) {
+          option.selected = true;
+        }
+        
+        optgroup.appendChild(option);
+      });
+      
+      modelSelect.appendChild(optgroup);
+    }
+  }
 
   // Initialize OpenRouter models
   initializeOpenRouterModels();
@@ -625,6 +680,30 @@ function populateModelsSettings() {
       const modelInfo = document.createElement('div');
       modelInfo.className = 'flex-1';
       
+      // Add model icon
+      const modelIcon = document.createElement('div');
+      modelIcon.className = 'flex items-center';
+      
+      // Select icon based on provider
+      let iconClass = 'fa-robot';
+      if (provider.includes('OpenAI') || provider.includes('Meta') || provider === 'OR OpenAI' || provider === 'OR Meta') {
+        iconClass = 'fa-message';
+      } else if (provider.includes('Google') || provider.includes('Gemini') || provider === 'OR Google') {
+        iconClass = 'fa-google';
+      } else if (provider.includes('Anthropic') || provider.includes('Claude') || provider === 'OR Anthropic') {
+        iconClass = 'fa-comment-dots';
+      } else if (provider.includes('Mistral') || provider === 'OR Mistral') {
+        iconClass = 'fa-wind';
+      } else if (provider.includes('DeepSeek') || provider === 'OR DeepSeek') {
+        iconClass = 'fa-search';
+      } else if (provider.includes('Grok') || provider.includes('x-ai') || provider === 'OR xAI') {
+        iconClass = 'fa-twitter';
+      }
+      
+      const icon = document.createElement('i');
+      icon.className = `fa ${iconClass} mr-2 text-gray-600 dark:text-gray-400`;
+      modelIcon.appendChild(icon);
+      
       const modelName = document.createElement('div');
       modelName.className = 'model-name font-medium text-sm';
       modelName.textContent = model.name;
@@ -633,7 +712,8 @@ function populateModelsSettings() {
       modelProvider.className = 'model-provider text-xs text-gray-500';
       modelProvider.textContent = model.provider;
       
-      modelInfo.appendChild(modelName);
+      modelIcon.appendChild(modelName);
+      modelInfo.appendChild(modelIcon);
       modelInfo.appendChild(modelProvider);
       
       const modelToggles = document.createElement('div');
@@ -650,21 +730,26 @@ function populateModelsSettings() {
       enabledCheckbox.checked = model.enabled;
       enabledCheckbox.addEventListener('change', function() {
         model.enabled = this.checked;
+        // Update toggle appearance
+        if (this.checked) {
+          enabledToggle.classList.add('bg-green-500');
+          enabledToggle.classList.remove('bg-gray-300');
+          enabledDot.style.transform = 'translateX(100%)';
+        } else {
+          enabledToggle.classList.remove('bg-green-500');
+          enabledToggle.classList.add('bg-gray-300');
+          enabledDot.style.transform = 'translateX(0)';
+        }
         saveSettings();
         updateModelList();
       });
       
       const enabledToggle = document.createElement('div');
-      enabledToggle.className = 'relative w-10 h-5 bg-gray-300 rounded-full transition';
-      if (model.enabled) {
-        enabledToggle.classList.add('bg-green-500');
-      }
+      enabledToggle.className = `relative w-10 h-5 ${model.enabled ? 'bg-green-500' : 'bg-gray-300'} rounded-full transition`;
       
       const enabledDot = document.createElement('div');
       enabledDot.className = 'absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition';
-      if (model.enabled) {
-        enabledDot.style.transform = 'translateX(100%)';
-      }
+      enabledDot.style.transform = model.enabled ? 'translateX(100%)' : 'translateX(0)';
       
       enabledToggle.appendChild(enabledDot);
       enabledLabel.appendChild(enabledCheckbox);
@@ -681,21 +766,26 @@ function populateModelsSettings() {
       streamingCheckbox.checked = model.streaming;
       streamingCheckbox.addEventListener('change', function() {
         model.streaming = this.checked;
+        // Update toggle appearance
+        if (this.checked) {
+          streamingToggle.classList.add('bg-blue-500');
+          streamingToggle.classList.remove('bg-gray-300');
+          streamingDot.style.transform = 'translateX(100%)';
+        } else {
+          streamingToggle.classList.remove('bg-blue-500');
+          streamingToggle.classList.add('bg-gray-300');
+          streamingDot.style.transform = 'translateX(0)';
+        }
         saveSettings();
         updateModelList();
       });
       
       const streamingToggle = document.createElement('div');
-      streamingToggle.className = 'relative w-10 h-5 bg-gray-300 rounded-full transition';
-      if (model.streaming) {
-        streamingToggle.classList.add('bg-blue-500');
-      }
+      streamingToggle.className = `relative w-10 h-5 ${model.streaming ? 'bg-blue-500' : 'bg-gray-300'} rounded-full transition`;
       
       const streamingDot = document.createElement('div');
       streamingDot.className = 'absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition';
-      if (model.streaming) {
-        streamingDot.style.transform = 'translateX(100%)';
-      }
+      streamingDot.style.transform = model.streaming ? 'translateX(100%)' : 'translateX(0)';
       
       streamingToggle.appendChild(streamingDot);
       streamingLabel.appendChild(streamingCheckbox);
@@ -849,9 +939,14 @@ async function sendMessageToModel(message, modelId) {
     } else {
       // Non-streaming response
       try {
+        // Create proper message format
+        const chatMessages = [
+          { role: 'user', content: message }
+        ];
+        
         const response = await puter.ai.chat({
           model: modelId,
-          messages: [{ role: 'user', content: message }]
+          messages: chatMessages
         });
 
         if (response && response.choices && response.choices[0] && response.choices[0].message) {
@@ -890,9 +985,10 @@ function addMessageToChat(role, content, modelName = '') {
   let messageHeader = '';
 
   if (role === 'user') {
-    messageDiv.className += ' bg-gray-50 border ml-12';
+    // User messages aligned to the right
+    messageDiv.className += ' bg-gray-50 border ml-auto mr-2';
+    messageDiv.style.maxWidth = '80%';
     messageHeader = `<div class="flex justify-between mb-1">
-      <span class="text-xs text-gray-500">You: ${timestamp}</span>
       <div class="message-actions">
         <button class="text-xs text-gray-400 hover:text-black mr-2 resend-btn" title="Resend">
           <i class="fa fa-rotate-right"></i>
@@ -903,10 +999,16 @@ function addMessageToChat(role, content, modelName = '') {
         <button class="text-xs text-gray-400 hover:text-black delete-btn" title="Delete">
           <i class="fa fa-trash"></i>
         </button>
+        <button class="text-xs text-gray-400 hover:text-black mr-2 speech-btn" title="Read Aloud">
+          <i class="fa fa-volume-up"></i>
+        </button>
       </div>
+      <span class="text-xs text-gray-500">You: ${timestamp}</span>
     </div>`;
   } else {
-    messageDiv.className += ' bg-white border mr-12';
+    // AI messages aligned to the left
+    messageDiv.className += ' bg-white border ml-2 mr-auto';
+    messageDiv.style.maxWidth = '80%';
     let modelLabel = modelName ? `: ${modelName}` : '';
     messageHeader = `<div class="flex justify-between mb-1">
       <span class="text-xs text-gray-500">AI${modelLabel}: ${timestamp}</span>
@@ -941,6 +1043,7 @@ function addMessageToChat(role, content, modelName = '') {
     const resendBtn = messageDiv.querySelector('.resend-btn');
     const copyBtn = messageDiv.querySelector('.copy-btn');
     const deleteBtn = messageDiv.querySelector('.delete-btn');
+    const speechBtn = messageDiv.querySelector('.speech-btn');
 
     if (resendBtn) {
       resendBtn.addEventListener('click', function() {
@@ -951,7 +1054,9 @@ function addMessageToChat(role, content, modelName = '') {
 
     if (copyBtn) {
       copyBtn.addEventListener('click', function() {
-        navigator.clipboard.writeText(content);
+        // Get text content without HTML tags
+        const textContent = new DOMParser().parseFromString(content, 'text/html').body.textContent;
+        navigator.clipboard.writeText(textContent);
       });
     }
 
@@ -964,6 +1069,14 @@ function addMessageToChat(role, content, modelName = '') {
           currentChat.splice(index, 1);
           saveChatToHistory();
         }
+      });
+    }
+    
+    if (speechBtn) {
+      speechBtn.addEventListener('click', function() {
+        // Extract plain text from content
+        const textContent = new DOMParser().parseFromString(content, 'text/html').body.textContent;
+        speakText(textContent);
       });
     }
   }

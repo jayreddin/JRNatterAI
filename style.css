@@ -497,6 +497,42 @@ select#model-select {
   background: #555;
 }
 
+/* Models list in settings popup scrollable container */
+#models-list {
+  max-height: 50vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 5px;
+  margin-right: -5px;
+  scrollbar-width: thin;
+}
+
+#models-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+#models-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+#models-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+#models-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Fix popup content scrollable container */
+.tab-content {
+  max-height: 50vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 5px;
+}
+
 .dark-mode .feature-btn {
   background-color: #1e1e1e !important;
   color: #e5e7eb !important;
