@@ -137,18 +137,22 @@
   </main>
 
   <!-- INPUT BAR & BUTTONS -->
-  <div class="w-full max-w-3xl mx-auto fixed bottom-0 left-0 right-0 px-1 sm:px-0 bg-transparent z-40">
+  <div class="footer-container w-full max-w-3xl mx-auto fixed bottom-0 left-0 right-0 px-1 sm:px-0 z-40">
     <form id="chat-form" class="flex items-end py-2 space-x-2" autocomplete="off">
       <textarea id="chat-input" required
         class="flex-1 resize-none border flat rounded-cool py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[44px] max-h-40 dark:bg-gray-800 dark:text-base"
         placeholder="Type your message..." rows="1"></textarea>
+      <button type="button" id="voice-input-btn" title="Voice Input"
+        class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-base px-3 py-2 rounded-cool font-semibold focus:outline-none transition ease-in-out duration-150 flat">
+        <i class="fa fa-microphone"></i>
+      </button>
       <button type="submit" title="Send"
         class="bg-blue-600 hover:bg-blue-700 text-base px-4 py-2 rounded-cool font-semibold focus:outline-none transition ease-in-out duration-150 flat">
         <i class="fa fa-paper-plane"></i>
       </button>
     </form>
     <!-- Feature Button Bar -->
-    <div class="flex flex-col items-center py-3 px-2 rounded-cool bg-transparent">
+    <div class="footer-content flex flex-col items-center py-3 px-2 rounded-cool">
       <div class="flex justify-center space-x-4 mb-2">
         <button class="feature-btn" id="btn-new-chat" title="New Chat"><i class="fa fa-plus"></i></button>
         <button class="feature-btn" id="btn-history" title="Chat History"><i class="fa fa-history"></i></button>

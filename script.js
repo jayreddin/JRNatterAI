@@ -74,13 +74,13 @@ window.toggleMultiModel = function(enabled) {
       if (!document.getElementById('multi-model-container')) {
         const multiContainer = document.createElement('div');
         multiContainer.id = 'multi-model-container';
-        multiContainer.className = 'flex flex-wrap gap-2 mt-4 pb-2 overflow-y-auto max-h-32';
+        multiContainer.className = 'multi-model-container';
         container.appendChild(multiContainer);
 
         // Add model selector with + button
         const modelSelectorContainer = document.createElement('div');
         modelSelectorContainer.id = 'model-selector-container';
-        modelSelectorContainer.className = 'flex items-center justify-center w-full mt-2';
+        modelSelectorContainer.className = 'model-selector-container';
 
         // Create new dropdown for model selection
         const newModelSelect = document.createElement('select');
@@ -132,20 +132,40 @@ window.toggleMultiModel = function(enabled) {
       const multiContainer = document.getElementById('multi-model-container');
       if (multiContainer) multiContainer.remove();
 
-      const addButton = document.getElementById('add-model-btn');
-      if (addButton) addButton.remove();
-
       const modelSelectorContainer = document.getElementById('model-selector-container');
       if (modelSelectorContainer) modelSelectorContainer.remove();
-
-      const multiModelSelect = document.getElementById('multi-model-select');
-      if (multiModelSelect) multiModelSelect.remove();
     }
 
     updateMultiModelDisplay();
   } catch (error) {
     console.error('Error toggling multi-model mode:', error);
   }
+}
+
+// Update multi-model display with selected models
+function updateMultiModelDisplay() {
+  const container = document.getElementById('multi-model-container');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  // Create a chip for each selected model
+  selectedModels.forEach((model, idx) => {
+    const chip = document.createElement('div');
+    chip.className = 'inline-flex items-center bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded-full text-sm';
+
+    // Truncate long model names for display purposes
+    const displayName = model.length > 30 ? model.substring(0, 27) + '...' : model;
+
+    chip.innerHTML = `
+      <span title="${model}" class="mr-1">${displayName}</span>
+      <button class="text-red-500 hover:text-red-700 focus:outline-none" 
+              onclick="removeSelectedModel(${idx})">
+        <i class="fa fa-times-circle"></i>
+      </button>
+    `;
+    container.appendChild(chip);
+  });
 }
 
 // Global function for removing models from multi-model selection
@@ -598,35 +618,36 @@ function renderChat() {
   for (let i = currentChat.length - 1; i >= 0; i--) {
     const m = currentChat[i];
     let bubbleClr = m.role === 'user' ? 'border-black bg-white dark:bg-gray-800' : 'border-black bg-gray-50 dark:bg-gray-900';
-    let align = m.role === 'user' ? 'ml-auto' : 'mr-auto';
+    let align = m.role === 'user' ? 'user-message' : 'assistant-message';
     let label = m.role === 'user' ? `You: ${m.time}` : `${m.model || "Assistant"}: ${m.time}`;
-    let iconBtns = `<button onclick="resendMsg(${i})" class="text-gray-500 hover:text-blue-700 mr-2" title="Resend"><i class="fa fa-redo"></i></button>
-      <button onclick="copyMsg(${i})" class="text-gray-500 hover:text-blue-700 mr-2" title="Copy"><i class="fa fa-copy"></i></button>
-      <button onclick="deleteMsg(${i})" class="text-gray-500 hover:text-blue-700 mr-2" title="Delete"><i class="fa fa-trash"></i></button>
-      <button onclick="speakMsg(${i})" class="text-gray-500 hover:text-yellow-700" title="Speak"><i class="fa fa-volume-up"></i></button>`;
+    let iconBtns = `
+      <button onclick="resendMsg(${i})" class="action-button" title="Resend"><i class="fa fa-redo"></i></button>
+      <button onclick="copyMsg(${i})" class="action-button" title="Copy"><i class="fa fa-copy"></i></button>
+      <button onclick="deleteMsg(${i})" class="action-button delete" title="Delete"><i class="fa fa-trash"></i></button>
+      <button onclick="speakMsg(${i})" class="action-button speak" title="Speak"><i class="fa fa-volume-up"></i></button>`;
 
     if (m.role === 'user') {
       // For user messages, put label and buttons below the bubble
       container.innerHTML += `
-        <div class="mb-6 flex flex-col w-full ${align}">
-          <div class="border ${bubbleClr} rounded-cool p-3 font-medium whitespace-pre-line flat ${align}" style="max-width:94vw">
+        <div class="chat-message ${align}">
+          <div class="chat-bubble ${bubbleClr}">
             ${typeof m.content === 'string' ? m.content : m.content && m.content.type === "img" ? `<img src='${m.content.url}' alt='image' class='rounded-cool'>` : ""}
           </div>
-          <div class="flex flex-row mt-1 justify-end w-full">
-            <div class="text-xs text-gray-500 mr-2 flex items-center">${label}</div>
-            <div class="flex">${iconBtns}</div>
+          <div class="message-info">
+            <div class="message-timestamp">${label}</div>
+            <div class="message-actions">${iconBtns}</div>
           </div>
         </div>
       `;
     } else {
-      // For assistant messages, keep the original layout
+      // For assistant messages
       container.innerHTML += `
-        <div class="mb-6 flex flex-col w-full ${align}">
-          <div class="text-xs text-gray-500 mb-1">${label}</div>
-          <div class="border ${bubbleClr} rounded-cool p-3 font-medium whitespace-pre-line flat ${align}" style="max-width:94vw">
+        <div class="chat-message ${align}">
+          <div class="message-timestamp mb-1">${label}</div>
+          <div class="chat-bubble ${bubbleClr}">
             ${typeof m.content === 'string' ? m.content : m.content && m.content.type === "img" ? `<img src='${m.content.url}' alt='image' class='rounded-cool'>` : ""}
           </div>
-          <div class="flex flex-row mt-1">${iconBtns}</div>
+          <div class="message-actions mt-1">${iconBtns}</div>
         </div>
       `;
     }
@@ -2040,15 +2061,15 @@ function addOpenRouterModels() {
 
 // Update the model selection dropdown based on OpenRouter toggle
 function updateModelSelectionBasedOnOpenRouterSetting() {
-  const modelSelect = document.getElementById('model-select');
-  if (!modelSelect) return;
+  const modelSelectElement = document.getElementById('model-select');
+  if (!modelSelectElement) return;
 
   // Clear current selection
-  const currentValue = modelSelect.value;
+  const currentValue = modelSelectElement.value;
 
   if (userSettings.openRouterEnabled) {
     // Hide non-OpenRouter models
-    Array.from(modelSelect.options).forEach(option => {
+    Array.from(modelSelectElement.options).forEach(option => {
       const optgroup = option.parentNode;
       if (optgroup && optgroup.tagName === 'OPTGROUP' && !optgroup.label.startsWith('OpenRouter')) {
         option.style.display = 'none';
@@ -2056,7 +2077,7 @@ function updateModelSelectionBasedOnOpenRouterSetting() {
     });
 
     // Show OpenRouter models
-    Array.from(modelSelect.options).forEach(option => {
+    Array.from(modelSelectElement.options).forEach(option => {
       const optgroup = option.parentNode;
       if (optgroup && optgroup.tagName === 'OPTGROUP' && optgroup.label.startsWith('OpenRouter')) {
         option.style.display = '';
@@ -2065,26 +2086,26 @@ function updateModelSelectionBasedOnOpenRouterSetting() {
 
     // If current selection is hidden, select first visible option
     if (!currentValue.startsWith('openrouter:')) {
-      const firstVisibleOption = Array.from(modelSelect.options).find(opt => opt.style.display !== 'none');
+      const firstVisibleOption = Array.from(modelSelectElement.options).find(opt => opt.style.display !== 'none');
       if (firstVisibleOption) {
-        modelSelect.value = firstVisibleOption.value;
+        modelSelectElement.value = firstVisibleOption.value;
       }
     }
   } else {
     // Show all options
-    Array.from(modelSelect.options).forEach(option => {
+    Array.from(modelSelectElement.options).forEach(option => {
       option.style.display = '';
     });
 
     // If current selection is from OpenRouter, select first standard option
     if (currentValue.startsWith('openrouter:')) {
-      const firstStandardOption = Array.from(modelSelect.options).find(opt => {
+      const firstStandardOption = Array.from(modelSelectElement.options).find(opt => {
         const optgroup = opt.parentNode;
         return optgroup && optgroup.tagName === 'OPTGROUP' && !optgroup.label.startsWith('OpenRouter');
       });
 
       if (firstStandardOption) {
-        modelSelect.value = firstStandardOption.value;
+        modelSelectElement.value = firstStandardOption.value;
       }
     }
   }
@@ -2141,6 +2162,26 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize models list in settings
     populateModelsList();
 
+    // Setup select all and deselect all buttons
+    const selectAllBtn = document.getElementById('select-all-models');
+    const deselectAllBtn = document.getElementById('deselect-all-models');
+    
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener('click', function() {
+        document.querySelectorAll('#models-list input[type=checkbox]').forEach(checkbox => {
+          checkbox.checked = true;
+        });
+      });
+    }
+    
+    if (deselectAllBtn) {
+      deselectAllBtn.addEventListener('click', function() {
+        document.querySelectorAll('#models-list input[type=checkbox]').forEach(checkbox => {
+          checkbox.checked = false;
+        });
+      });
+    }
+
     // Mobile optimization
     let resizeTimeout;
     window.addEventListener('resize', () => {
@@ -2152,4 +2193,94 @@ document.addEventListener('DOMContentLoaded', function() {
   } catch (error) {
     console.error('Initialization error:', error);
   }
+});
+// Voice input functionality
+function setupVoiceInput() {
+  const voiceButton = document.getElementById('voice-input-btn');
+  const chatInput = document.getElementById('chat-input');
+  
+  if (!voiceButton || !chatInput) return;
+  
+  let isRecording = false;
+  let recognition;
+  
+  // Check if browser supports SpeechRecognition
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    
+    // Set language to English - could make this configurable
+    recognition.lang = 'en-US';
+    
+    // Handle recognition results
+    recognition.onresult = function(event) {
+      const transcript = Array.from(event.results)
+        .map(result => result[0])
+        .map(result => result.transcript)
+        .join('');
+      
+      // Update the textarea with the transcript
+      chatInput.value = transcript;
+      
+      // Auto-resize the textarea
+      chatInput.style.height = 'auto';
+      chatInput.style.height = chatInput.scrollHeight + 'px';
+    };
+    
+    // When recognition ends
+    recognition.onend = function() {
+      voiceButton.innerHTML = '<i class="fa fa-microphone"></i>';
+      voiceButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+      voiceButton.classList.add('bg-gray-200', 'hover:bg-gray-300', 'dark:bg-gray-700', 'dark:hover:bg-gray-600');
+      isRecording = false;
+    };
+    
+    // Error handling
+    recognition.onerror = function(event) {
+      console.error('Speech recognition error:', event.error);
+      voiceButton.innerHTML = '<i class="fa fa-microphone"></i>';
+      voiceButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+      voiceButton.classList.add('bg-gray-200', 'hover:bg-gray-300', 'dark:bg-gray-700', 'dark:hover:bg-gray-600');
+      isRecording = false;
+      
+      // Show error message
+      const errorMessage = document.createElement('div');
+      errorMessage.className = 'absolute top-0 left-0 right-0 bg-red-500 text-white text-center py-1 text-sm';
+      errorMessage.textContent = 'Speech recognition error: ' + event.error;
+      errorMessage.style.zIndex = '999';
+      document.body.appendChild(errorMessage);
+      
+      // Remove error message after 3 seconds
+      setTimeout(() => {
+        errorMessage.remove();
+      }, 3000);
+    };
+    
+    // Toggle voice input
+    voiceButton.addEventListener('click', function() {
+      if (isRecording) {
+        recognition.stop();
+      } else {
+        // Clear previous input
+        chatInput.value = '';
+        recognition.start();
+        voiceButton.innerHTML = '<i class="fa fa-stop"></i>';
+        voiceButton.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'dark:bg-gray-700', 'dark:hover:bg-gray-600');
+        voiceButton.classList.add('bg-red-500', 'hover:bg-red-600');
+        isRecording = true;
+      }
+    });
+  } else {
+    // Browser doesn't support speech recognition
+    voiceButton.addEventListener('click', function() {
+      alert('Speech recognition is not supported in your browser. Try using Chrome or Edge.');
+    });
+  }
+}
+
+// Initialize voice input on document load
+document.addEventListener('DOMContentLoaded', function() {
+  setupVoiceInput();
+  // Rest of initialization code...
 });
