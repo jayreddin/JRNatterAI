@@ -1,0 +1,71 @@
+Use Puter.js for text-to-speech conversion
+To convert text to speech using Puter.js, use the puter.ai.txt2speech() function:
+
+puter.ai.txt2speech("Hello, world! This is text-to-speech using Puter.js.")
+    .then((audio) => {
+        audio.play();
+    });
+Here's a complete example with a text input and a button to trigger the text-to-speech conversion:
+
+<html>
+<body>
+    <textarea id="text-input" rows="4" cols="50">Hello, world! This is text-to-speech using Puter.js.</textarea>
+    <br>
+    <button id="speak-button">Speak</button>
+
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        document.getElementById('speak-button').addEventListener('click', () => {
+            const text = document.getElementById('text-input').value;
+            puter.ai.txt2speech(text)
+                .then((audio) => {
+                    audio.play();
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        });
+    </script>
+</body>
+</html>
+Example 2Customize the voice
+Puter.js supports multiple languages and voices. You can specify the language when calling the txt2speech function:
+
+puter.ai.txt2speech("Bonjour, le monde!", "fr-FR")
+    .then((audio) => {
+        audio.play();
+    });
+Here's an example that allows users to select different languages:
+
+<html>
+<body>
+    <textarea id="text-input" rows="4" cols="50">Hello, world!</textarea>
+    <br>
+    <select id="language-select">
+        <option value="en-US">English (US)</option>
+        <option value="fr-FR">French</option>
+        <option value="de-DE">German</option>
+        <option value="es-ES">Spanish</option>
+        <option value="it-IT">Italian</option>
+    </select>
+    <button id="speak-button">Speak</button>
+
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        document.getElementById('speak-button').addEventListener('click', () => {
+            const text = document.getElementById('text-input').value;
+            const language = document.getElementById('language-select').value;
+            puter.ai.txt2speech(text, language)
+                .then((audio) => {
+                    audio.play();
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        });
+    </script>
+</body>
+</html>
+That's it! You now have a free alternative to the Amazon Polly API using Puter.js. This allows you to add text-to-speech capabilities to your web applications without worrying about API keys or usage limits.
+
+Additional Features
