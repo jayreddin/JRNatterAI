@@ -35,6 +35,22 @@ img, video {
   border: 1px solid #222;
 }
 
+/* Light mode text colors */
+#chat-container .text-gray-500,
+#code-result,
+.popup-ptr .text-gray-500,
+.popup-ptr pre,
+.popup-ptr textarea,
+.popup-ptr input {
+  color: #4b5563 !important;
+}
+
+.popup-ptr h3,
+.popup-ptr .font-semibold,
+.popup-ptr strong {
+  color: #111827 !important;
+}
+
 /* Dark mode overrides */
 .dark-mode {
   background: #141617 !important;
@@ -45,10 +61,35 @@ img, video {
 .dark-mode .popup-ptr,
 .dark-mode #main-header,
 .dark-mode form,
-.dark-mode .flex.flex-col.items-center {
+.dark-mode input,
+.dark-mode textarea,
+.dark-mode select,
+.dark-mode #chat-form,
+.dark-mode .flex.flex-col.items-center,
+.dark-mode .w-full.max-w-3xl.mx-auto.fixed.bottom-0 {
   background: #181a1b !important;
   color: #e5e7eb !important;
   border-color: #444;
+}
+
+.dark-mode #chat-container .border {
+  border-color: #444;
+}
+
+.dark-mode #chat-container .bg-white {
+  background-color: #282a2b !important;
+}
+
+.dark-mode #chat-container .bg-gray-50 {
+  background-color: #232527 !important;
+}
+
+.dark-mode #chat-container .bg-gray-800 {
+  background-color: #1d1f20 !important;
+}
+
+.dark-mode #chat-container .bg-gray-900 {
+  background-color: #181a1b !important;
 }
 
 .dark-mode #chat-form {
@@ -98,7 +139,12 @@ img, video {
   min-height: 44px;
   max-height: 120px;
   overflow-y: hidden;
+  resize: none;
   transition: height 0.1s ease-out;
+  height: auto;
+  box-sizing: border-box;
+  padding: 10px;
+  line-height: 1.5;
 }
 
 .dark-mode .fa-moon, .dark-mode .fa-sun {

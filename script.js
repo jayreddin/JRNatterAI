@@ -173,11 +173,27 @@ async function aiSend(txt, model, usetime) {
   try {
     const opts = { model };
     const resp = await puter.ai.chat(txt, opts);
-    let text = resp.message?.text || resp.text || '';
+    let text = '';
+    
+    // Handle different response formats
+    if (resp.message && resp.message.text) {
+      text = resp.message.text;
+    } else if (resp.message && resp.message.content) {
+      text = resp.message.content;
+    } else if (resp.text) {
+      text = resp.text;
+    } else if (typeof resp === 'string') {
+      text = resp;
+    } else {
+      // If we get here, format the response as a string
+      text = JSON.stringify(resp);
+    }
+    
     currentChat[idx] = { role: 'model', content: text, time: nowStr(), model };
     renderChat();
   } catch (err) {
-    currentChat[idx] = { role: 'model', content: "[ERROR]: " + (err.message || err), time: nowStr(), model };
+    console.error("AI error:", err);
+    currentChat[idx] = { role: 'model', content: "[ERROR]: " + (err.message || JSON.stringify(err)), time: nowStr(), model };
     renderChat();
   }
 }
@@ -204,7 +220,18 @@ window.speakMsg = function(idx) {
   const m = currentChat[idx];
   const txt = typeof m.content === 'string' ? m.content : '';
   if (txt.length) {
-    puter.ai.txt2speech(txt, "en-US").then(audio => { audio.play(); });
+    try {
+      puter.ai.txt2speech(txt, "en-US")
+        .then(audio => { 
+          if (audio) audio.play(); 
+        })
+        .catch(err => {
+          console.error("Speech error:", err);
+          alert("Unable to play speech at this time");
+        });
+    } catch (err) {
+      console.error("Speech error:", err);
+    }
   }
 }
 
@@ -311,7 +338,23 @@ async function generateImg() {
   area.innerHTML = '<div class="w-full h-48 flex flex-col items-center justify-center"><span class="fa fa-spinner fa-spin text-blue-600 text-3xl"></span><span class="text-xs mt-2">Generating Image...</span></div>';
   try {
     const img = await puter.ai.txt2img(prompt, false);
-    const url = img.src ?? img;
+    let url;
+    
+    // Handle different response formats
+    if (img && img.src) {
+      url = img.src;
+    } else if (typeof img === 'string') {
+      url = img;
+    } else if (img instanceof HTMLImageElement) {
+      url = img.src;
+    } else if (img && typeof img.toString === 'function') {
+      url = img.toString();
+    } else {
+      throw new Error("Received unexpected response format");
+    }
+    
+    if (!url) throw new Error("Could not extract image URL from response");
+    
     area.innerHTML = `<img src="${url}" alt="AI Generated" class="rounded-cool border mx-auto">
         <button class="flat rounded-cool px-3 py-1 mt-2" onclick="saveImageGen('${url}')"><i class="fa fa-download mr-1"></i>Save</button>
         <span class="text-xs block mt-2 text-blue-600">Click image to expand.</span>`;
@@ -320,7 +363,8 @@ async function generateImg() {
       let a = document.createElement('a'); a.href = src; a.download = "ai_generate.png"; a.click();
     };
   } catch (err) {
-    area.innerHTML = `<div class="text-red-600">Image generation failed: ${err.message}</div>`;
+    console.error("Image generation error:", err);
+    area.innerHTML = `<div class="text-red-600">Image generation failed: ${err.message || "Unknown error"}</div>`;
   }
 }
 // Code Generation popup
@@ -336,10 +380,27 @@ document.getElementById('generate-code-btn').onclick = async function() {
   try {
     let model = 'codestral-latest';
     let out = await puter.ai.chat(prompt, { model });
-    let code = (out.message.text || '').match(/```(?:[a-z]+\n)?([\s\S]*?)```/m);
-    res.textContent = code ? code[1].trim() : out.message.text;
+    
+    // Handle different response formats
+    let responseText = '';
+    if (out.message && out.message.text) {
+      responseText = out.message.text;
+    } else if (out.message && out.message.content) {
+      responseText = out.message.content;
+    } else if (out.text) {
+      responseText = out.text;
+    } else if (typeof out === 'string') {
+      responseText = out;
+    } else {
+      responseText = JSON.stringify(out);
+    }
+    
+    // Extract code blocks if present
+    let code = responseText.match(/```(?:[a-z]+\n)?([\s\S]*?)```/m);
+    res.textContent = code ? code[1].trim() : responseText;
   } catch (err) {
-    res.textContent = '[ERROR]: ' + err.message;
+    console.error("Code generation error:", err);
+    res.textContent = '[ERROR]: ' + (err.message || JSON.stringify(err));
   }
 }
 document.getElementById('preview-code-btn').onclick = function() {
@@ -412,9 +473,99 @@ window.onbeforeunload = function() {
   localStorage.setItem("puterChatHistory", JSON.stringify(chatHistory));
 }
 
+// ---- PUTER AUTH ----
+document.getElementById('puter-login-btn').addEventListener('click', async function() {
+  try {
+    // Check if already signed in
+    if (puter.auth.isSignedIn()) {
+      // Sign out instead
+      puter.auth.signOut();
+      document.getElementById('puter-login-btn').innerHTML = '<i class="fa fa-user mr-1"></i> Sign In';
+      document.getElementById('user-info').classList.add('hidden');
+      return;
+    }
+    
+    // Attempt to sign in
+    await puter.auth.signIn();
+    
+    // Get user information
+    const user = await puter.auth.getUser();
+    if (user && user.username) {
+      document.getElementById('puter-login-btn').innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
+      document.getElementById('user-info').textContent = user.username;
+      document.getElementById('user-info').classList.remove('hidden');
+    }
+  } catch (error) {
+    console.error('Auth error:', error);
+  }
+});
+
+// Check initial auth state
+async function checkAuthState() {
+  if (puter.auth.isSignedIn()) {
+    try {
+      const user = await puter.auth.getUser();
+      if (user && user.username) {
+        document.getElementById('puter-login-btn').innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
+        document.getElementById('user-info').textContent = user.username;
+        document.getElementById('user-info').classList.remove('hidden');
+      }
+    } catch (err) {
+      console.error("Error getting user:", err);
+    }
+  }
+}
+
+// Add OpenRouter models to the list
+function addOpenRouterModels() {
+  const modelSelect = document.getElementById('model-select');
+  
+  // Check if the OpenRouter optgroup already exists
+  let openRouterGroup = document.querySelector('optgroup[label="OpenRouter"]');
+  if (!openRouterGroup) {
+    // Create OpenRouter optgroup
+    openRouterGroup = document.createElement('optgroup');
+    openRouterGroup.label = "OpenRouter";
+    
+    // Add some popular OpenRouter models
+    const openRouterModels = [
+      {value: 'openrouter:anthropic/claude-3.7-sonnet', label: 'OpenRouter: Claude 3.7 Sonnet'},
+      {value: 'openrouter:openai/o1', label: 'OpenRouter: OpenAI o1'},
+      {value: 'openrouter:openai/o3-mini', label: 'OpenRouter: OpenAI o3-mini'},
+      {value: 'openrouter:google/gemini-2.0-flash', label: 'OpenRouter: Gemini 2.0 Flash'},
+      {value: 'openrouter:meta-llama/llama-4-maverick', label: 'OpenRouter: Llama 4 Maverick'},
+      {value: 'openrouter:mistralai/mistral-large', label: 'OpenRouter: Mistral Large'},
+      {value: 'openrouter:deepseek/deepseek-chat', label: 'OpenRouter: DeepSeek Chat'},
+      {value: 'openrouter:x-ai/grok-beta', label: 'OpenRouter: Grok Beta'}
+    ];
+    
+    // Add options to the optgroup
+    openRouterModels.forEach(model => {
+      const option = document.createElement('option');
+      option.value = model.value;
+      option.textContent = model.label;
+      openRouterGroup.appendChild(option);
+    });
+    
+    // Add the group to the select element
+    modelSelect.appendChild(openRouterGroup);
+    
+    // Update userSettings with new models
+    openRouterModels.forEach(model => {
+      if (!userSettings.enabledModels.includes(model.value)) {
+        userSettings.enabledModels.push(model.value);
+      }
+    });
+    
+    saveSettings();
+  }
+}
+
 // INIT
 loadSettings();
 renderChat();
+checkAuthState();
+addOpenRouterModels();
 
 // ---- MOBILE: Keep input at bottom ----
 window.addEventListener('resize', function() { setTimeout(() => window.scrollTo(0, 0), 100); });
