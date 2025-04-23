@@ -3,6 +3,8 @@ body {
   background: #fafafa;
   color: #24292f;
   min-height: 100vh;
+  line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Hide scrollbar but keep scroll functionality */
@@ -18,6 +20,7 @@ body {
 /* Curved borders for all boxes */
 .rounded-cool {
   border-radius: 1.1rem;
+  overflow: hidden;
 }
 
 /* Ensure PNG & other images avoid page breaks */
@@ -26,13 +29,25 @@ video {
   max-width: 100%;
   height: auto;
   break-inside: avoid;
+  border-radius: 0.8rem;
+  transition: transform 0.2s ease;
 }
 
-/* Flat UI elements */
+img:hover {
+  transform: scale(1.02);
+}
+
+/* Flat UI elements with subtle hover effects */
 .flat {
   background: #fff;
-  box-shadow: none !important;
-  border: 1px solid #222;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+  border: 1px solid rgba(34, 34, 34, 0.8);
+  transition: all 0.2s ease;
+}
+
+.flat:hover:not(input):not(textarea):not(#chat-input) {
+  border-color: #000;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
 }
 
 /* Light mode text colors */
@@ -141,11 +156,42 @@ video {
   max-height: 120px;
   overflow-y: hidden;
   resize: none;
-  transition: height 0.1s ease-out;
+  transition: height 0.2s ease-out, box-shadow 0.2s ease;
   height: auto;
   box-sizing: border-box;
-  padding: 10px;
+  padding: 12px 15px;
   line-height: 1.5;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  font-size: 1rem;
+}
+
+#chat-input:focus {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+/* Enhance chat bubbles with animations */
+#chat-container > div {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Make bubbles more distinct */
+#chat-container .bg-white,
+#chat-container .bg-gray-50 {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border-width: 1px !important;
+  transition: transform 0.2s ease;
+}
+
+#chat-container .bg-white:hover,
+#chat-container .bg-gray-50:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.08);
 }
 
 .dark-mode .fa-moon,
@@ -266,8 +312,10 @@ select#model-select {
   justify-content: center;
   font-size: 1.15rem;
   color: #444;
-  transition: background .2s, color .2s;
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
   margin-right: 0.25em;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .feature-btn:last-child {
@@ -277,17 +325,26 @@ select#model-select {
 .feature-btn:hover {
   background: #222;
   color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.feature-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .dark-mode .feature-btn {
   background: #181a1b;
   color: #eee;
   border-color: #444;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
 .dark-mode .feature-btn:hover {
-  background: #444;
+  background: #333;
   color: #ffc12b;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 
 /* User login styles */
@@ -330,8 +387,62 @@ select#model-select {
   }
 }
 
+/* Loading animation for streaming responses */
+@keyframes typingDots {
+  0%, 20% { content: "."; }
+  40%, 60% { content: ".."; }
+  80%, 100% { content: "..."; }
+}
+
+.typing-animation::after {
+  content: "...";
+  display: inline-block;
+  animation: typingDots 1.2s infinite;
+  width: 1.5em;
+}
+
+/* Improve transitions and animations */
+.transition-all {
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+/* Fancy gradient background for special buttons */
+.gradient-button {
+  background: linear-gradient(135deg, #4f46e5, #10b981);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 6px rgba(79, 70, 229, 0.25);
+}
+
+.gradient-button:hover {
+  background: linear-gradient(135deg, #6366f1, #059669);
+  box-shadow: 0 6px 8px rgba(79, 70, 229, 0.3);
+}
+
+/* Responsive improvements */
 @media (max-width: 640px) {
   #chat-container {
-    padding-bottom: 7rem;
+    padding-bottom: 8rem;
+  }
+  
+  .feature-btn {
+    width: 2.2em;
+    height: 2.2em;
+    font-size: 1rem;
+  }
+  
+  .rounded-cool {
+    border-radius: 0.9rem;
+  }
+}
+
+/* High contrast mode for accessibility */
+@media (prefers-contrast: more) {
+  .flat {
+    border-width: 2px !important;
+  }
+  
+  .feature-btn, button, input, select, textarea {
+    border-width: 2px !important;
   }
 }

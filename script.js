@@ -18,6 +18,96 @@ let userSettings = {
   speechVoice: "en-US" // Add default speech voice
 };
 
+// Fix function declarations to solve "not defined" errors
+window.toggleStreamingMode = function(enabled) {
+  try {
+    streamingMode = enabled;
+    userSettings.streamingMode = enabled;
+    saveSettings();
+    updateModelSelectOptions();
+
+    // Update UI to reflect streaming mode
+    const streamToggle = document.getElementById('streaming-toggle');
+    if (streamToggle) {
+      streamToggle.checked = enabled;
+    }
+
+    // Disable non-streaming models
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect) {
+      Array.from(modelSelect.options).forEach(option => {
+        option.disabled = enabled && !isModelStreamCapable(option.value);
+      });
+    }
+  } catch (error) {
+    console.error('Error toggling streaming mode:', error);
+  }
+};
+
+// Toggle multi-model mode
+window.toggleMultiModel = function(enabled) {
+  try {
+    multiModelMode = enabled;
+    userSettings.multiModelMode = enabled;
+
+    // Update UI
+    const multiToggle = document.getElementById('multi-toggle');
+    if (multiToggle) {
+      multiToggle.checked = enabled;
+    }
+
+    // Update UI for multi-model selection
+    const modelSelect = document.getElementById('model-select');
+    const container = document.getElementById('model-select-container');
+    if (!modelSelect || !container) return;
+
+    if (enabled) {
+      selectedModels = [modelSelect.value];
+      // Add multi-select container if it doesn't exist
+      if (!document.getElementById('multi-model-container')) {
+        const multiContainer = document.createElement('div');
+        multiContainer.id = 'multi-model-container';
+        multiContainer.className = 'flex flex-wrap gap-2 mt-2';
+        container.appendChild(multiContainer);
+      }
+      // Add + buttons to options
+      Array.from(modelSelect.options).forEach(opt => {
+        if (!opt.dataset.hasPlus) {
+          const plusBtn = document.createElement('button');
+          plusBtn.innerHTML = '+';
+          plusBtn.className = 'ml-2 px-1 text-xs bg-blue-500 text-white rounded';
+          plusBtn.onclick = (e) => {
+            e.preventDefault();
+            if (!selectedModels.includes(opt.value)) {
+              selectedModels.push(opt.value);
+              updateMultiModelDisplay();
+            }
+          };
+          opt.dataset.hasPlus = 'true';
+          opt.innerHTML += ' ';
+          opt.appendChild(plusBtn);
+        }
+      });
+    } else {
+      selectedModels = [modelSelect.value];
+      // Remove multi-select container
+      const multiContainer = document.getElementById('multi-model-container');
+      if (multiContainer) multiContainer.remove();
+      // Remove + buttons
+      Array.from(modelSelect.options).forEach(opt => {
+        if (opt.dataset.hasPlus) {
+          opt.innerHTML = opt.innerHTML.replace(/ \+$/, '');
+          delete opt.dataset.hasPlus;
+        }
+      });
+    }
+    updateMultiModelDisplay();
+    saveSettings();
+  } catch (error) {
+    console.error('Error toggling multi-model mode:', error);
+  }
+};
+
 // Response cache implementation
 const responseCache = {
   cache: new Map(),
@@ -451,34 +541,46 @@ async function aiSend(txt, model, usetime) {
       };
 
       if (opts.stream) {
-        let fullResponse = '';
-        const stream = await puter.ai.chat(txt, opts);
+        try {
+          let fullResponse = '';
+          const stream = await puter.ai.chat(txt, opts);
 
-        for await (const chunk of stream) {
-          fullResponse += chunk;
-          currentChat[idx].content = fullResponse;
+          for await (const chunk of stream) {
+            fullResponse += chunk;
+            currentChat[idx].content = fullResponse;
+            renderChat();
+          }
+        } catch (error) {
+          console.error("Streaming error:", error);
+          currentChat[idx].content = "[STREAMING ERROR]: " + (error.message || "Unknown error");
           renderChat();
         }
       } else {
-        const resp = await puter.ai.chat(txt, opts);
-        let text = '';
+        try {
+          const resp = await puter.ai.chat(txt, opts);
+          let text = '';
 
-        // Handle different response formats
-        if (resp.message && resp.message.text) {
-          text = resp.message.text;
-        } else if (resp.message && resp.message.content) {
-          text = resp.message.content;
-        } else if (resp.text) {
-          text = resp.text;
-        } else if (typeof resp === 'string') {
-          text = resp;
-        } else {
-          // If we get here, format the response as a string
-          text = JSON.stringify(resp);
+          // Handle different response formats
+          if (resp.message && resp.message.text) {
+            text = resp.message.text;
+          } else if (resp.message && resp.message.content) {
+            text = resp.message.content;
+          } else if (resp.text) {
+            text = resp.text;
+          } else if (typeof resp === 'string') {
+            text = resp;
+          } else {
+            // If we get here, format the response as a string
+            text = JSON.stringify(resp);
+          }
+
+          currentChat[idx] = { role: 'model', content: text, time: nowStr(), model: currentModel };
+          renderChat();
+        } catch (error) {
+          console.error("Response error:", error);
+          currentChat[idx] = { role: 'model', content: "[ERROR]: " + (error.message || "Unknown error"), time: nowStr(), model: currentModel };
+          renderChat();
         }
-
-        currentChat[idx] = { role: 'model', content: text, time: nowStr(), model: currentModel };
-        renderChat();
       }
     } catch (err) {
       console.error("AI error:", err);
@@ -1533,21 +1635,29 @@ document.addEventListener('DOMContentLoaded', function() {
       addOpenRouterModels();
     }
     
-    // Initialize toggle switches
-    const streamingToggle = document.getElementById('streaming-toggle');
-    if (streamingToggle) {
-      streamingToggle.checked = streamingMode;
-      streamingToggle.addEventListener('change', function() {
-        toggleStreamingMode(this.checked);
-      });
+    // Safe initialization of toggle switches with error handling
+    try {
+      const streamingToggle = document.getElementById('streaming-toggle');
+      if (streamingToggle) {
+        streamingToggle.checked = streamingMode;
+        streamingToggle.addEventListener('change', function() {
+          window.toggleStreamingMode(this.checked);
+        });
+      }
+    } catch (error) {
+      console.error('Error initializing streaming toggle:', error);
     }
     
-    const multiToggle = document.getElementById('multi-toggle');
-    if (multiToggle) {
-      multiToggle.checked = multiModelMode;
-      multiToggle.addEventListener('change', function() {
-        toggleMultiModel(this.checked);
-      });
+    try {
+      const multiToggle = document.getElementById('multi-toggle');
+      if (multiToggle) {
+        multiToggle.checked = multiModelMode;
+        multiToggle.addEventListener('change', function() {
+          window.toggleMultiModel(this.checked);
+        });
+      }
+    } catch (error) {
+      console.error('Error initializing multi toggle:', error);
     }
     
     // Mobile optimization
@@ -1556,6 +1666,8 @@ document.addEventListener('DOMContentLoaded', function() {
       clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => window.scrollTo(0, 0), 100);
     });
+
+    console.log('Initialization complete');
   } catch (error) {
     console.error('Initialization error:', error);
   }

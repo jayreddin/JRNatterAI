@@ -23,7 +23,7 @@
 <body class="transition-colors duration-300">
   <!-- HEADER -->
   <header
-    class="z-50 w-full py-3 px-2 sm:px-6 flex items-center justify-between shadow flat rounded-cool mb-2 sticky top-0 bg-white dark:bg-gray-900"
+    class="z-50 w-full py-3 px-2 sm:px-6 flex items-center justify-between shadow-md flat rounded-cool mb-4 sticky top-0 bg-white dark:bg-gray-900 backdrop-filter backdrop-blur-sm bg-opacity-95"
     id="main-header">
     <div class="flex items-center flex-col">
       <div id="user-info"
@@ -38,8 +38,8 @@
     <div class="flex flex-1 items-center justify-center">
       <div id="model-select-container" class="relative w-full max-w-xs mx-auto text-center">
         <select id="model-select"
-          class="bg-gray-50 border rounded-cool py-1 px-3 pr-7 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base font-semibold appearance-none flat dark:bg-gray-800 dark:text-base text-center"
-          style="height: 68px;">
+          class="bg-gray-50 border rounded-cool py-1 px-3 pr-7 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base font-semibold appearance-none flat dark:bg-gray-800 dark:text-base text-center shadow-sm hover:shadow transition-all"
+          style="height: 68px; cursor: pointer;">
           <!-- OpenAI Models -->
           <optgroup label="📊 OpenAI">
             <option value="gpt-4o-mini" selected>GPT-4o mini</option>
