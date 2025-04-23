@@ -266,7 +266,7 @@ function toggleMultiModel(enabled) {
         
         const addButton = document.createElement('button');
         addButton.innerHTML = '<i class="fa fa-plus"></i>';
-        addButton.className = 'ml-2 px-2 py-1 bg-blue-600 text-white rounded-full hover:bg-blue-700';
+        addButton.className = 'ml-2 px-2 py-1 bg-blue-600 text-base rounded-full hover:bg-blue-700';
         addButton.onclick = (e) => {
           e.preventDefault();
           const selectedValue = newModelSelect.value;
@@ -661,7 +661,7 @@ window.speakMsg = function(idx) {
               console.warn("Auto-play failed (may require user interaction):", err);
               // Create a play button as fallback
               const playButton = document.createElement('button');
-              playButton.className = 'bg-blue-600 text-white px-2 py-1 rounded mt-1 text-xs';
+              playButton.className = 'bg-blue-600 text-base px-2 py-1 rounded mt-1 text-xs';
               playButton.innerHTML = '<i class="fa fa-play mr-1"></i> Play Audio';
               playButton.onclick = () => audio.play();
               bubbleElement.querySelector('.border').appendChild(playButton);
@@ -846,7 +846,7 @@ document.addEventListener('DOMContentLoaded', function() {
       previewBox.innerHTML = "";
       if (file.type.startsWith('image/')) {
         const url = URL.createObjectURL(file);
-        previewBox.innerHTML = `<img src="${url}" class="rounded-cool border mx-auto mb-2" height="140" style="max-height:140px"><button id="ocr-btn" class="bg-blue-700 text-white flat px-3 py-1 rounded-cool mt-2">Extract Text</button> <div id="ocr-result" class="mt-3"></div>`;
+        previewBox.innerHTML = `<img src="${url}" class="rounded-cool border mx-auto mb-2" height="140" style="max-height:140px"><button id="ocr-btn" class="bg-blue-700 text-base flat px-3 py-1 rounded-cool mt-2">Extract Text</button> <div id="ocr-result" class="mt-3"></div>`;
         
         const ocrBtn = document.getElementById('ocr-btn');
         if (ocrBtn) {
@@ -933,10 +933,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 resultContainer.innerHTML = `
                   <textarea id="ocr-edit-textarea" class="w-full h-32 p-2 border rounded-cool dark:bg-gray-900">${currentText}</textarea>
                   <div class="flex justify-end mt-2">
-                    <button id="save-ocr-btn" class="bg-blue-600 text-white px-3 py-1 rounded-cool text-sm mr-2">
+                    <button id="save-ocr-btn" class="bg-blue-600 text-base px-3 py-1 rounded-cool text-sm mr-2">
                       <i class="fa fa-save mr-1"></i> Save
                     </button>
-                    <button id="cancel-ocr-btn" class="bg-gray-500 text-white px-3 py-1 rounded-cool text-sm">
+                    <button id="cancel-ocr-btn" class="bg-gray-500 text-base px-3 py-1 rounded-cool text-sm">
                       Cancel
                     </button>
                   </div>`;
@@ -965,7 +965,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fa fa-exclamation-triangle mr-2"></i>
                     OCR Error: ${err.message || "Failed to extract text from image"}
                   </p>
-                  <button id="retry-ocr-btn" class="bg-blue-600 text-white px-3 py-1 rounded-cool text-sm">
+                  <button id="retry-ocr-btn" class="bg-blue-600 text-base px-3 py-1 rounded-cool text-sm">
                     Try Again
                   </button>
                 </div>`;
@@ -1102,7 +1102,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       header.innerHTML = `
         <span class="text-sm font-medium">${language.charAt(0).toUpperCase() + language.slice(1)} Preview</span>
-        <button class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+        <button class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-base">
           <i class="fa fa-times"></i>
         </button>
       `;
