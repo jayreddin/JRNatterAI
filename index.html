@@ -25,25 +25,6 @@
         class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1 rounded-cool font-semibold focus:outline-none transition ease-in-out duration-150 flat w-full">
         <i class="fa fa-user mr-1"></i> Sign In
       </button>
-      
-      <!-- Mode toggles -->
-      <div class="flex space-x-2 mt-1">
-        <div class="flex items-center">
-          <label class="toggle-switch mr-1">
-            <input type="checkbox" id="streaming-toggle" onchange="toggleStreamingMode(this.checked)">
-            <span class="toggle-slider"></span>
-          </label>
-          <span class="text-xs">Stream</span>
-        </div>
-        
-        <div class="flex items-center">
-          <label class="toggle-switch mr-1">
-            <input type="checkbox" id="multi-toggle" onchange="toggleMultiModel(this.checked)">
-            <span class="toggle-slider"></span>
-          </label>
-          <span class="text-xs">Multi</span>
-        </div>
-      </div>
     </div>
     
     <div class="flex flex-1 items-center justify-center">
@@ -120,7 +101,24 @@
         <i class="fa fa-caret-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
       </div>
     </div>
-    <div class="w-16"></div><!-- Placeholder to keep layout balanced -->
+    <!-- Mode toggles -->
+    <div class="flex flex-col space-y-2 w-24">
+      <div class="flex items-center justify-end">
+        <span class="text-xs mr-2">Stream</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="streaming-toggle" onchange="toggleStreamingMode(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      
+      <div class="flex items-center justify-end">
+        <span class="text-xs mr-2">Multi</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="multi-toggle" onchange="toggleMultiModel(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
   </header>
 
   <!-- MESSAGE/DISPLAY BOX -->

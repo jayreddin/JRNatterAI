@@ -1,6 +1,8 @@
 // ---- GLOBALS ----
 let chatHistory = [];
 let currentChat = [];
+let streamingMode = false;
+let multiModelMode = false;
 let userSettings = {
   textSize: 16,
   theme: 'light',
@@ -1111,6 +1113,20 @@ async function checkAuthState() {
       console.error("Error getting user:", err);
     }
   }
+}
+
+// Toggle streaming mode
+function toggleStreamingMode(enabled) {
+  streamingMode = enabled;
+  userSettings.streamingMode = enabled;
+  saveSettings();
+}
+
+// Toggle multi-model mode
+function toggleMultiModel(enabled) {
+  multiModelMode = enabled;
+  userSettings.multiModelMode = enabled;
+  saveSettings();
 }
 
 // INIT
