@@ -3,9 +3,12 @@ let chatHistory = [];
 let currentChat = [];
 let streamingMode = false;
 let multiModelMode = false;
+let selectedModels = [];
 let userSettings = {
   textSize: 16,
   theme: 'light',
+  streamingMode: false,
+  multiModelMode: false,
   enabledModels: [
     "gpt-4o-mini", "gpt-4o", "o1", "o1-mini", "o1-pro", "o3", "o3-mini", "o4-mini", "gpt-4.1", "gpt-4.1-mini",
     "gpt-4.1-nano", "gpt-4.5-preview", "claude-3-7-sonnet", "claude-3-5-sonnet", "deepseek-chat", "deepseek-reasoner",
@@ -172,13 +175,30 @@ document.getElementById('chat-input').addEventListener('keydown', function(e) {
 });
 // send to AI
 async function aiSend(txt, model, usetime) {
-  const idx = currentChat.length;
-  // Placeholder
-  currentChat.push({ role: 'model', content: "...", time: nowStr(), model });
-  renderChat();
-  try {
-    const opts = { model };
-    const resp = await puter.ai.chat(txt, opts);
+  const models = multiModelMode ? selectedModels : [model];
+  
+  for (const currentModel of models) {
+    const idx = currentChat.length;
+    currentChat.push({ role: 'model', content: "...", time: nowStr(), model: currentModel });
+    renderChat();
+    
+    try {
+      const opts = { 
+        model: currentModel,
+        stream: streamingMode && isModelStreamCapable(currentModel)
+      };
+      
+      if (opts.stream) {
+        let fullResponse = '';
+        const stream = await puter.ai.chat(txt, opts);
+        
+        for await (const chunk of stream) {
+          fullResponse += chunk;
+          currentChat[idx].content = fullResponse;
+          renderChat();
+        }
+      } else {
+        const resp = await puter.ai.chat(txt, opts);
     let text = '';
 
     // Handle different response formats
@@ -717,13 +737,22 @@ function getProviderIcon(provider) {
 }
 
 // Get model capabilities
+function isModelStreamCapable(model) {
+  const streamingModels = [
+    'gpt-4o', 'gpt-4o-mini', 'claude-3-7-sonnet', 'claude-3-5-sonnet',
+    'deepseek-chat', 'deepseek-reasoner', 'mistral-large-latest',
+    'gemini-2.0-flash', 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'
+  ];
+  return streamingModels.includes(model);
+}
+
 function getModelCapabilities(model) {
   // Default capabilities
   const capabilities = {
     code: false,
     vision: false,
     reasoning: false,
-    streaming: true,
+    streaming: isModelStreamCapable(model),
     longContext: false
   };
 
@@ -809,10 +838,22 @@ document.getElementById('settings-save-btn').onclick = function() {
 // Update the model selection dropdown based on enabled models
 function updateModelSelectOptions() {
   let sel = document.getElementById('model-select');
+  if (!sel) return;
 
   // First, hide all options
   [...sel.options].forEach(o => {
     o.style.display = 'none';
+  });
+
+  // Show only enabled and streaming-capable models if streaming mode is on
+  [...sel.options].forEach(o => {
+    if (userSettings.enabledModels.includes(o.value)) {
+      if (streamingMode && !isModelStreamCapable(o.value)) {
+        o.style.display = 'none';
+      } else {
+        o.style.display = '';
+      }
+    }
   });
 
   // Show only enabled options
@@ -1120,13 +1161,86 @@ function toggleStreamingMode(enabled) {
   streamingMode = enabled;
   userSettings.streamingMode = enabled;
   saveSettings();
+  updateModelSelectOptions(); // Refresh model list to show only streaming models
 }
 
 // Toggle multi-model mode
 function toggleMultiModel(enabled) {
   multiModelMode = enabled;
   userSettings.multiModelMode = enabled;
+  
+  // Update UI for multi-model selection
+  const modelSelect = document.getElementById('model-select');
+  const container = document.getElementById('model-select-container');
+  
+  if (enabled) {
+    selectedModels = [modelSelect.value];
+    // Add multi-select container if it doesn't exist
+    if (!document.getElementById('multi-model-container')) {
+      const multiContainer = document.createElement('div');
+      multiContainer.id = 'multi-model-container';
+      multiContainer.className = 'flex flex-wrap gap-2 mt-2';
+      container.appendChild(multiContainer);
+    }
+    // Add + buttons to options
+    Array.from(modelSelect.options).forEach(opt => {
+      if (!opt.dataset.hasPlus) {
+        const plusBtn = document.createElement('button');
+        plusBtn.innerHTML = '+';
+        plusBtn.className = 'ml-2 px-1 text-xs bg-blue-500 text-white rounded';
+        plusBtn.onclick = (e) => {
+          e.preventDefault();
+          if (!selectedModels.includes(opt.value)) {
+            selectedModels.push(opt.value);
+            updateMultiModelDisplay();
+          }
+        };
+        opt.dataset.hasPlus = 'true';
+        opt.innerHTML += ' ';
+        opt.appendChild(plusBtn);
+      }
+    });
+  } else {
+    selectedModels = [modelSelect.value];
+    // Remove multi-select container
+    const multiContainer = document.getElementById('multi-model-container');
+    if (multiContainer) multiContainer.remove();
+    // Remove + buttons
+    Array.from(modelSelect.options).forEach(opt => {
+      if (opt.dataset.hasPlus) {
+        opt.innerHTML = opt.innerHTML.replace(/ \+$/, '');
+        delete opt.dataset.hasPlus;
+      }
+    });
+  }
+  updateMultiModelDisplay();
   saveSettings();
+}
+
+// Update multi-model display
+function updateMultiModelDisplay() {
+  const container = document.getElementById('multi-model-container');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  selectedModels.forEach((model, idx) => {
+    const chip = document.createElement('div');
+    chip.className = 'bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded-full text-sm flex items-center';
+    chip.innerHTML = `
+      ${model}
+      <button class="ml-2 text-red-500 hover:text-red-700" onclick="removeModel(${idx})">×</button>
+    `;
+    container.appendChild(chip);
+  });
+}
+
+// Remove model from selection
+function removeModel(idx) {
+  selectedModels.splice(idx, 1);
+  if (selectedModels.length === 0) {
+    selectedModels = [document.getElementById('model-select').value];
+  }
+  updateMultiModelDisplay();
 }
 
 // INIT
