@@ -1,3 +1,4 @@
+
 // Initialize variables for app state
 let currentChat = [];
 let chatHistory = {};
@@ -38,16 +39,16 @@ const speechVoiceSelect = document.getElementById('speech-voice-select');
 async function initializePuter() {
   try {
     console.log("Initialization complete");
-
+    
     // Load saved settings
     loadSettings();
-
+    
     // Set up event listeners
     setupEventListeners();
-
+    
     // Check if authenticated
     checkAuthStatus();
-
+    
     // Initialize models list
     initializeModels();
   } catch (error) {
@@ -60,28 +61,12 @@ async function checkAuthStatus() {
   try {
     const userInfo = await puter.auth.whoami();
     if (userInfo && userInfo.username) {
-      const userInfoElement = document.getElementById('user-info');
-      const usernameText = userInfoElement.querySelector('.username-text');
-      
-      if (usernameText) {
-        usernameText.textContent = userInfo.username;
-      } else {
-        userInfoElement.innerHTML = `<i class="fa fa-user text-gray-600 dark:text-gray-400 mr-2"></i><span class="username-text">${userInfo.username}</span>`;
-      }
-      
-      userInfoElement.classList.remove('hidden');
+      document.getElementById('user-info').textContent = `Signed in as: ${userInfo.username}`;
+      document.getElementById('user-info').classList.remove('hidden');
       document.getElementById('puter-login-btn').classList.add('hidden');
-      document.getElementById('signout-btn').classList.remove('hidden');
-    } else {
-      document.getElementById('user-info').classList.add('hidden');
-      document.getElementById('puter-login-btn').classList.remove('hidden');
-      document.getElementById('signout-btn').classList.add('hidden');
     }
   } catch (error) {
     console.log("Not signed in:", error);
-    document.getElementById('user-info').classList.add('hidden');
-    document.getElementById('puter-login-btn').classList.remove('hidden');
-    document.getElementById('signout-btn').classList.add('hidden');
   }
 }
 
@@ -89,16 +74,16 @@ async function checkAuthStatus() {
 function setupEventListeners() {
   // Form submission
   chatForm.addEventListener('submit', handleChatSubmit);
-
+  
   // Input auto-resize
   chatInput.addEventListener('input', function() {
     this.style.height = 'auto';
     this.style.height = (this.scrollHeight) + 'px';
   });
-
+  
   // Toggle dark mode
   toggleModeBtn.addEventListener('click', toggleDarkMode);
-
+  
   // Model selection
   if (modelSelect) {
     modelSelect.addEventListener('change', function() {
@@ -106,23 +91,17 @@ function setupEventListeners() {
       saveSettings();
     });
   }
-
+  
   // Streaming toggle
   if (streamingToggle) {
     streamingToggle.addEventListener('change', toggleStreamingMode);
   }
-
-  // Toggle multi model mode
+  
+  // Multi model toggle
   if (multiToggle) {
-    multiToggle.addEventListener('change', function() {
-      isMultiModel = this.checked;
-      toggleMultiModel();
-    });
+    multiToggle.addEventListener('change', toggleMultiModel);
   }
   
-  // Initialize models list in settings
-  populateModelsSettings();
-
   // Feature buttons
   document.getElementById('btn-new-chat').addEventListener('click', startNewChat);
   document.getElementById('btn-history').addEventListener('click', function() {
@@ -138,99 +117,47 @@ function setupEventListeners() {
   document.getElementById('btn-settings').addEventListener('click', function() {
     togglePopup('settings', true);
   });
-
+  
   // Login button
   document.getElementById('puter-login-btn').addEventListener('click', async function() {
     try {
-      // Try Replit login first
-      window.addEventListener("message", authComplete);
-      var h = 500;
-      var w = 350;
-      var left = screen.width / 2 - w / 2;
-      var top = screen.height / 2 - h / 2;
-
-      var authWindow = window.open(
-        "https://replit.com/auth_with_repl_site?domain=" + location.host,
-        "_blank",
-        "modal=yes, toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=" +
-          w +
-          ", height=" +
-          h +
-          ", top=" +
-          top +
-          ", left=" +
-          left
-      );
-
-      function authComplete(e) {
-        if (e.data !== "auth_complete") {
-          return;
-        }
-        window.removeEventListener("message", authComplete);
-        authWindow.close();
-        location.reload();
-      }
+      await puter.auth.signIn();
+      checkAuthStatus();
     } catch (error) {
       console.error("Login error:", error);
-      // Fallback to Puter login
-      try {
-        await puter.auth.signIn();
-        checkAuthStatus();
-      } catch (puterError) {
-        console.error("Puter login error:", puterError);
-      }
     }
   });
-
-  // Sign out button
-  document.getElementById('signout-btn').addEventListener('click', async function() {
-    try {
-      // Try both signout methods
-      try {
-        await puter.auth.signOut();
-      } catch (e) {
-        console.log("Puter signout error:", e);
-      }
-
-      document.getElementById('user-info').classList.add('hidden');
-      document.getElementById('puter-login-btn').classList.remove('hidden');
-      document.getElementById('signout-btn').classList.add('hidden');
-      location.reload();
-    } catch (error) {
-      console.error("Signout error:", error);
-    }
-  });
-
+  
   // OpenRouter toggle
   if (openRouterToggle) {
     openRouterToggle.addEventListener('change', toggleOpenRouter);
   }
-
+  
   // Settings tabs
   const tabButtons = document.querySelectorAll('#settings-tabs button');
   tabButtons.forEach(button => {
     button.addEventListener('click', function() {
       const tabId = this.getAttribute('data-tab');
-
+      
       // Hide all tab contents
       document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.add('hidden');
       });
-
+      
       // Show selected tab content
       document.getElementById(tabId).classList.remove('hidden');
-
+      
       // Toggle active state on tab buttons
       tabButtons.forEach(btn => {
         btn.classList.remove('active', 'border-blue-600');
         btn.classList.add('border-transparent');
       });
-
+      
       this.classList.add('active', 'border-blue-600');
       this.classList.remove('border-transparent');
     });
   });
-
+  
   // Text size slider
   const textSizeRange = document.getElementById('text-size-range');
   if (textSizeRange) {
@@ -239,7 +166,7 @@ function setupEventListeners() {
       saveSettings();
     });
   }
-
+  
   // Theme select
   const themeSelect = document.getElementById('theme-select');
   if (themeSelect) {
@@ -248,27 +175,27 @@ function setupEventListeners() {
       saveSettings();
     });
   }
-
+  
   // Speech voice select
   if (speechVoiceSelect) {
     speechVoiceSelect.addEventListener('change', function() {
       saveSettings();
     });
   }
-
+  
   // Settings save button
   document.getElementById('settings-save-btn').addEventListener('click', function() {
     saveSettings();
     togglePopup('settings', false);
   });
-
+  
   // Custom theme buttons
   document.getElementById('preview-custom-theme').addEventListener('click', previewCustomTheme);
   document.getElementById('reset-custom-theme').addEventListener('click', resetCustomTheme);
-
+  
   // Show enabled models only button
   document.getElementById('show-enabled-only').addEventListener('click', toggleShowEnabledModels);
-
+  
   // Model search
   const modelSearch = document.getElementById('model-search');
   if (modelSearch) {
@@ -276,10 +203,10 @@ function setupEventListeners() {
       filterModels(this.value);
     });
   }
-
+  
   // Generate image button
   document.getElementById('generate-image-btn').addEventListener('click', generateImage);
-
+  
   // Refresh image generation button
   document.getElementById('refresh-imggen-btn').addEventListener('click', function() {
     document.getElementById('image-gen-area').innerHTML = '';
@@ -291,10 +218,10 @@ function toggleDarkMode() {
   const body = document.body;
   const moonIcon = document.getElementById('moon-icon');
   const sunIcon = document.getElementById('sun-icon');
-
+  
   body.classList.toggle('dark-mode');
   darkMode = body.classList.contains('dark-mode');
-
+  
   if (darkMode) {
     moonIcon.classList.add('hidden');
     sunIcon.classList.remove('hidden');
@@ -302,7 +229,7 @@ function toggleDarkMode() {
     moonIcon.classList.remove('hidden');
     sunIcon.classList.add('hidden');
   }
-
+  
   saveSettings();
 }
 
@@ -316,75 +243,24 @@ function toggleStreamingMode() {
 // Toggle multi model mode
 function toggleMultiModel() {
   isMultiModel = multiToggle.checked;
-
+  
   if (isMultiModel) {
     // Hide main model select and show multi model UI
     document.getElementById('model-select-container').classList.add('hidden');
-    document.getElementById('multi-model-container').classList.remove('hidden');
-    
-    // Initialize multi model interface if empty
-    const multiModelList = document.getElementById('multi-model-list');
-    if (multiModelList && multiModelList.children.length === 0) {
-      // Add initial model dropdown
-      addMultiModelSelect();
-    }
+    // Add multi model interface here
   } else {
     // Show main model select and hide multi model UI
     document.getElementById('model-select-container').classList.remove('hidden');
-    document.getElementById('multi-model-container').classList.add('hidden');
+    // Hide multi model interface here
   }
-
+  
   saveSettings();
-}
-
-// Add a new model select dropdown to the multi-model interface
-function addMultiModelSelect() {
-  const multiModelList = document.getElementById('multi-model-list');
-  const multiModelActions = document.getElementById('multi-model-actions');
-  
-  if (!multiModelList || !multiModelActions) return;
-  
-  // Create model select container
-  const selectContainer = document.createElement('div');
-  selectContainer.className = 'flex items-center mb-2';
-  
-  // Create model select dropdown
-  const select = document.createElement('select');
-  select.className = 'bg-gray-50 border rounded-cool py-1 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 flat dark:bg-gray-800 mr-2 flex-1';
-  
-  // Populate with same options as main model select
-  if (modelSelect) {
-    const options = modelSelect.innerHTML;
-    select.innerHTML = options;
-  }
-  
-  // Create remove button
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'text-red-500 hover:text-red-700';
-  removeBtn.innerHTML = '<i class="fa fa-times"></i>';
-  removeBtn.addEventListener('click', function() {
-    selectContainer.remove();
-  });
-  
-  // Add elements to container
-  selectContainer.appendChild(select);
-  selectContainer.appendChild(removeBtn);
-  multiModelList.appendChild(selectContainer);
-  
-  // Make sure the add button exists
-  if (multiModelActions.children.length === 0) {
-    const addBtn = document.createElement('button');
-    addBtn.className = 'bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded-cool';
-    addBtn.innerHTML = '<i class="fa fa-plus mr-1"></i> Add Model';
-    addBtn.addEventListener('click', addMultiModelSelect);
-    multiModelActions.appendChild(addBtn);
-  }
 }
 
 // Toggle OpenRouter models
 function toggleOpenRouter() {
   const isOpenRouter = openRouterToggle.checked;
-
+  
   if (isOpenRouter) {
     // Show OpenRouter models
     populateModelSelect(true);
@@ -393,94 +269,36 @@ function toggleOpenRouter() {
     populateModelSelect(false);
   }
   
-  // Update models settings list
-  populateModelsSettings();
-
   saveSettings();
 }
 
 // Initialize models list
 function initializeModels() {
-  // Standard models initialization - with all Puter models
-  const standardModels = {
-    "OpenAI": [
-      { id: "gpt-4o-mini", name: "GPT-4o mini", provider: "OpenAI", enabled: true, streaming: true },
-      { id: "gpt-4o", name: "GPT-4o", provider: "OpenAI", enabled: true, streaming: true },
-      { id: "o1", name: "O1", provider: "OpenAI", enabled: true, streaming: true },
-      { id: "o1-mini", name: "O1-mini", provider: "OpenAI", enabled: true, streaming: true },
-      { id: "o1-pro", name: "O1-pro", provider: "OpenAI", enabled: true, streaming: true },
-      { id: "o3", name: "O3", provider: "OpenAI", enabled: true, streaming: true },
-      { id: "o3-mini", name: "O3-mini", provider: "OpenAI", enabled: true, streaming: true },
-      { id: "o4-mini", name: "O4-mini", provider: "OpenAI", enabled: true, streaming: true },
-      { id: "gpt-4.1", name: "GPT-4.1", provider: "OpenAI", enabled: true, streaming: true },
-      { id: "gpt-4.1-mini", name: "GPT-4.1 mini", provider: "OpenAI", enabled: true, streaming: true },
-      { id: "gpt-4.1-nano", name: "GPT-4.1 nano", provider: "OpenAI", enabled: true, streaming: true },
-      { id: "gpt-4.5-preview", name: "GPT-4.5 preview", provider: "OpenAI", enabled: true, streaming: true }
-    ],
-    "Anthropic": [
-      { id: "claude-3-7-sonnet", name: "Claude-3.7 Sonnet", provider: "Anthropic", enabled: true, streaming: true },
-      { id: "claude-3-5-sonnet", name: "Claude-3.5 Sonnet", provider: "Anthropic", enabled: true, streaming: true }
-    ],
-    "DeepSeek": [
-      { id: "deepseek-chat", name: "DeepSeek Chat", provider: "DeepSeek", enabled: true, streaming: true },
-      { id: "deepseek-reasoner", name: "DeepSeek Reasoner", provider: "DeepSeek", enabled: true, streaming: true }
-    ],
-    "Google": [
-      { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "Google", enabled: true, streaming: true },
-      { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", provider: "Google", enabled: true, streaming: true },
-      { id: "google/gemini-2.5-flash-preview", name: "Gemini 2.5 Flash Preview", provider: "Google", enabled: true, streaming: true },
-      { id: "google/gemini-2.5-flash-preview:thinking", name: "Gemini 2.5 Flash Preview (Thinking)", provider: "Google", enabled: true, streaming: true },
-      { id: "google/gemini-2.5-pro-exp-03-25:free", name: "Gemini 2.5 Pro Experimental", provider: "Google", enabled: true, streaming: true },
-      { id: "google/gemini-2.0-flash-lite-001", name: "Gemini 2.0 Flash Lite", provider: "Google", enabled: true, streaming: true },
-      { id: "google/gemma-2-27b-it", name: "Gemma 2 27B IT", provider: "Google", enabled: true, streaming: true }
-    ],
-    "Meta": [
-      { id: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", name: "Llama 3.1 8B Turbo", provider: "Meta", enabled: true, streaming: true },
-      { id: "meta-llama/llama-4-maverick", name: "Llama 4 Maverick", provider: "Meta", enabled: true, streaming: true },
-      { id: "meta-llama/llama-4-scout", name: "Llama 4 Scout", provider: "Meta", enabled: true, streaming: true },
-      { id: "meta-llama/llama-3.3-70b-instruct", name: "Llama 3.3 70B Instruct", provider: "Meta", enabled: true, streaming: true },
-      { id: "meta-llama/llama-guard-3-8b", name: "Llama Guard 3 8B", provider: "Meta", enabled: true, streaming: true },
-      { id: "meta-llama/llama-guard-2-8b", name: "Llama Guard 2 8B", provider: "Meta", enabled: true, streaming: true },
-      { id: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", name: "Llama 3.1 70B Turbo", provider: "Meta", enabled: true, streaming: true },
-      { id: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo", name: "Llama 3.1 405B Turbo", provider: "Meta", enabled: true, streaming: true }
-    ],
-    "Mistral": [
-      { id: "mistral-large-latest", name: "Mistral Large", provider: "Mistral", enabled: true, streaming: true },
-      { id: "pixtral-large-latest", name: "Pixtral Large", provider: "Mistral", enabled: true, streaming: true },
-      { id: "codestral-latest", name: "Codestral Latest", provider: "Mistral", enabled: true, streaming: true }
-    ],
-    "Other": [
-      { id: "grok-beta", name: "Grok Beta", provider: "Other", enabled: true, streaming: true },
-      { id: "x-ai/grok-3-beta", name: "Grok 3 Beta", provider: "Other", enabled: true, streaming: true }
-    ]
-  };
-
-  allModels = standardModels;
-
-  // If DOM is ready, update the model select dropdown
-  if (modelSelect) {
-    // Add standard model groups to HTML
-    modelSelect.innerHTML = '';
-    for (const provider in standardModels) {
-      const optgroup = document.createElement('optgroup');
-      optgroup.label = provider;
+  // Standard models initialization
+  const standardModels = {};
+  
+  // Add standard model groups from HTML
+  const optgroups = modelSelect.querySelectorAll('optgroup');
+  optgroups.forEach(group => {
+    const provider = group.label.trim().replace(/^[📊💬🔍🔰📘💨❇️]\s*/, '');
+    if (provider && provider !== '') {
+      standardModels[provider] = [];
       
-      standardModels[provider].forEach(model => {
-        const option = document.createElement('option');
-        option.value = model.id;
-        option.textContent = model.name;
-        
-        if (model.id === currentModel) {
-          option.selected = true;
-        }
-        
-        optgroup.appendChild(option);
+      const options = group.querySelectorAll('option');
+      options.forEach(option => {
+        standardModels[provider].push({
+          id: option.value,
+          name: option.textContent,
+          provider,
+          enabled: true,
+          streaming: true
+        });
       });
-      
-      modelSelect.appendChild(optgroup);
     }
-  }
-
+  });
+  
+  allModels = standardModels;
+  
   // Initialize OpenRouter models
   initializeOpenRouterModels();
 }
@@ -488,7 +306,7 @@ function initializeModels() {
 // Initialize OpenRouter models
 function initializeOpenRouterModels() {
   openRouterModels = [];
-
+  
   // Read from the attached_assets file for OpenRouter models
   const orModelsList = [
     "gpt-4o",
@@ -558,14 +376,14 @@ function initializeOpenRouterModels() {
     "black-forest-labs/FLUX.1-dev-lora",
     "deepseek-ai/DeepSeek-R1"
   ];
-
+  
   // Organize models by provider
   const orModels = {};
-
+  
   orModelsList.forEach(model => {
     // Extract provider
     let provider = "OpenRouter";
-
+    
     if (model.includes('/')) {
       provider = model.split('/')[0];
     } else if (model.startsWith('gpt-') || model.startsWith('o')) {
@@ -577,12 +395,12 @@ function initializeOpenRouterModels() {
     } else if (model.startsWith('mistral')) {
       provider = "Mistral";
     }
-
+    
     // Create provider category if it doesn't exist
     if (!orModels[provider]) {
       orModels[provider] = [];
     }
-
+    
     // Add model to provider category
     orModels[provider].push({
       id: model,
@@ -592,7 +410,7 @@ function initializeOpenRouterModels() {
       streaming: true
     });
   });
-
+  
   // Store the organized OpenRouter models
   openRouterModels = orModels;
 }
@@ -600,12 +418,12 @@ function initializeOpenRouterModels() {
 // Populate model select dropdown
 function populateModelSelect(showOpenRouter) {
   if (!modelSelect) return;
-
+  
   // Clear existing options
   modelSelect.innerHTML = '';
-
+  
   let models = {};
-
+  
   if (showOpenRouter) {
     // Show OpenRouter models
     models = openRouterModels;
@@ -613,34 +431,34 @@ function populateModelSelect(showOpenRouter) {
     // Show standard models
     models = allModels;
   }
-
+  
   // Only show providers with enabled models
   const providers = Object.keys(models).filter(provider => {
     return models[provider].some(model => model.enabled);
   });
-
+  
   // Add options for each provider
   providers.forEach(provider => {
     const optgroup = document.createElement('optgroup');
     optgroup.label = provider;
-
+    
     // Only show enabled models if streaming filter is on
     const filteredModels = models[provider].filter(model => {
       return model.enabled && (!isStreaming || model.streaming);
     });
-
+    
     filteredModels.forEach(model => {
       const option = document.createElement('option');
       option.value = model.id;
       option.textContent = model.name;
-
+      
       if (model.id === currentModel) {
         option.selected = true;
       }
-
+      
       optgroup.appendChild(option);
     });
-
+    
     if (optgroup.children.length > 0) {
       modelSelect.appendChild(optgroup);
     }
@@ -652,199 +470,22 @@ function updateModelList() {
   populateModelSelect(openRouterToggle.checked);
 }
 
-// Populate models list in settings
-function populateModelsSettings() {
-  const modelsList = document.getElementById('models-list');
-  if (!modelsList) return;
-  
-  // Clear existing items
-  modelsList.innerHTML = '';
-  
-  // Get models based on OpenRouter toggle
-  const isOpenRouter = openRouterToggle.checked;
-  let modelsToShow = isOpenRouter ? openRouterModels : allModels;
-  
-  // Create model items for each provider and model
-  for (const provider in modelsToShow) {
-    // Provider header
-    const providerHeader = document.createElement('div');
-    providerHeader.className = 'font-medium text-sm border-b border-gray-200 dark:border-gray-700 py-2 mb-2';
-    providerHeader.textContent = provider;
-    modelsList.appendChild(providerHeader);
-    
-    // Models from this provider
-    modelsToShow[provider].forEach(model => {
-      const modelItem = document.createElement('div');
-      modelItem.className = 'model-item flex justify-between items-center py-2 px-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md';
-      
-      const modelInfo = document.createElement('div');
-      modelInfo.className = 'flex-1';
-      
-      // Add model icon
-      const modelIcon = document.createElement('div');
-      modelIcon.className = 'flex items-center';
-      
-      // Select icon based on provider
-      let iconClass = 'fa-robot';
-      if (provider.includes('OpenAI') || provider.includes('Meta') || provider === 'OR OpenAI' || provider === 'OR Meta') {
-        iconClass = 'fa-message';
-      } else if (provider.includes('Google') || provider.includes('Gemini') || provider === 'OR Google') {
-        iconClass = 'fa-google';
-      } else if (provider.includes('Anthropic') || provider.includes('Claude') || provider === 'OR Anthropic') {
-        iconClass = 'fa-comment-dots';
-      } else if (provider.includes('Mistral') || provider === 'OR Mistral') {
-        iconClass = 'fa-wind';
-      } else if (provider.includes('DeepSeek') || provider === 'OR DeepSeek') {
-        iconClass = 'fa-search';
-      } else if (provider.includes('Grok') || provider.includes('x-ai') || provider === 'OR xAI') {
-        iconClass = 'fa-twitter';
-      }
-      
-      const icon = document.createElement('i');
-      icon.className = `fa ${iconClass} mr-2 text-gray-600 dark:text-gray-400`;
-      modelIcon.appendChild(icon);
-      
-      const modelName = document.createElement('div');
-      modelName.className = 'model-name font-medium text-sm';
-      modelName.textContent = model.name;
-      
-      const modelProvider = document.createElement('div');
-      modelProvider.className = 'model-provider text-xs text-gray-500';
-      modelProvider.textContent = model.provider;
-      
-      modelIcon.appendChild(modelName);
-      modelInfo.appendChild(modelIcon);
-      modelInfo.appendChild(modelProvider);
-      
-      const modelToggles = document.createElement('div');
-      modelToggles.className = 'flex items-center space-x-3';
-      
-      // Enabled toggle
-      const enabledLabel = document.createElement('label');
-      enabledLabel.className = 'flex items-center cursor-pointer';
-      enabledLabel.title = 'Enable/Disable Model';
-      
-      const enabledCheckbox = document.createElement('input');
-      enabledCheckbox.type = 'checkbox';
-      enabledCheckbox.className = 'sr-only';
-      enabledCheckbox.checked = model.enabled;
-      enabledCheckbox.addEventListener('change', function() {
-        model.enabled = this.checked;
-        // Update toggle appearance
-        if (this.checked) {
-          enabledToggle.classList.add('bg-green-500');
-          enabledToggle.classList.remove('bg-gray-300');
-          enabledDot.style.transform = 'translateX(100%)';
-        } else {
-          enabledToggle.classList.remove('bg-green-500');
-          enabledToggle.classList.add('bg-gray-300');
-          enabledDot.style.transform = 'translateX(0)';
-        }
-        saveSettings();
-        updateModelList();
-      });
-      
-      const enabledToggle = document.createElement('div');
-      enabledToggle.className = `relative w-10 h-5 ${model.enabled ? 'bg-green-500' : 'bg-gray-300'} rounded-full transition`;
-      
-      const enabledDot = document.createElement('div');
-      enabledDot.className = 'absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition';
-      enabledDot.style.transform = model.enabled ? 'translateX(100%)' : 'translateX(0)';
-      
-      enabledToggle.appendChild(enabledDot);
-      enabledLabel.appendChild(enabledCheckbox);
-      enabledLabel.appendChild(enabledToggle);
-      
-      // Streaming toggle
-      const streamingLabel = document.createElement('label');
-      streamingLabel.className = 'flex items-center cursor-pointer';
-      streamingLabel.title = 'Streaming Support';
-      
-      const streamingCheckbox = document.createElement('input');
-      streamingCheckbox.type = 'checkbox';
-      streamingCheckbox.className = 'sr-only';
-      streamingCheckbox.checked = model.streaming;
-      streamingCheckbox.addEventListener('change', function() {
-        model.streaming = this.checked;
-        // Update toggle appearance
-        if (this.checked) {
-          streamingToggle.classList.add('bg-blue-500');
-          streamingToggle.classList.remove('bg-gray-300');
-          streamingDot.style.transform = 'translateX(100%)';
-        } else {
-          streamingToggle.classList.remove('bg-blue-500');
-          streamingToggle.classList.add('bg-gray-300');
-          streamingDot.style.transform = 'translateX(0)';
-        }
-        saveSettings();
-        updateModelList();
-      });
-      
-      const streamingToggle = document.createElement('div');
-      streamingToggle.className = `relative w-10 h-5 ${model.streaming ? 'bg-blue-500' : 'bg-gray-300'} rounded-full transition`;
-      
-      const streamingDot = document.createElement('div');
-      streamingDot.className = 'absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition';
-      streamingDot.style.transform = model.streaming ? 'translateX(100%)' : 'translateX(0)';
-      
-      streamingToggle.appendChild(streamingDot);
-      streamingLabel.appendChild(streamingCheckbox);
-      streamingLabel.appendChild(streamingToggle);
-      
-      modelToggles.appendChild(enabledLabel);
-      modelToggles.appendChild(streamingLabel);
-      
-      modelItem.appendChild(modelInfo);
-      modelItem.appendChild(modelToggles);
-      
-      modelsList.appendChild(modelItem);
-    });
-  }
-}
-
 // Filter models in settings by search term
 function filterModels(searchTerm) {
   const modelsList = document.getElementById('models-list');
-  if (!modelsList) return;
-  
   const items = modelsList.querySelectorAll('.model-item');
-  const headers = modelsList.querySelectorAll('.font-medium.text-sm.border-b');
-
+  
   searchTerm = searchTerm.toLowerCase();
-
-  // Hide/show all headers initially
-  headers.forEach(header => {
-    header.style.display = 'none';
-  });
-
-  // Track which headers have visible items
-  const visibleHeaders = new Set();
-
+  
   items.forEach(item => {
     const modelName = item.querySelector('.model-name').textContent.toLowerCase();
     const modelProvider = item.querySelector('.model-provider').textContent.toLowerCase();
-    const prevHeader = item.previousElementSibling;
-
+    
     if (modelName.includes(searchTerm) || modelProvider.includes(searchTerm)) {
       item.style.display = 'flex';
-      
-      // Find the header for this item
-      let header = item.previousElementSibling;
-      while (header && !header.classList.contains('font-medium')) {
-        header = header.previousElementSibling;
-      }
-      
-      if (header) {
-        visibleHeaders.add(header);
-      }
     } else {
       item.style.display = 'none';
     }
-  });
-
-  // Show headers that have visible items
-  visibleHeaders.forEach(header => {
-    header.style.display = 'block';
   });
 }
 
@@ -852,13 +493,13 @@ function filterModels(searchTerm) {
 function toggleShowEnabledModels() {
   const button = document.getElementById('show-enabled-only');
   const showEnabledOnly = button.classList.contains('bg-blue-700');
-
+  
   if (showEnabledOnly) {
     // Show all models
     button.classList.remove('bg-blue-700');
     button.classList.add('bg-gray-500');
     button.textContent = 'Show Enabled';
-
+    
     const modelItems = document.querySelectorAll('.model-item');
     modelItems.forEach(item => {
       item.style.display = 'flex';
@@ -868,7 +509,7 @@ function toggleShowEnabledModels() {
     button.classList.remove('bg-gray-500');
     button.classList.add('bg-blue-700');
     button.textContent = 'Show All';
-
+    
     const modelItems = document.querySelectorAll('.model-item');
     modelItems.forEach(item => {
       const checkbox = item.querySelector('input[type="checkbox"]');
@@ -882,17 +523,17 @@ function toggleShowEnabledModels() {
 // Chat submission handler
 async function handleChatSubmit(event) {
   event.preventDefault();
-
+  
   const message = chatInput.value.trim();
   if (!message) return;
-
+  
   // Add user message to chat
   const userMessageId = addMessageToChat('user', message);
-
+  
   // Clear input and reset height
   chatInput.value = '';
   chatInput.style.height = 'auto';
-
+  
   if (isMultiModel && selectedModels.length > 0) {
     // Send to multiple models
     for (const modelId of selectedModels) {
@@ -902,7 +543,7 @@ async function handleChatSubmit(event) {
     // Send to single model
     await sendMessageToModel(message, currentModel);
   }
-
+  
   // Save to history
   saveChatToHistory();
 }
@@ -911,60 +552,40 @@ async function handleChatSubmit(event) {
 async function sendMessageToModel(message, modelId) {
   // Add AI thinking message
   const aiMessageId = addMessageToChat('ai', '<div class="typing-animation">Thinking</div>', modelId);
-
+  
   try {
     let aiResponse = '';
-
+    
     if (isStreaming) {
       // Streaming response
-      try {
-        const stream = await puter.ai.chat({
-          model: modelId,
-          messages: [{ role: 'user', content: message }],
-          stream: true
-        });
-
-        let streamContent = '';
-
-        for await (const chunk of stream) {
-          streamContent += chunk.choices[0]?.delta?.content || '';
-          updateMessage(aiMessageId, formatAIResponse(streamContent), modelId);
-        }
-
-        aiResponse = streamContent;
-      } catch (streamError) {
-        console.log("Streaming error:", streamError);
-        throw streamError;
+      const stream = await puter.ai.chat({
+        model: modelId,
+        messages: [{ role: 'user', content: message }],
+        stream: true
+      });
+      
+      let streamContent = '';
+      
+      for await (const chunk of stream) {
+        streamContent += chunk.choices[0]?.delta?.content || '';
+        updateMessage(aiMessageId, formatAIResponse(streamContent), modelId);
       }
+      
+      aiResponse = streamContent;
     } else {
       // Non-streaming response
-      try {
-        // Create proper message format
-        const chatMessages = [
-          { role: 'user', content: message }
-        ];
-        
-        const response = await puter.ai.chat({
-          model: modelId,
-          messages: chatMessages
-        });
-
-        if (response && response.choices && response.choices[0] && response.choices[0].message) {
-          aiResponse = response.choices[0].message.content || 'No response';
-        } else {
-          aiResponse = 'Received invalid response format';
-        }
-        
-        updateMessage(aiMessageId, formatAIResponse(aiResponse), modelId);
-      } catch (responseError) {
-        console.log("Response error:", responseError);
-        throw responseError;
-      }
+      const response = await puter.ai.chat({
+        model: modelId,
+        messages: [{ role: 'user', content: message }]
+      });
+      
+      aiResponse = response.choices[0]?.message?.content || 'No response';
+      updateMessage(aiMessageId, formatAIResponse(aiResponse), modelId);
     }
-
+    
     // Cache the response
     responseCache[aiMessageId] = aiResponse;
-
+    
     // Add action buttons to message
     addActionButtons(aiMessageId);
   } catch (error) {
@@ -977,18 +598,17 @@ async function sendMessageToModel(message, modelId) {
 function addMessageToChat(role, content, modelName = '') {
   const messageId = 'msg-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
   const timestamp = new Date().toLocaleTimeString();
-
+  
   const messageDiv = document.createElement('div');
   messageDiv.id = messageId;
   messageDiv.className = 'py-3 px-4 mb-4 rounded-cool';
-
+  
   let messageHeader = '';
-
+  
   if (role === 'user') {
-    // User messages aligned to the right
-    messageDiv.className += ' bg-gray-50 border ml-auto mr-2';
-    messageDiv.style.maxWidth = '80%';
+    messageDiv.className += ' bg-gray-50 border ml-12';
     messageHeader = `<div class="flex justify-between mb-1">
+      <span class="text-xs text-gray-500">You: ${timestamp}</span>
       <div class="message-actions">
         <button class="text-xs text-gray-400 hover:text-black mr-2 resend-btn" title="Resend">
           <i class="fa fa-rotate-right"></i>
@@ -999,16 +619,10 @@ function addMessageToChat(role, content, modelName = '') {
         <button class="text-xs text-gray-400 hover:text-black delete-btn" title="Delete">
           <i class="fa fa-trash"></i>
         </button>
-        <button class="text-xs text-gray-400 hover:text-black mr-2 speech-btn" title="Read Aloud">
-          <i class="fa fa-volume-up"></i>
-        </button>
       </div>
-      <span class="text-xs text-gray-500">You: ${timestamp}</span>
     </div>`;
   } else {
-    // AI messages aligned to the left
-    messageDiv.className += ' bg-white border ml-2 mr-auto';
-    messageDiv.style.maxWidth = '80%';
+    messageDiv.className += ' bg-white border mr-12';
     let modelLabel = modelName ? `: ${modelName}` : '';
     messageHeader = `<div class="flex justify-between mb-1">
       <span class="text-xs text-gray-500">AI${modelLabel}: ${timestamp}</span>
@@ -1017,12 +631,12 @@ function addMessageToChat(role, content, modelName = '') {
       </div>
     </div>`;
   }
-
+  
   messageDiv.innerHTML = `
     ${messageHeader}
     <div class="message-content">${content}</div>
   `;
-
+  
   // Add to currentChat array for history
   currentChat.push({
     id: messageId,
@@ -1031,35 +645,32 @@ function addMessageToChat(role, content, modelName = '') {
     timestamp,
     model: modelName
   });
-
+  
   // Add to DOM
   chatContainer.appendChild(messageDiv);
-
+  
   // Scroll to bottom
   chatContainer.scrollTop = chatContainer.scrollHeight;
-
+  
   // Add event listeners for action buttons
   if (role === 'user') {
     const resendBtn = messageDiv.querySelector('.resend-btn');
     const copyBtn = messageDiv.querySelector('.copy-btn');
     const deleteBtn = messageDiv.querySelector('.delete-btn');
-    const speechBtn = messageDiv.querySelector('.speech-btn');
-
+    
     if (resendBtn) {
       resendBtn.addEventListener('click', function() {
         chatInput.value = content;
         chatInput.focus();
       });
     }
-
+    
     if (copyBtn) {
       copyBtn.addEventListener('click', function() {
-        // Get text content without HTML tags
-        const textContent = new DOMParser().parseFromString(content, 'text/html').body.textContent;
-        navigator.clipboard.writeText(textContent);
+        navigator.clipboard.writeText(content);
       });
     }
-
+    
     if (deleteBtn) {
       deleteBtn.addEventListener('click', function() {
         messageDiv.remove();
@@ -1071,16 +682,8 @@ function addMessageToChat(role, content, modelName = '') {
         }
       });
     }
-    
-    if (speechBtn) {
-      speechBtn.addEventListener('click', function() {
-        // Extract plain text from content
-        const textContent = new DOMParser().parseFromString(content, 'text/html').body.textContent;
-        speakText(textContent);
-      });
-    }
   }
-
+  
   return messageId;
 }
 
@@ -1088,12 +691,12 @@ function addMessageToChat(role, content, modelName = '') {
 function updateMessage(messageId, content, modelName = '') {
   const messageDiv = document.getElementById(messageId);
   if (!messageDiv) return;
-
+  
   const contentDiv = messageDiv.querySelector('.message-content');
   if (contentDiv) {
     contentDiv.innerHTML = content;
   }
-
+  
   if (modelName) {
     const headerSpan = messageDiv.querySelector('.text-xs.text-gray-500');
     if (headerSpan) {
@@ -1107,10 +710,10 @@ function updateMessage(messageId, content, modelName = '') {
 function addActionButtons(messageId) {
   const messageDiv = document.getElementById(messageId);
   if (!messageDiv) return;
-
+  
   const actionsDiv = messageDiv.querySelector('.message-actions');
   if (!actionsDiv) return;
-
+  
   actionsDiv.classList.remove('hidden');
   actionsDiv.innerHTML = `
     <button class="text-xs text-gray-400 hover:text-black mr-2 copy-btn" title="Copy">
@@ -1123,19 +726,19 @@ function addActionButtons(messageId) {
       <i class="fa fa-volume-up"></i>
     </button>
   `;
-
+  
   // Add event listeners
   const copyBtn = actionsDiv.querySelector('.copy-btn');
   const deleteBtn = actionsDiv.querySelector('.delete-btn');
   const speechBtn = actionsDiv.querySelector('.speech-btn');
-
+  
   if (copyBtn) {
     copyBtn.addEventListener('click', function() {
       const content = responseCache[messageId] || messageDiv.querySelector('.message-content').textContent;
       navigator.clipboard.writeText(content);
     });
   }
-
+  
   if (deleteBtn) {
     deleteBtn.addEventListener('click', function() {
       messageDiv.remove();
@@ -1147,7 +750,7 @@ function addActionButtons(messageId) {
       }
     });
   }
-
+  
   if (speechBtn) {
     speechBtn.addEventListener('click', function() {
       const content = messageDiv.querySelector('.message-content').textContent;
@@ -1160,26 +763,26 @@ function addActionButtons(messageId) {
 async function speakText(text) {
   try {
     const lang = speechVoiceSelect ? speechVoiceSelect.value : 'en-US';
-
+    
     const response = await puter.speech.synthesize({
       text,
       voice: lang,
       engine: 'premium'
     });
-
+    
     if (response.success) {
       const audio = new Audio(response.url);
       audio.play();
     } else {
       console.log("Speech error:", response);
-
+      
       // Try fallback to standard engine
       const fallbackResponse = await puter.speech.synthesize({
         text,
         voice: lang,
         engine: 'standard'
       });
-
+      
       if (fallbackResponse.success) {
         const audio = new Audio(fallbackResponse.url);
         audio.play();
@@ -1200,29 +803,29 @@ function formatAIResponse(text) {
     // Use Prism for syntax highlighting
     return `<pre class="language-${language}"><code class="language-${language}">${code}</code></pre>`;
   });
-
+  
   // Replace single line code
   formattedText = formattedText.replace(/`([^`]+)`/g, '<code>$1</code>');
-
+  
   // Replace bold text
   formattedText = formattedText.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-
+  
   // Replace italic text
   formattedText = formattedText.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-
+  
   // Replace links
   formattedText = formattedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-
+  
   // Replace lists
   formattedText = formattedText.replace(/^(\d+\.\s.+)$/gm, '<li>$1</li>');
   formattedText = formattedText.replace(/^(\*\s.+)$/gm, '<li>$1</li>');
-
+  
   // Replace paragraphs
   formattedText = formattedText.replace(/(?:\r\n|\r|\n){2,}/g, '</p><p>');
-
+  
   // Wrap in paragraph tags
   formattedText = '<p>' + formattedText + '</p>';
-
+  
   return formattedText;
 }
 
@@ -1230,11 +833,11 @@ function formatAIResponse(text) {
 function startNewChat() {
   // Save current chat to history
   saveChatToHistory();
-
+  
   // Clear current chat
   currentChat = [];
   chatContainer.innerHTML = '';
-
+  
   // Generate a new chat ID
   const chatId = 'chat-' + Date.now();
   currentChatId = chatId;
@@ -1243,18 +846,18 @@ function startNewChat() {
 // Save chat to history
 function saveChatToHistory() {
   if (currentChat.length === 0) return;
-
+  
   const chatId = 'chat-' + Date.now();
   const firstUserMessage = currentChat.find(msg => msg.role === 'user');
   const title = firstUserMessage ? firstUserMessage.content.slice(0, 30) + '...' : 'Untitled Chat';
-
+  
   chatHistory[chatId] = {
     id: chatId,
     title,
     timestamp: new Date().toISOString(),
     messages: [...currentChat]
   };
-
+  
   localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
 }
 
@@ -1262,32 +865,32 @@ function saveChatToHistory() {
 function displayChatHistory() {
   const historyList = document.getElementById('history-list');
   if (!historyList) return;
-
+  
   historyList.innerHTML = '';
-
+  
   // Get saved chat history
   const savedHistory = localStorage.getItem('chatHistory');
   if (savedHistory) {
     chatHistory = JSON.parse(savedHistory);
   }
-
+  
   if (Object.keys(chatHistory).length === 0) {
     historyList.innerHTML = '<div class="text-center text-gray-500 py-4">No chat history yet</div>';
     return;
   }
-
+  
   // Sort by timestamp (newest first)
   const sortedHistory = Object.values(chatHistory).sort((a, b) => {
     return new Date(b.timestamp) - new Date(a.timestamp);
   });
-
+  
   sortedHistory.forEach(chat => {
     const chatItem = document.createElement('div');
     chatItem.className = 'p-3 border rounded-cool hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition';
-
+    
     const date = new Date(chat.timestamp).toLocaleDateString();
     const time = new Date(chat.timestamp).toLocaleTimeString();
-
+    
     chatItem.innerHTML = `
       <div class="flex justify-between items-center">
         <div class="font-medium">${chat.title}</div>
@@ -1297,17 +900,17 @@ function displayChatHistory() {
       </div>
       <div class="text-xs text-gray-500">${date} ${time}</div>
     `;
-
+    
     chatItem.addEventListener('click', function(e) {
       if (!e.target.closest('.delete-history')) {
         loadChatFromHistory(chat.id);
         togglePopup('history', false);
       }
     });
-
+    
     historyList.appendChild(chatItem);
   });
-
+  
   // Add delete event listeners
   const deleteButtons = historyList.querySelectorAll('.delete-history');
   deleteButtons.forEach(button => {
@@ -1323,29 +926,29 @@ function displayChatHistory() {
 // Load chat from history
 function loadChatFromHistory(chatId) {
   if (!chatHistory[chatId]) return;
-
+  
   // Save current chat
   saveChatToHistory();
-
+  
   // Clear current chat
   currentChat = [];
   chatContainer.innerHTML = '';
-
+  
   // Load selected chat
   const chat = chatHistory[chatId];
-
+  
   chat.messages.forEach(msg => {
     const messageId = addMessageToChat(msg.role, msg.content, msg.model);
-
+    
     if (msg.role === 'ai') {
       // Cache the response
       responseCache[messageId] = msg.content;
-
+      
       // Add action buttons
       addActionButtons(messageId);
     }
   });
-
+  
   currentChat = [...chat.messages];
 }
 
@@ -1361,19 +964,12 @@ function deleteChatFromHistory(chatId) {
 function togglePopup(popupId, show) {
   const popup = document.getElementById('popup-' + popupId);
   const overlay = document.getElementById('popup-overlay');
-
+  
   if (!popup || !overlay) return;
-
+  
   if (show) {
     popup.classList.remove('hidden');
     overlay.classList.remove('hidden');
-    
-    // Add click outside to dismiss
-    overlay.onclick = function(event) {
-      if (event.target === overlay) {
-        togglePopup(popupId, false);
-      }
-    };
   } else {
     popup.classList.add('hidden');
     overlay.classList.add('hidden');
@@ -1384,28 +980,28 @@ function togglePopup(popupId, show) {
 async function generateImage() {
   const prompt = document.getElementById('image-gen-prompt').value.trim();
   if (!prompt) return;
-
+  
   const imageGenArea = document.getElementById('image-gen-area');
   imageGenArea.innerHTML = '<div class="text-center py-4"><i class="fa fa-spinner fa-spin"></i> Generating...</div>';
-
+  
   try {
     const response = await puter.ai.image.generate({
       prompt,
       n: 1
     });
-
+    
     if (response && response.data && response.data.length > 0) {
       imageGenArea.innerHTML = '';
-
+      
       response.data.forEach(img => {
         const imgContainer = document.createElement('div');
         imgContainer.className = 'mb-4';
-
+        
         const imgElement = document.createElement('img');
         imgElement.src = img.url;
         imgElement.className = 'w-full rounded-cool';
         imgElement.alt = prompt;
-
+        
         const actionsDiv = document.createElement('div');
         actionsDiv.className = 'flex justify-between mt-2';
         actionsDiv.innerHTML = `
@@ -1416,22 +1012,22 @@ async function generateImage() {
             <i class="fa fa-paper-plane mr-1"></i> Send to Chat
           </button>
         `;
-
+        
         imgContainer.appendChild(imgElement);
         imgContainer.appendChild(actionsDiv);
         imageGenArea.appendChild(imgContainer);
-
+        
         // Add event listeners
         const downloadBtn = actionsDiv.querySelector('.download-img');
         const sendToChatBtn = actionsDiv.querySelector('.send-to-chat');
-
+        
         downloadBtn.addEventListener('click', function() {
           const a = document.createElement('a');
           a.href = img.url;
           a.download = 'generated-image.png';
           a.click();
         });
-
+        
         sendToChatBtn.addEventListener('click', function() {
           addMessageToChat('user', `<p>Generated image from prompt: "${prompt}"</p><img src="${img.url}" alt="${prompt}" />`);
           togglePopup('image', false);
@@ -1452,20 +1048,20 @@ document.getElementById('file-input-file').addEventListener('change', handleFile
 async function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
-
+  
   const previewBox = document.getElementById('file-preview-box');
   previewBox.innerHTML = '<div class="text-center py-4"><i class="fa fa-spinner fa-spin"></i> Processing...</div>';
-
+  
   try {
     // Read file
     const reader = new FileReader();
-
+    
     reader.onload = async function(e) {
       const content = e.target.result;
-
+      
       // Create preview
       let preview = '';
-
+      
       if (file.type.startsWith('image/')) {
         // Image file
         preview = `
@@ -1524,9 +1120,9 @@ async function handleFileUpload(event) {
           </div>
         `;
       }
-
+      
       previewBox.innerHTML = preview;
-
+      
       // Add event listeners
       const ocrBtn = previewBox.querySelector('.ocr-btn');
       if (ocrBtn) {
@@ -1534,24 +1130,24 @@ async function handleFileUpload(event) {
           await performOCR(content);
         });
       }
-
+      
       const sendToChatBtn = previewBox.querySelector('.send-to-chat');
       if (sendToChatBtn) {
         sendToChatBtn.addEventListener('click', function() {
           let messageContent = '';
-
+          
           if (file.type.startsWith('image/')) {
             messageContent = `<p>Image: ${file.name}</p><img src="${content}" alt="${file.name}" />`;
           } else {
             messageContent = `<p>File: ${file.name}</p><pre class="bg-gray-100 dark:bg-gray-800 p-2 rounded-cool overflow-auto">${content}</pre>`;
           }
-
+          
           addMessageToChat('user', messageContent);
           togglePopup('file', false);
         });
       }
     };
-
+    
     if (file.type.startsWith('image/') || file.type === 'text/plain' || file.type === 'application/json' || file.type.includes('javascript') || file.type.includes('text/html')) {
       reader.readAsDataURL(file);
     } else {
@@ -1566,12 +1162,12 @@ async function handleFileUpload(event) {
 // Perform OCR on image
 async function performOCR(imageData) {
   const previewBox = document.getElementById('file-preview-box');
-
+  
   try {
     const response = await puter.ocr.getText({
       image: imageData
     });
-
+    
     if (response && response.text) {
       const ocrResult = document.createElement('div');
       ocrResult.className = 'mt-4';
@@ -1586,9 +1182,9 @@ async function performOCR(imageData) {
           </button>
         </div>
       `;
-
+      
       previewBox.appendChild(ocrResult);
-
+      
       // Add event listener
       const sendOcrBtn = ocrResult.querySelector('.send-ocr-to-chat');
       if (sendOcrBtn) {
@@ -1624,7 +1220,7 @@ function previewCustomTheme() {
   customTheme.userBubble = document.getElementById('custom-user-bubble').value;
   customTheme.modelBubble = document.getElementById('custom-model-bubble').value;
   customTheme.dropdowns = document.getElementById('custom-dropdowns').value;
-
+  
   // Apply the custom theme
   applyCustomTheme();
 }
@@ -1643,7 +1239,7 @@ function resetCustomTheme() {
     modelBubble: '#ffffff',
     dropdowns: '#f9fafb'
   };
-
+  
   // Update color inputs
   document.getElementById('custom-background').value = customTheme.background;
   document.getElementById('custom-text').value = customTheme.text;
@@ -1654,7 +1250,7 @@ function resetCustomTheme() {
   document.getElementById('custom-user-bubble').value = customTheme.userBubble;
   document.getElementById('custom-model-bubble').value = customTheme.modelBubble;
   document.getElementById('custom-dropdowns').value = customTheme.dropdowns;
-
+  
   // Apply the reset theme
   applyCustomTheme();
 }
@@ -1664,10 +1260,10 @@ function applyTheme(theme) {
   const body = document.body;
   const mainHeader = document.getElementById('main-header');
   const footer = document.querySelector('.w-full.max-w-3xl.mx-auto.fixed.bottom-0');
-
+  
   // Remove all theme classes
   body.classList.remove('dark-mode', 'light-theme', 'sunset-theme', 'multicolored-theme', 'forest-theme', 'midnight-theme');
-
+  
   // Add selected theme class
   switch (theme) {
     case 'dark':
@@ -1724,13 +1320,13 @@ function applyTheme(theme) {
       if (footer) footer.style.background = '';
       break;
   }
-
+  
   // Update theme select dropdown
   const themeSelect = document.getElementById('theme-select');
   if (themeSelect) {
     themeSelect.value = theme;
   }
-
+  
   // Update theme preview thumbnails
   const themeOptions = document.querySelectorAll('.theme-option');
   themeOptions.forEach(option => {
@@ -1747,33 +1343,33 @@ function applyCustomTheme() {
   const mainHeader = document.getElementById('main-header');
   const footer = document.querySelector('.w-full.max-w-3xl.mx-auto.fixed.bottom-0');
   const popups = document.querySelectorAll('.popup-ptr .bg-white');
-
+  
   // Apply custom styles
   body.style.background = customTheme.background;
   body.style.color = customTheme.text;
-
+  
   if (mainHeader) mainHeader.style.background = customTheme.header;
   if (footer) footer.style.background = customTheme.footer;
-
+  
   // Apply to popups
   popups.forEach(popup => {
     popup.style.background = customTheme.popups;
   });
-
+  
   // Apply to chat bubbles
   document.querySelectorAll('#chat-container .bg-gray-50').forEach(bubble => {
     bubble.style.background = customTheme.userBubble;
   });
-
+  
   document.querySelectorAll('#chat-container .bg-white').forEach(bubble => {
     bubble.style.background = customTheme.modelBubble;
   });
-
+  
   // Apply to borders
   document.querySelectorAll('.border').forEach(element => {
     element.style.borderColor = customTheme.borders;
   });
-
+  
   // Apply to dropdowns
   document.querySelectorAll('select').forEach(select => {
     select.style.background = customTheme.dropdowns;
@@ -1784,13 +1380,13 @@ function applyCustomTheme() {
 function toggleCustomThemeEditor() {
   const editor = document.getElementById('custom-theme-editor');
   editor.classList.toggle('hidden');
-
+  
   // Select the custom theme option
   const themeSelect = document.getElementById('theme-select');
   if (themeSelect) {
     themeSelect.value = 'custom';
   }
-
+  
   // Update the color inputs with current custom theme values
   document.getElementById('custom-background').value = customTheme.background;
   document.getElementById('custom-text').value = customTheme.text;
@@ -1806,27 +1402,12 @@ function toggleCustomThemeEditor() {
 // Select theme from preview thumbnails
 function selectThemePreview(theme) {
   applyTheme(theme);
-
-  if (theme === 'custom') {
-    // Open custom theme editor popup instead
-    togglePopup('custom-theme', true);
-  }
-}
-
-// Open custom theme editor
-function openCustomThemeEditor() {
-  togglePopup('custom-theme', true);
   
-  // Update the color inputs with current custom theme values
-  document.getElementById('custom-background').value = customTheme.background;
-  document.getElementById('custom-text').value = customTheme.text;
-  document.getElementById('custom-header').value = customTheme.header;
-  document.getElementById('custom-footer').value = customTheme.footer;
-  document.getElementById('custom-popups').value = customTheme.popups;
-  document.getElementById('custom-borders').value = customTheme.borders;
-  document.getElementById('custom-user-bubble').value = customTheme.userBubble;
-  document.getElementById('custom-model-bubble').value = customTheme.modelBubble;
-  document.getElementById('custom-dropdowns').value = customTheme.dropdowns;
+  if (theme === 'custom') {
+    toggleCustomThemeEditor();
+  } else {
+    document.getElementById('custom-theme-editor').classList.add('hidden');
+  }
 }
 
 // Save settings to localStorage
@@ -1843,7 +1424,7 @@ function saveSettings() {
     speechVoice: speechVoiceSelect ? speechVoiceSelect.value : 'en-US',
     theme: document.getElementById('theme-select').value
   };
-
+  
   localStorage.setItem('chatAppSettings', JSON.stringify(settings));
 }
 
@@ -1851,51 +1432,51 @@ function saveSettings() {
 function loadSettings() {
   const savedSettings = localStorage.getItem('chatAppSettings');
   if (!savedSettings) return;
-
+  
   const settings = JSON.parse(savedSettings);
-
+  
   // Apply saved settings
   if (settings.darkMode) {
     toggleDarkMode();
   }
-
+  
   if (settings.currentModel && modelSelect) {
     currentModel = settings.currentModel;
     modelSelect.value = currentModel;
   }
-
+  
   if (settings.isStreaming && streamingToggle) {
     isStreaming = settings.isStreaming;
     streamingToggle.checked = isStreaming;
   }
-
+  
   if (settings.isMultiModel && multiToggle) {
     isMultiModel = settings.isMultiModel;
     multiToggle.checked = isMultiModel;
     toggleMultiModel();
   }
-
+  
   if (settings.selectedModels) {
     selectedModels = settings.selectedModels;
   }
-
+  
   if (settings.enabledModels) {
     enabledModels = settings.enabledModels;
   }
-
+  
   if (settings.customTheme) {
     customTheme = settings.customTheme;
   }
-
+  
   if (settings.fontSize) {
     document.getElementById('text-size-range').value = settings.fontSize;
     document.documentElement.style.fontSize = settings.fontSize + 'px';
   }
-
+  
   if (settings.speechVoice && speechVoiceSelect) {
     speechVoiceSelect.value = settings.speechVoice;
   }
-
+  
   if (settings.theme) {
     applyTheme(settings.theme);
   }

@@ -7,11 +7,6 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Transparent footer */
-.w-full.max-w-3xl.mx-auto.fixed.bottom-0 {
-  background-color: transparent !important;
-}
-
 /* Hide scrollbar but keep scroll functionality */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
@@ -299,7 +294,6 @@ select#model-select {
   margin-bottom: 8px;
   transition: transform 0.2s;
   width: 80px;
-  user-select: none;
 }
 
 .theme-option:hover {
@@ -497,42 +491,6 @@ select#model-select {
   background: #555;
 }
 
-/* Models list in settings popup scrollable container */
-#models-list {
-  max-height: 50vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 5px;
-  margin-right: -5px;
-  scrollbar-width: thin;
-}
-
-#models-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-#models-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 10px;
-}
-
-#models-list::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 10px;
-}
-
-#models-list::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
-/* Fix popup content scrollable container */
-.tab-content {
-  max-height: 50vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 5px;
-}
-
 .dark-mode .feature-btn {
   background-color: #1e1e1e !important;
   color: #e5e7eb !important;
@@ -596,11 +554,11 @@ select#model-select {
 }
 
 /* User login styles */
-#puter-login-btn, #signout-btn {
+#puter-login-btn {
   transition: all 0.2s ease-in-out;
 }
 
-#puter-login-btn:hover, #signout-btn:hover {
+#puter-login-btn:hover {
   transform: translateY(-2px);
 }
 
@@ -608,6 +566,7 @@ select#model-select {
   color: #2563eb;
   font-weight: 500;
   font-size: 0.9rem;
+  width: 100%;
   text-align: center;
 }
 
@@ -615,20 +574,9 @@ select#model-select {
   color: #93c5fd;
 }
 
-#puter-login-btn, #signout-btn {
+#puter-login-btn {
   font-size: 0.9rem;
-  padding: 0.35rem 0.6rem;
-}
-
-/* Multi-model interface */
-#multi-model-container {
-  animation: fadeIn 0.3s ease-out;
-}
-
-#multi-model-list {
-  max-height: 200px;
-  overflow-y: auto;
-  scrollbar-width: thin;
+  padding: 0.5rem 0.75rem;
 }
 
 @media (max-width: 767px) {

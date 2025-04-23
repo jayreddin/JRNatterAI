@@ -25,21 +25,14 @@
   <header
     class="z-50 w-full py-3 px-2 sm:px-6 flex items-center justify-between shadow-md flat rounded-cool mb-4 sticky top-0 bg-white dark:bg-gray-900 backdrop-filter backdrop-blur-sm bg-opacity-95"
     id="main-header">
-    <div class="flex flex-col items-start">
-      <div id="user-info" class="text-sm font-medium text-gray-700 dark:text-gray-300 hidden border border-black rounded-cool px-3 py-1 mb-1 w-40 text-center">
-        <i class="fa fa-user text-gray-600 dark:text-gray-400 mr-2"></i>
-        <span class="username-text"></span>
+    <div class="flex items-center flex-col">
+      <div id="user-info"
+        class="text-xs font-medium text-gray-700 dark:text-gray-300 hidden border border-black rounded-cool px-3 py-1 mb-1">
       </div>
-      <div>
-        <button id="puter-login-btn"
-          class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1 rounded-cool font-semibold focus:outline-none transition ease-in-out duration-150 flat">
-          <i class="fa fa-sign-in mr-1"></i> Sign In
-        </button>
-        <button id="signout-btn"
-          class="bg-red-500 hover:bg-red-600 text-xs px-3 py-1 rounded-cool font-semibold focus:outline-none transition ease-in-out duration-150 flat hidden w-40">
-          <i class="fa fa-sign-out mr-1"></i> Sign Out
-        </button>
-      </div>
+      <button id="puter-login-btn"
+        class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1 rounded-cool font-semibold focus:outline-none transition ease-in-out duration-150 flat w-full">
+        <i class="fa fa-user mr-1"></i> Sign In
+      </button>
     </div>
     
     <div class="flex flex-1 items-center justify-center">
@@ -115,19 +108,6 @@
         </select>
         <i class="fa fa-caret-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
       </div>
-      
-      <!-- Multi-model selection interface -->
-      <div id="multi-model-container" class="hidden w-full max-w-xs mx-auto">
-        <div class="bg-gray-50 dark:bg-gray-800 border rounded-cool py-2 px-3 shadow-sm">
-          <div class="text-sm font-medium mb-2 text-center">Selected Models</div>
-          <div id="multi-model-list" class="mb-2">
-            <!-- Selected models will go here -->
-          </div>
-          <div id="multi-model-actions" class="flex justify-center mt-2">
-            <!-- Add model button will go here -->
-          </div>
-        </div>
-      </div>
     </div>
     <!-- Mode toggles -->
     <div class="flex flex-col space-y-2 w-24">
@@ -168,7 +148,7 @@
       </button>
     </form>
     <!-- Feature Button Bar -->
-    <div class="flex flex-col items-center py-3 px-2 rounded-cool bg-transparent">
+    <div class="flex flex-col items-center py-3 px-2 bg-white dark:bg-gray-900 rounded-cool">
       <div class="flex justify-center space-x-4 mb-2">
         <button class="feature-btn" id="btn-new-chat" title="New Chat"><i class="fa fa-plus"></i></button>
         <button class="feature-btn" id="btn-history" title="Chat History"><i class="fa fa-history"></i></button>
@@ -261,91 +241,35 @@
     </div>
   </div>
 
-  <!-- Custom Theme Editor PopUp -->
-  <div id="popup-custom-theme" class="popup-ptr hidden">
+  <!-- Code Generation PopUp
+  <div id="popup-code" class="popup-ptr hidden">
     <div class="bg-white dark:bg-gray-900 flat p-4 rounded-cool w-full max-w-lg mx-auto shadow-lg border-black border">
       <div class="flex justify-between items-center mb-2">
-        <strong class="text-lg">Custom Theme Editor</strong>
+        <strong class="text-lg">Code Generator</strong>
         <button class="text-gray-400 hover:text-black dark:hover:text-yellow-400 text-xl focus:outline-none"
-          onclick="togglePopup('custom-theme',false)">
+          onclick="togglePopup('code',false)">
           <i class="fa fa-times"></i>
         </button>
       </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div class="mb-2">
-          <label class="text-sm block mb-1">Background</label>
-          <input type="color" id="custom-background" class="w-full h-8 cursor-pointer rounded">
+      <div class="space-y-2">
+        <textarea id="code-gen-prompt"
+          class="w-full border flat rounded-cool p-2 focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[32px] dark:bg-gray-800"
+          placeholder="Describe the code you want..."></textarea>
+        <div class="flex justify-center mt-2 space-x-3">
+          <button id="generate-code-btn"
+            class="bg-blue-700 hover:bg-blue-900 text-base rounded-cool px-3 py-1 flat focus:outline-none transition">
+            <i class="fa fa-code mr-1"></i> Generate Code
+          </button>
+          <button id="preview-code-btn"
+            class="bg-gray-600 hover:bg-gray-800 text-base rounded-cool px-3 py-1 flat focus:outline-none transition">
+            <i class="fa fa-eye mr-1"></i> Preview
+          </button>
         </div>
-        <div class="mb-2">
-          <label class="text-sm block mb-1">Text Color</label>
-          <input type="color" id="custom-text" class="w-full h-8 cursor-pointer rounded">
-        </div>
-        <div class="mb-2">
-          <label class="text-sm block mb-1">Header</label>
-          <input type="color" id="custom-header" class="w-full h-8 cursor-pointer rounded">
-        </div>
-        <div class="mb-2">
-          <label class="text-sm block mb-1">Footer</label>
-          <input type="color" id="custom-footer" class="w-full h-8 cursor-pointer rounded">
-        </div>
-        <div class="mb-2">
-          <label class="text-sm block mb-1">Popups</label>
-          <input type="color" id="custom-popups" class="w-full h-8 cursor-pointer rounded">
-        </div>
-        <div class="mb-2">
-          <label class="text-sm block mb-1">Borders</label>
-          <input type="color" id="custom-borders" class="w-full h-8 cursor-pointer rounded">
-        </div>
-        <div class="mb-2">
-          <label class="text-sm block mb-1">User Bubble</label>
-          <input type="color" id="custom-user-bubble" class="w-full h-8 cursor-pointer rounded">
-        </div>
-        <div class="mb-2">
-          <label class="text-sm block mb-1">Model Bubble</label>
-          <input type="color" id="custom-model-bubble" class="w-full h-8 cursor-pointer rounded">
-        </div>
-        <div class="mb-2">
-          <label class="text-sm block mb-1">Dropdowns</label>
-          <input type="color" id="custom-dropdowns" class="w-full h-8 cursor-pointer rounded">
-        </div>
-      </div>
-      <div class="mt-3 flex justify-between">
-        <button id="preview-custom-theme" class="bg-blue-600 hover:bg-blue-700 text-base px-3 py-1 rounded-cool text-sm">
-          Preview
-        </button>
-        <button id="save-custom-theme-btn" class="bg-green-600 hover:bg-green-700 text-base px-3 py-1 rounded-cool text-sm">
-          Save Theme
-        </button>
-        <button id="reset-custom-theme" class="bg-gray-500 hover:bg-gray-600 text-base px-3 py-1 rounded-cool text-sm">
-          Reset
-        </button>
+        <pre id="code-result"
+          class="bg-gray-100 dark:bg-gray-800 rounded-cool p-3 flat text-xs overflow-x-auto scroll-inside mt-3"></pre>
       </div>
     </div>
-  </div>
-  
-  <!-- Save Theme PopUp -->
-  <div id="popup-save-theme" class="popup-ptr hidden">
-    <div class="bg-white dark:bg-gray-900 flat p-4 rounded-cool w-full max-w-md mx-auto shadow-lg border-black border">
-      <div class="flex justify-between items-center mb-2">
-        <strong class="text-lg">Save Custom Theme</strong>
-        <button class="text-gray-400 hover:text-black dark:hover:text-yellow-400 text-xl focus:outline-none"
-          onclick="togglePopup('save-theme',false)">
-          <i class="fa fa-times"></i>
-        </button>
-      </div>
-      <div class="mb-4">
-        <label class="block text-sm font-medium mb-1" for="save-theme-name">Theme Name</label>
-        <input type="text" id="save-theme-name" class="w-full border flat rounded-cool py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-800" placeholder="My Awesome Theme">
-      </div>
-      <div class="flex justify-end">
-        <button id="save-theme-confirm-btn" class="bg-blue-600 hover:bg-blue-700 text-base px-4 py-2 rounded-cool">
-          Save
-        </button>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Code Generation PopUp is hidden per user request -->
+  </div>  -->
 
   <!-- Settings PopUp -->
   <div id="popup-settings" class="popup-ptr hidden">
@@ -369,13 +293,6 @@
           </li>
           <li class="mr-2" role="presentation">
             <button class="inline-block p-2 border-b-2 border-transparent rounded-t-lg hover:border-gray-300"
-              id="themes-tab" data-tab="themes-tab-content" type="button" role="tab" aria-controls="themes"
-              aria-selected="false">
-              Themes
-            </button>
-          </li>
-          <li class="mr-2" role="presentation">
-            <button class="inline-block p-2 border-b-2 border-transparent rounded-t-lg hover:border-gray-300"
               id="models-tab" data-tab="models-tab-content" type="button" role="tab" aria-controls="models"
               aria-selected="false">
               Models
@@ -389,31 +306,10 @@
         <div id="ui-tab-content" class="tab-content">
           <label class="block font-semibold mb-1 mt-2" for="text-size-range">Text Size</label>
           <input id="text-size-range" type="range" min="14" max="22" value="16" class="w-full mb-2">
-          
-          <div class="flex items-center justify-between mt-3 mb-2">
-            <span class="block font-semibold">Speech Voice</span>
-            <select id="speech-voice-select" class="flat rounded-cool px-3 py-1 dark:bg-gray-800 dark:text-base">
-              <option value="en-US">English (US)</option>
-              <option value="en-GB">English (UK)</option>
-              <option value="es-ES">Spanish</option>
-              <option value="fr-FR">French</option>
-              <option value="de-DE">German</option>
-              <option value="it-IT">Italian</option>
-              <option value="ja-JP">Japanese</option>
-              <option value="ko-KR">Korean</option>
-              <option value="zh-CN">Chinese</option>
-            </select>
-          </div>
-          
-          <!-- Selected Theme dropdown removed -->
-          <input type="hidden" id="theme-select" value="default">
-        </div>
-        
-        <!-- Themes Tab Content -->
-        <div id="themes-tab-content" class="tab-content hidden">
-          <div class="flex flex-col">
-            <span class="block font-semibold mb-2">Built-in Themes</span>
-            <div class="flex flex-wrap gap-2 justify-center mb-4">
+
+          <div class="flex flex-col mt-3 mb-4">
+            <span class="block font-semibold mb-2">Theme</span>
+            <div class="flex flex-wrap gap-2 justify-center">
               <div class="theme-option" data-theme="default" onclick="selectThemePreview('default')">
                 <div class="theme-preview default-theme"></div>
                 <span>Default</span>
@@ -442,18 +338,89 @@
                 <div class="theme-preview dark-theme"></div>
                 <span>Dark</span>
               </div>
-              <div class="theme-option" data-theme="custom" onclick="openCustomThemeEditor()">
+              <div class="theme-option" data-theme="custom" onclick="toggleCustomThemeEditor()">
                 <div class="theme-preview custom-theme">
                   <i class="fa fa-paint-brush text-xl flex items-center justify-center h-full"></i>
                 </div>
-                <span>Create New</span>
+                <span>Custom</span>
               </div>
             </div>
+            <select id="theme-select" class="flat rounded-cool px-3 py-1 dark:bg-gray-800 dark:text-base hidden">
+              <option value="default">Default</option>
+              <option value="light">Light</option>
+              <option value="sunset">Sunset</option>
+              <option value="multicolored">Multicolored</option>
+              <option value="forest">Forest</option>
+              <option value="midnight">Midnight</option>
+              <option value="dark">Dark Mode</option>
+              <option value="custom">Custom</option>
+            </select>
             
-            <span class="block font-semibold mb-2 mt-4">Your Custom Themes</span>
-            <div id="custom-themes-container" class="flex flex-wrap gap-2 justify-center">
-              <!-- Custom themes will be placed here -->
+            <!-- Custom Theme Editor -->
+            <div id="custom-theme-editor" class="mt-4 hidden">
+              <h3 class="font-semibold mb-2">Custom Theme Editor</h3>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Background</label>
+                  <input type="color" id="custom-background" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Text Color</label>
+                  <input type="color" id="custom-text" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Header</label>
+                  <input type="color" id="custom-header" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Footer</label>
+                  <input type="color" id="custom-footer" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Popups</label>
+                  <input type="color" id="custom-popups" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Borders</label>
+                  <input type="color" id="custom-borders" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">User Bubble</label>
+                  <input type="color" id="custom-user-bubble" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Model Bubble</label>
+                  <input type="color" id="custom-model-bubble" class="w-full h-8 cursor-pointer rounded">
+                </div>
+                <div class="mb-2">
+                  <label class="text-sm block mb-1">Dropdowns</label>
+                  <input type="color" id="custom-dropdowns" class="w-full h-8 cursor-pointer rounded">
+                </div>
+              </div>
+              <div class="mt-3 flex justify-between">
+                <button id="preview-custom-theme" class="bg-blue-600 hover:bg-blue-700 text-base px-3 py-1 rounded-cool text-sm">
+                  Preview
+                </button>
+                <button id="reset-custom-theme" class="bg-gray-500 hover:bg-gray-600 text-base px-3 py-1 rounded-cool text-sm">
+                  Reset
+                </button>
+              </div>
             </div>
+          </div>
+          
+          <div class="flex items-center justify-between mt-3 mb-2">
+            <span class="block font-semibold">Speech Voice</span>
+            <select id="speech-voice-select" class="flat rounded-cool px-3 py-1 dark:bg-gray-800 dark:text-base">
+              <option value="en-US">English (US)</option>
+              <option value="en-GB">English (UK)</option>
+              <option value="es-ES">Spanish</option>
+              <option value="fr-FR">French</option>
+              <option value="de-DE">German</option>
+              <option value="it-IT">Italian</option>
+              <option value="ja-JP">Japanese</option>
+              <option value="ko-KR">Korean</option>
+              <option value="zh-CN">Chinese</option>
+            </select>
           </div>
         </div>
 
@@ -477,7 +444,7 @@
               class="w-full border flat rounded-cool py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-800">
           </div>
 
-          <div id="models-list" class="space-y-2">
+          <div id="models-list" class="space-y-2 max-h-60 overflow-y-auto">
             <!-- Models will be listed here dynamically -->
           </div>
         </div>
