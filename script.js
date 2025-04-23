@@ -18,94 +18,19 @@ let userSettings = {
   speechVoice: "en-US" // Add default speech voice
 };
 
-// Fix function declarations to solve "not defined" errors
-window.toggleStreamingMode = function(enabled) {
-  try {
-    streamingMode = enabled;
-    userSettings.streamingMode = enabled;
-    saveSettings();
-    updateModelSelectOptions();
+// Global function for toggling streaming mode
+window.toggleStreamingMode = toggleStreamingMode;
 
-    // Update UI to reflect streaming mode
-    const streamToggle = document.getElementById('streaming-toggle');
-    if (streamToggle) {
-      streamToggle.checked = enabled;
-    }
+// Global function for toggling multi-model mode
+window.toggleMultiModel = toggleMultiModel;
 
-    // Disable non-streaming models
-    const modelSelect = document.getElementById('model-select');
-    if (modelSelect) {
-      Array.from(modelSelect.options).forEach(option => {
-        option.disabled = enabled && !isModelStreamCapable(option.value);
-      });
-    }
-  } catch (error) {
-    console.error('Error toggling streaming mode:', error);
+// Global function for removing models from multi-model selection
+window.removeModel = function(idx) {
+  selectedModels.splice(idx, 1);
+  if (selectedModels.length === 0) {
+    selectedModels = [document.getElementById('model-select').value];
   }
-};
-
-// Toggle multi-model mode
-window.toggleMultiModel = function(enabled) {
-  try {
-    multiModelMode = enabled;
-    userSettings.multiModelMode = enabled;
-
-    // Update UI
-    const multiToggle = document.getElementById('multi-toggle');
-    if (multiToggle) {
-      multiToggle.checked = enabled;
-    }
-
-    // Update UI for multi-model selection
-    const modelSelect = document.getElementById('model-select');
-    const container = document.getElementById('model-select-container');
-    if (!modelSelect || !container) return;
-
-    if (enabled) {
-      selectedModels = [modelSelect.value];
-      // Add multi-select container if it doesn't exist
-      if (!document.getElementById('multi-model-container')) {
-        const multiContainer = document.createElement('div');
-        multiContainer.id = 'multi-model-container';
-        multiContainer.className = 'flex flex-wrap gap-2 mt-2';
-        container.appendChild(multiContainer);
-      }
-      // Add + buttons to options
-      Array.from(modelSelect.options).forEach(opt => {
-        if (!opt.dataset.hasPlus) {
-          const plusBtn = document.createElement('button');
-          plusBtn.innerHTML = '+';
-          plusBtn.className = 'ml-2 px-1 text-xs bg-blue-500 text-white rounded';
-          plusBtn.onclick = (e) => {
-            e.preventDefault();
-            if (!selectedModels.includes(opt.value)) {
-              selectedModels.push(opt.value);
-              updateMultiModelDisplay();
-            }
-          };
-          opt.dataset.hasPlus = 'true';
-          opt.innerHTML += ' ';
-          opt.appendChild(plusBtn);
-        }
-      });
-    } else {
-      selectedModels = [modelSelect.value];
-      // Remove multi-select container
-      const multiContainer = document.getElementById('multi-model-container');
-      if (multiContainer) multiContainer.remove();
-      // Remove + buttons
-      Array.from(modelSelect.options).forEach(opt => {
-        if (opt.dataset.hasPlus) {
-          opt.innerHTML = opt.innerHTML.replace(/ \+$/, '');
-          delete opt.dataset.hasPlus;
-        }
-      });
-    }
-    updateMultiModelDisplay();
-    saveSettings();
-  } catch (error) {
-    console.error('Error toggling multi-model mode:', error);
-  }
+  updateMultiModelDisplay();
 };
 
 // Response cache implementation
@@ -293,6 +218,7 @@ function toggleMultiModel(enabled) {
   try {
     multiModelMode = enabled;
     userSettings.multiModelMode = enabled;
+    saveSettings();
 
     // Update UI
     const multiToggle = document.getElementById('multi-toggle');
@@ -303,53 +229,131 @@ function toggleMultiModel(enabled) {
     // Update UI for multi-model selection
     const modelSelect = document.getElementById('model-select');
     const container = document.getElementById('model-select-container');
+    
+    if (!modelSelect || !container) return;
 
     if (enabled) {
-      selectedModels = [modelSelect.value];
-      // Add multi-select container if it doesn't exist
+      // Initialize selected models with the current selection if empty
+      if (selectedModels.length === 0) {
+        selectedModels = [modelSelect.value];
+      }
+      
+      // Create multi-select container if it doesn't exist
       if (!document.getElementById('multi-model-container')) {
         const multiContainer = document.createElement('div');
         multiContainer.id = 'multi-model-container';
-        multiContainer.className = 'flex flex-wrap gap-2 mt-2';
+        multiContainer.className = 'flex flex-wrap gap-2 mt-4 pb-2 overflow-y-auto max-h-32';
         container.appendChild(multiContainer);
+        
+        // Add model selector with + button
+        const modelSelectorContainer = document.createElement('div');
+        modelSelectorContainer.id = 'model-selector-container';
+        modelSelectorContainer.className = 'flex items-center mt-2';
+        
+        const newModelSelect = document.createElement('select');
+        newModelSelect.id = 'multi-model-select';
+        newModelSelect.className = 'bg-gray-50 border rounded-cool py-1 px-3 text-sm dark:bg-gray-800';
+        
+        // Clone options from main model select
+        Array.from(modelSelect.options).forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt.value;
+          option.textContent = opt.textContent;
+          // Disable options that are already selected
+          option.disabled = selectedModels.includes(opt.value);
+          newModelSelect.appendChild(option);
+        });
+        
+        const addButton = document.createElement('button');
+        addButton.innerHTML = '<i class="fa fa-plus"></i>';
+        addButton.className = 'ml-2 px-2 py-1 bg-blue-600 text-white rounded-full hover:bg-blue-700';
+        addButton.onclick = (e) => {
+          e.preventDefault();
+          const selectedValue = newModelSelect.value;
+          if (selectedValue && !selectedModels.includes(selectedValue)) {
+            selectedModels.push(selectedValue);
+            updateMultiModelDisplay();
+            
+            // Disable this option in the multi-model select dropdown
+            const option = newModelSelect.querySelector(`option[value="${selectedValue}"]`);
+            if (option) option.disabled = true;
+            
+            // Select first non-disabled option
+            const firstAvailableOption = newModelSelect.querySelector('option:not([disabled])');
+            if (firstAvailableOption) newModelSelect.value = firstAvailableOption.value;
+          }
+        };
+        
+        modelSelectorContainer.appendChild(newModelSelect);
+        modelSelectorContainer.appendChild(addButton);
+        container.appendChild(modelSelectorContainer);
       }
-      // Add + buttons to options
-      Array.from(modelSelect.options).forEach(opt => {
-        if (!opt.dataset.hasPlus) {
-          const plusBtn = document.createElement('button');
-          plusBtn.innerHTML = '+';
-          plusBtn.className = 'ml-2 px-1 text-xs bg-blue-500 text-white rounded';
-          plusBtn.onclick = (e) => {
-            e.preventDefault();
-            if (!selectedModels.includes(opt.value)) {
-              selectedModels.push(opt.value);
-              updateMultiModelDisplay();
-            }
-          };
-          opt.dataset.hasPlus = 'true';
-          opt.innerHTML += ' ';
-          opt.appendChild(plusBtn);
-        }
-      });
     } else {
-      selectedModels = [modelSelect.value];
-      // Remove multi-select container
+      // Keep only the first selected model when turning off multi-model mode
+      selectedModels = selectedModels.length > 0 ? [selectedModels[0]] : [modelSelect.value];
+      
+      // Clean up the UI
       const multiContainer = document.getElementById('multi-model-container');
       if (multiContainer) multiContainer.remove();
-      // Remove + buttons
-      Array.from(modelSelect.options).forEach(opt => {
-        if (opt.dataset.hasPlus) {
-          opt.innerHTML = opt.innerHTML.replace(/ \+$/, '');
-          delete opt.dataset.hasPlus;
-        }
-      });
+      
+      const modelSelectorContainer = document.getElementById('model-selector-container');
+      if (modelSelectorContainer) modelSelectorContainer.remove();
     }
+    
     updateMultiModelDisplay();
-    saveSettings();
   } catch (error) {
     console.error('Error toggling multi-model mode:', error);
   }
 }
+
+// Update multi-model display with selected models
+function updateMultiModelDisplay() {
+  const container = document.getElementById('multi-model-container');
+  if (!container) return;
+
+  container.innerHTML = '';
+  
+  // Create a chip for each selected model
+  selectedModels.forEach((model, idx) => {
+    const chip = document.createElement('div');
+    chip.className = 'inline-flex items-center bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded-full text-sm';
+    
+    // Truncate long model names for display purposes
+    const displayName = model.length > 30 ? model.substring(0, 27) + '...' : model;
+    
+    chip.innerHTML = `
+      <span title="${model}" class="mr-1">${displayName}</span>
+      <button class="text-red-500 hover:text-red-700 focus:outline-none" 
+              onclick="removeSelectedModel(${idx})">
+        <i class="fa fa-times-circle"></i>
+      </button>
+    `;
+    container.appendChild(chip);
+  });
+}
+
+// Remove a model from the selected models list
+window.removeSelectedModel = function(idx) {
+  if (idx >= 0 && idx < selectedModels.length) {
+    const removedModel = selectedModels[idx];
+    selectedModels.splice(idx, 1);
+    
+    // If no models are left, add the currently selected model
+    if (selectedModels.length === 0) {
+      const modelSelect = document.getElementById('model-select');
+      if (modelSelect) selectedModels.push(modelSelect.value);
+    }
+    
+    updateMultiModelDisplay();
+    
+    // Re-enable the option in the multi-model select dropdown
+    const multiModelSelect = document.getElementById('multi-model-select');
+    if (multiModelSelect) {
+      const option = multiModelSelect.querySelector(`option[value="${removedModel}"]`);
+      if (option) option.disabled = false;
+    }
+  }
+};
 
 // Update multi-model display
 function updateMultiModelDisplay() {
@@ -616,21 +620,92 @@ window.deleteMsg = function(idx) {
 window.speakMsg = function(idx) {
   const m = currentChat[idx];
   const txt = typeof m.content === 'string' ? m.content : '';
-  const speechVoiceSelect = document.getElementById('speech-voice-select');
-  const voice = speechVoiceSelect ? speechVoiceSelect.value : userSettings.speechVoice;
   
   if (txt.length) {
     try {
-      puter.ai.txt2speech(txt, voice)
-        .then(audio => { 
-          if (audio) audio.play(); 
+      // Show loading indicator
+      const bubbleElement = document.querySelectorAll('#chat-container > div')[currentChat.length - 1 - idx];
+      if (bubbleElement) {
+        const loadingId = 'speech-loading-' + Date.now();
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.id = loadingId;
+        loadingIndicator.className = 'text-xs text-blue-600 mt-1 flex items-center';
+        loadingIndicator.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> Generating speech...';
+        bubbleElement.querySelector('.flex.flex-row').appendChild(loadingIndicator);
+        
+        // Get voice setting with fallbacks for compatibility
+        const speechVoiceSelect = document.getElementById('speech-voice-select');
+        // Default to 'en-US' if no setting found to ensure compatibility
+        const voice = speechVoiceSelect?.value || userSettings.speechVoice || 'en-US';
+        
+        // Use different options for text to speech to improve compatibility
+        puter.ai.txt2speech(txt, {
+          voice: voice,
+          engine: 'neural'  // Try neural engine
+        })
+        .then(audio => {
+          // Remove loading indicator
+          document.getElementById(loadingId)?.remove();
+          
+          if (audio && audio instanceof HTMLAudioElement) {
+            // Add audio controls to the message
+            audio.controls = true;
+            audio.className = 'mt-2 w-full';
+            audio.style.maxWidth = '300px';
+            
+            // Add the audio element to the message
+            bubbleElement.querySelector('.border').appendChild(audio);
+            
+            // Auto-play the audio
+            audio.play().catch(err => {
+              console.warn("Auto-play failed (may require user interaction):", err);
+              // Create a play button as fallback
+              const playButton = document.createElement('button');
+              playButton.className = 'bg-blue-600 text-white px-2 py-1 rounded mt-1 text-xs';
+              playButton.innerHTML = '<i class="fa fa-play mr-1"></i> Play Audio';
+              playButton.onclick = () => audio.play();
+              bubbleElement.querySelector('.border').appendChild(playButton);
+            });
+          } else {
+            throw new Error("Invalid audio returned");
+          }
         })
         .catch(err => {
           console.error("Speech error:", err);
-          alert("Unable to play speech at this time");
+          
+          // Remove loading indicator
+          document.getElementById(loadingId)?.remove();
+          
+          // Show error message
+          const errorMsg = document.createElement('div');
+          errorMsg.className = 'text-xs text-red-600 mt-1';
+          errorMsg.textContent = "Speech generation failed. Trying alternative voice...";
+          bubbleElement.querySelector('.flex.flex-row').appendChild(errorMsg);
+          
+          // Try again with alternative method
+          setTimeout(() => {
+            // Fallback to standard engine and default voice
+            puter.ai.txt2speech(txt)
+              .then(audio => {
+                errorMsg.remove();
+                if (audio) {
+                  audio.controls = true;
+                  audio.className = 'mt-2 w-full';
+                  audio.style.maxWidth = '300px';
+                  bubbleElement.querySelector('.border').appendChild(audio);
+                  audio.play();
+                }
+              })
+              .catch(fallbackErr => {
+                console.error("Fallback speech error:", fallbackErr);
+                errorMsg.textContent = "Speech generation unavailable at this time";
+              });
+          }, 500);
         });
+      }
     } catch (err) {
       console.error("Speech error:", err);
+      alert("Speech function error: " + err.message);
     }
   }
 };
@@ -777,24 +852,126 @@ document.addEventListener('DOMContentLoaded', function() {
         if (ocrBtn) {
           ocrBtn.onclick = async function() {
             try {
-              let result = await puter.ai.img2txt(file);
-              result = result.trim() || "[No text detected]";
-              previewBox.innerHTML += `<div class="rounded-cool bg-gray-50 border mt-2 p-2 dark:bg-gray-900" id="ocrTextResult">${result}</div>
-                  <div class="flex mt-2 space-x-2">
-                    <button onclick="copyOCR()" class="feature-btn" title="Copy"><i class="fa fa-copy"></i></button>
-                    <button onclick="editOCR()" class="feature-btn" title="Edit"><i class="fa fa-pen"></i></button>
+              // Show loading indicator
+              const loadingId = 'ocr-loading-' + Date.now();
+              const loadingHTML = `<div id="${loadingId}" class="flex items-center mt-2">
+                <i class="fa fa-spinner fa-spin mr-2 text-blue-600"></i>
+                <span>Extracting text from image...</span>
+              </div>`;
+              previewBox.innerHTML += loadingHTML;
+              
+              // Convert file to data URL for processing
+              const dataURL = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+              });
+              
+              // Call OCR with proper error handling
+              let result;
+              try {
+                // Try with data URL first
+                result = await puter.ai.img2txt(dataURL);
+              } catch (e) {
+                console.warn("Data URL OCR failed, trying with File object:", e);
+                // Fall back to using the File object directly
+                result = await puter.ai.img2txt(file);
+              }
+              
+              // Remove loading indicator
+              const loadingElement = document.getElementById(loadingId);
+              if (loadingElement) loadingElement.remove();
+              
+              // Format and display result
+              result = (result || "").trim() || "[No text detected]";
+              
+              // Create result container with controls
+              const resultHTML = `
+                <div class="mt-3 border rounded-cool overflow-hidden">
+                  <div class="flex justify-between items-center p-2 bg-gray-200 dark:bg-gray-700">
+                    <span class="text-sm font-medium">Extracted Text</span>
+                    <div class="flex space-x-1">
+                      <button id="copy-ocr-btn" class="text-gray-600 hover:text-blue-700 dark:text-gray-300">
+                        <i class="fa fa-copy"></i>
+                      </button>
+                      <button id="edit-ocr-btn" class="text-gray-600 hover:text-blue-700 dark:text-gray-300">
+                        <i class="fa fa-pen"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="ocr-result-container" class="p-3 bg-white dark:bg-gray-800">
+                    <div id="ocrTextResult" class="whitespace-pre-wrap">${result}</div>
+                  </div>
+                </div>`;
+              
+              previewBox.innerHTML += resultHTML;
+              
+              // Set up copy button
+              document.getElementById('copy-ocr-btn').onclick = function() {
+                const textToCopy = document.getElementById('ocrTextResult').textContent;
+                navigator.clipboard.writeText(textToCopy)
+                  .then(() => {
+                    // Show brief success message
+                    this.innerHTML = '<i class="fa fa-check text-green-600"></i>';
+                    setTimeout(() => {
+                      this.innerHTML = '<i class="fa fa-copy"></i>';
+                    }, 1000);
+                  })
+                  .catch(err => {
+                    console.error("Copy failed:", err);
+                    alert("Failed to copy: " + err.message);
+                  });
+              };
+              
+              // Set up edit button
+              document.getElementById('edit-ocr-btn').onclick = function() {
+                const resultContainer = document.getElementById('ocr-result-container');
+                const currentText = document.getElementById('ocrTextResult').textContent;
+                
+                // Replace result container with textarea
+                resultContainer.innerHTML = `
+                  <textarea id="ocr-edit-textarea" class="w-full h-32 p-2 border rounded-cool dark:bg-gray-900">${currentText}</textarea>
+                  <div class="flex justify-end mt-2">
+                    <button id="save-ocr-btn" class="bg-blue-600 text-white px-3 py-1 rounded-cool text-sm mr-2">
+                      <i class="fa fa-save mr-1"></i> Save
+                    </button>
+                    <button id="cancel-ocr-btn" class="bg-gray-500 text-white px-3 py-1 rounded-cool text-sm">
+                      Cancel
+                    </button>
                   </div>`;
-              window.copyOCR = function() { navigator.clipboard.writeText(result); };
-              window.editOCR = function() {
-                let cur = document.getElementById('ocrTextResult').textContent;
-                previewBox.innerHTML += `<textarea class='flat rounded-cool w-full mt-2' rows='3' id='ocrEdit'>${cur}</textarea><button onclick="saveOCR()" class="feature-btn mt-2"><i class="fa fa-save"></i></button>`;
-                window.saveOCR = function() {
-                  let v = document.getElementById('ocrEdit').value;
-                  document.getElementById('ocrTextResult').textContent = v;
+                
+                // Set up save button
+                document.getElementById('save-ocr-btn').onclick = function() {
+                  const newText = document.getElementById('ocr-edit-textarea').value;
+                  resultContainer.innerHTML = `<div id="ocrTextResult" class="whitespace-pre-wrap">${newText}</div>`;
+                };
+                
+                // Set up cancel button
+                document.getElementById('cancel-ocr-btn').onclick = function() {
+                  resultContainer.innerHTML = `<div id="ocrTextResult" class="whitespace-pre-wrap">${currentText}</div>`;
                 };
               };
             } catch (err) {
-              previewBox.innerHTML += "<div class='text-red-600 mt-2'>OCR Error: " + err.message + "</div>";
+              console.error("OCR Error:", err);
+              // Remove loading indicator if it exists
+              const loadingElement = document.getElementById('ocr-loading');
+              if (loadingElement) loadingElement.remove();
+              
+              // Show error message with retry option
+              previewBox.innerHTML += `
+                <div class="mt-3 bg-red-100 dark:bg-red-900 border border-red-200 dark:border-red-800 p-3 rounded-cool">
+                  <p class="text-red-700 dark:text-red-300 mb-2">
+                    <i class="fa fa-exclamation-triangle mr-2"></i>
+                    OCR Error: ${err.message || "Failed to extract text from image"}
+                  </p>
+                  <button id="retry-ocr-btn" class="bg-blue-600 text-white px-3 py-1 rounded-cool text-sm">
+                    Try Again
+                  </button>
+                </div>`;
+              
+              // Set up retry button
+              document.getElementById('retry-ocr-btn').onclick = ocrBtn.onclick;
             }
           };
         }
@@ -891,11 +1068,92 @@ document.addEventListener('DOMContentLoaded', function() {
       const codeResult = document.getElementById('code-result');
       if (!codeResult) return;
       
-      let code = codeResult.textContent;
-      if (code) {
-        let w = window.open('');
-        w.document.write('<pre>' + code.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c])) + '</pre>');
+      const code = codeResult.textContent;
+      if (!code) return;
+      
+      // Check if preview already exists
+      const existingPreview = document.getElementById('code-preview-container');
+      if (existingPreview) {
+        existingPreview.remove();
+        previewCodeBtn.innerHTML = '<i class="fa fa-eye mr-1"></i> Preview';
+        return;
       }
+      
+      // Create preview container
+      const previewContainer = document.createElement('div');
+      previewContainer.id = 'code-preview-container';
+      previewContainer.className = 'mt-4 border rounded-cool overflow-hidden';
+      
+      // Create header with language detection and close button
+      const header = document.createElement('div');
+      header.className = 'flex justify-between items-center p-2 bg-gray-200 dark:bg-gray-700';
+      
+      // Try to detect language
+      let language = 'plaintext';
+      if (code.includes('function') || code.includes('const ') || code.includes('let ') || code.includes('var ')) {
+        language = 'javascript';
+      } else if (code.includes('def ') || code.includes('import ') || code.includes('class ') && code.includes(':')) {
+        language = 'python';
+      } else if (code.includes('<html') || code.includes('<!DOCTYPE') || (code.includes('<') && code.includes('>'))) {
+        language = 'html';
+      } else if (code.includes('{') && code.includes('}') && code.includes(';')) {
+        language = 'css';
+      }
+      
+      header.innerHTML = `
+        <span class="text-sm font-medium">${language.charAt(0).toUpperCase() + language.slice(1)} Preview</span>
+        <button class="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+          <i class="fa fa-times"></i>
+        </button>
+      `;
+      
+      // Create code preview with syntax highlighting
+      const previewContent = document.createElement('div');
+      previewContent.className = 'p-3 bg-white dark:bg-gray-800 overflow-auto max-h-64';
+      
+      // Use Prism.js for syntax highlighting if available
+      if (window.Prism) {
+        const pre = document.createElement('pre');
+        pre.className = `language-${language}`;
+        
+        const codeElement = document.createElement('code');
+        codeElement.className = `language-${language}`;
+        codeElement.textContent = code;
+        
+        pre.appendChild(codeElement);
+        previewContent.appendChild(pre);
+        
+        // Highlight the code
+        previewContainer.appendChild(header);
+        previewContainer.appendChild(previewContent);
+        
+        // Add to the popup
+        const codePopup = document.getElementById('popup-code');
+        codePopup.querySelector('.space-y-2').appendChild(previewContainer);
+        
+        // Initialize Prism highlighting
+        if (Prism.highlightElement) {
+          Prism.highlightElement(codeElement);
+        }
+      } else {
+        // Fallback without Prism
+        previewContent.innerHTML = `<pre>${code.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</pre>`;
+        previewContainer.appendChild(header);
+        previewContainer.appendChild(previewContent);
+        
+        // Add to the popup
+        const codePopup = document.getElementById('popup-code');
+        codePopup.querySelector('.space-y-2').appendChild(previewContainer);
+      }
+      
+      // Set up close button
+      header.querySelector('button').onclick = function() {
+        previewContainer.remove();
+        previewCodeBtn.innerHTML = '<i class="fa fa-eye mr-1"></i> Preview';
+      };
+      
+      // Update button text
+      previewCodeBtn.innerHTML = '<i class="fa fa-eye-slash mr-1"></i> Hide Preview';
     };
   }
 
@@ -948,6 +1206,12 @@ document.addEventListener('DOMContentLoaded', function() {
   if (openrouterToggle) {
     openrouterToggle.addEventListener('change', function() {
       userSettings.openRouterEnabled = this.checked;
+      
+      if (this.checked && !modelSelect.querySelector('optgroup[label^="OpenRouter"]')) {
+        addOpenRouterModels();
+      }
+      
+      updateModelSelectionBasedOnOpenRouterSetting();
       populateModelsList();
     });
   }
@@ -1100,12 +1364,9 @@ function populateModelsList(showEnabledOnly = false) {
     allModels = [...modelSelect.querySelectorAll('option')].map(x => x.value);
   }
 
-  // Add OpenRouter models if enabled
+  // If OpenRouter is enabled, only show OpenRouter models
   if (userSettings.openRouterEnabled) {
-    // Parse the models from the OpenRouter list (first clean up quotes and commas)
-    const openRouterModelsText = openRouterModelsList.replace(/"/g, '').replace(/,/g, '').trim();
-    const openRouterModels = openRouterModelsText.split('\n').map(m => m.trim()).filter(m => m);
-    allModels = [...allModels, ...openRouterModels];
+    allModels = getAllOpenRouterModels();
   }
 
   // Ensure userSettings.enabledModels exists
@@ -1147,8 +1408,13 @@ function populateModelsList(showEnabledOnly = false) {
     providerHeader.appendChild(providerName);
     modelsList.appendChild(providerHeader);
 
+    // Limit the number of models shown per provider to avoid overwhelming the UI
+    const modelsToShow = userSettings.openRouterEnabled 
+      ? modelsByProvider[provider].slice(0, 20) // Show a limited number when in OpenRouter mode
+      : modelsByProvider[provider];
+    
     // Add models for this provider
-    modelsByProvider[provider].forEach(model => {
+    modelsToShow.forEach(model => {
       const modelItem = document.createElement('div');
       modelItem.className = 'model-item flex items-center justify-between border-b pb-2 mb-2';
       modelItem.dataset.provider = provider;
@@ -1164,7 +1430,9 @@ function populateModelsList(showEnabledOnly = false) {
 
       const modelName = document.createElement('span');
       modelName.className = 'model-name text-sm';
-      modelName.textContent = model;
+      // Truncate long model names
+      modelName.textContent = model.length > 40 ? model.substring(0, 37) + '...' : model;
+      modelName.title = model; // Full name on hover
 
       modelNameContainer.appendChild(checkbox);
       modelNameContainer.appendChild(modelName);
@@ -1210,6 +1478,57 @@ function populateModelsList(showEnabledOnly = false) {
       modelItem.appendChild(infoButton);
       modelsList.appendChild(modelItem);
     });
+    
+    // If there are more models than shown, add a "Show More" button
+    if (userSettings.openRouterEnabled && modelsByProvider[provider].length > 20) {
+      const showMoreButton = document.createElement('button');
+      showMoreButton.className = 'text-blue-600 hover:text-blue-800 text-sm mt-2 ml-2';
+      showMoreButton.textContent = `Show ${modelsByProvider[provider].length - 20} more models...`;
+      showMoreButton.onclick = function() {
+        let startIndex = 20;
+        const batchSize = 20;
+        const endIndex = Math.min(startIndex + batchSize, modelsByProvider[provider].length);
+        
+        // Add the next batch of models
+        for (let i = startIndex; i < endIndex; i++) {
+          const model = modelsByProvider[provider][i];
+          // Clone the code to add more models
+          const modelItem = document.createElement('div');
+          modelItem.className = 'model-item flex items-center justify-between border-b pb-2 mb-2 new-item';
+          
+          const modelNameContainer = document.createElement('div');
+          modelNameContainer.className = 'flex items-center';
+          
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.className = 'form-checkbox mr-2';
+          checkbox.value = model;
+          checkbox.checked = userSettings.enabledModels.includes(model);
+          
+          const modelName = document.createElement('span');
+          modelName.className = 'model-name text-sm';
+          modelName.textContent = model.length > 40 ? model.substring(0, 37) + '...' : model;
+          modelName.title = model;
+          
+          modelNameContainer.appendChild(checkbox);
+          modelNameContainer.appendChild(modelName);
+          modelItem.appendChild(modelNameContainer);
+          
+          // Insert before the "Show More" button
+          showMoreButton.parentNode.insertBefore(modelItem, showMoreButton);
+        }
+        
+        startIndex = endIndex;
+        
+        // Update or remove the "Show More" button
+        if (startIndex >= modelsByProvider[provider].length) {
+          showMoreButton.remove();
+        } else {
+          showMoreButton.textContent = `Show ${modelsByProvider[provider].length - startIndex} more models...`;
+        }
+      };
+      modelsList.appendChild(showMoreButton);
+    }
   });
 }
 
@@ -1367,73 +1686,86 @@ function updateModelSelectOptions() {
   }
 }
 
-// Store OpenRouter models list
-const openRouterModelsList = `
-    "gpt-4o",
-    "gpt-4o-mini",
-    "o1",
-    "o1-mini",
-    "o1-pro",
-    "o3",
-    "o3-mini",
-    "o4-mini",
-    "gpt-4.1",
-    "gpt-4.1-mini",
-    "gpt-4.1-nano",
-    "gpt-4.5-preview",
-    "claude-3-7-sonnet-20250219",
-    "claude-3-7-sonnet-latest",
-    "claude-3-5-sonnet-20241022",
-    "claude-3-5-sonnet-latest",
-    "claude-3-5-sonnet-20240620",
-    "claude-3-haiku-20240307",
-    "WhereIsAI/UAE-Large-V1",
-    "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-    "togethercomputer/m2-bert-80M-32k-retrieval",
-    "google/gemma-2-9b-it",
-    "cartesia/sonic",
-    "BAAI/bge-large-en-v1.5",
-    "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
-    "meta-llama/Llama-2-13b-chat-hf",
-    "black-forest-labs/FLUX.1-schnell-Free",
-    "black-forest-labs/FLUX.1.1-pro",
-    "Qwen/Qwen2.5-7B-Instruct-Turbo",
-    "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
-    "meta-llama-llama-2-70b-hf",
-    "BAAI/bge-base-en-v1.5",
-    "Gryphe/MythoMax-L2-13b",
-    "google/gemma-2-27b-it",
-    "Qwen/Qwen2-VL-72B-Instruct",
-    "Qwen/QwQ-32B",
-    "meta-llama/LlamaGuard-2-8b",
-    "cartesia/sonic-2",
-    "togethercomputer/m2-bert-80M-8k-retrieval",
-    "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
-    "upstage/SOLAR-10.7B-Instruct-v1.0",
-    "togethercomputer/MoA-1",
-    "meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
-    "mistralai/Mistral-7B-Instruct-v0.2",
-    "togethercomputer/m2-bert-80M-2k-retrieval",
-    "google/gemma-2b-it",
-    "black-forest-labs/FLUX.1-pro",
-    "mistralai/Mistral-Small-24B-Instruct-2501",
-    "Gryphe/MythoMax-L2-13b-Lite",
-    "black-forest-labs/FLUX.1-redux",
-    "scb10x/scb10x-llama3-1-typhoon2-70b-instruct",
-    "meta-llama/Meta-Llama-Guard-3-8B",
-    "arcee-ai/virtuoso-medium-v2",
-    "black-forest-labs/FLUX.1-depth",
-    "black-forest-labs/FLUX.1-canny",
-    "meta-llama/Llama-3-8b-chat-hf",
-    "arcee-ai/caller",
-    "arcee-ai/virtuoso-large",
-    "arcee-ai/maestro-reasoning",
-    "arcee-ai/coder-large",
-    "togethercomputer/MoA-1-Turbo",
-    "mistralai/Mistral-7B-Instruct-v0.1",
-    "scb10x/scb10x-llama3-1-typhoon2-8b-instruct",
-    "mistralai/Mixtral-8x7B-v0.1"
-`;
+// Store OpenRouter models list from the full model list
+const openRouterModelsList = [
+    "gpt-4o", "gpt-4o-mini", "o1", "o1-mini", "o1-pro", "o3", "o3-mini", "o4-mini", 
+    "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4.5-preview", "claude-3-7-sonnet-20250219", 
+    "claude-3-7-sonnet-latest", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-latest", 
+    "claude-3-5-sonnet-20240620", "claude-3-haiku-20240307", "WhereIsAI/UAE-Large-V1", 
+    "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8", "togethercomputer/m2-bert-80M-32k-retrieval", 
+    "google/gemma-2-9b-it", "cartesia/sonic", "BAAI/bge-large-en-v1.5", 
+    "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO", "meta-llama/Llama-2-13b-chat-hf", 
+    "black-forest-labs/FLUX.1-schnell-Free", "black-forest-labs/FLUX.1.1-pro", 
+    "Qwen/Qwen2.5-7B-Instruct-Turbo", "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free", 
+    "meta-llama-llama-2-70b-hf", "BAAI/bge-base-en-v1.5", "Gryphe/MythoMax-L2-13b", 
+    "google/gemma-2-27b-it", "Qwen/Qwen2-VL-72B-Instruct", "Qwen/QwQ-32B", 
+    "meta-llama/LlamaGuard-2-8b", "cartesia/sonic-2", "togethercomputer/m2-bert-80M-8k-retrieval", 
+    "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free", "upstage/SOLAR-10.7B-Instruct-v1.0", 
+    "togethercomputer/MoA-1", "meta-llama/Meta-Llama-3-70B-Instruct-Turbo", 
+    "mistralai/Mistral-7B-Instruct-v0.2", "togethercomputer/m2-bert-80M-2k-retrieval", 
+    "google/gemma-2b-it"
+];
+
+// OpenRouter models with prefixes for direct API access
+const openRouterPrefixedModels = [
+    "openrouter:microsoft/mai-ds-r1:free", "openrouter:google/gemini-2.5-pro-preview-03-25", 
+    "openrouter:thudm/glm-z1-32b:free", "openrouter:thudm/glm-4-32b:free", 
+    "openrouter:google/gemini-2.5-flash-preview", "openrouter:google/gemini-2.5-flash-preview:thinking", 
+    "openrouter:openai/o4-mini-high", "openrouter:openai/o3", "openrouter:openai/o4-mini", 
+    "openrouter:shisa-ai/shisa-v2-llama3.3-70b:free", "openrouter:qwen/qwen2.5-coder-7b-instruct", 
+    "openrouter:openai/gpt-4.1", "openrouter:openai/gpt-4.1-mini", "openrouter:openai/gpt-4.1-nano", 
+    "openrouter:eleutherai/llemma_7b", "openrouter:alfredpros/codellama-7b-instruct-solidity", 
+    "openrouter:arliai/qwq-32b-arliai-rpr-v1:free", "openrouter:agentica-org/deepcoder-14b-preview:free", 
+    "openrouter:moonshotai/kimi-vl-a3b-thinking:free", "openrouter:x-ai/grok-3-mini-beta", 
+    "openrouter:x-ai/grok-3-beta", "openrouter:nvidia/llama-3.1-nemotron-nano-8b-v1:free", 
+    "openrouter:nvidia/llama-3.3-nemotron-super-49b-v1:free", "openrouter:nvidia/llama-3.1-nemotron-ultra-253b-v1:free", 
+    "openrouter:meta-llama/llama-4-maverick:free", "openrouter:meta-llama/llama-4-maverick", 
+    "openrouter:meta-llama/llama-4-scout:free", "openrouter:meta-llama/llama-4-scout", 
+    "openrouter:all-hands/openhands-lm-32b-v0.1", "openrouter:mistral/ministral-8b", 
+    "openrouter:deepseek/deepseek-v3-base:free", "openrouter:scb10x/llama3.1-typhoon2-8b-instruct", 
+    "openrouter:scb10x/llama3.1-typhoon2-70b-instruct", "openrouter:allenai/molmo-7b-d:free", 
+    "openrouter:bytedance-research/ui-tars-72b:free", "openrouter:qwen/qwen2.5-vl-3b-instruct:free", 
+    "openrouter:google/gemini-2.5-pro-exp-03-25:free", "openrouter:qwen/qwen2.5-vl-32b-instruct:free", 
+    "openrouter:qwen/qwen2.5-vl-32b-instruct", "openrouter:deepseek/deepseek-chat-v3-0324:free", 
+    "openrouter:deepseek/deepseek-chat-v3-0324", "openrouter:featherless/qwerky-72b:free", 
+    "openrouter:openai/o1-pro", "openrouter:mistralai/mistral-small-3.1-24b-instruct:free", 
+    "openrouter:mistralai/mistral-small-3.1-24b-instruct", "openrouter:open-r1/olympiccoder-7b:free", 
+    "openrouter:open-r1/olympiccoder-32b:free", "openrouter:steelskull/l3.3-electra-r1-70b", 
+    "openrouter:google/gemma-3-1b-it:free", "openrouter:google/gemma-3-4b-it:free", 
+    "openrouter:google/gemma-3-4b-it", "openrouter:ai21/jamba-1.6-large", "openrouter:ai21/jamba-1.6-mini", 
+    "openrouter:google/gemma-3-12b-it:free", "openrouter:google/gemma-3-12b-it", 
+    "openrouter:cohere/command-a", "openrouter:openai/gpt-4o-mini-search-preview", 
+    "openrouter:openai/gpt-4o-search-preview", "openrouter:rekaai/reka-flash-3:free", 
+    "openrouter:google/gemma-3-27b-it:free", "openrouter:google/gemma-3-27b-it", 
+    "openrouter:thedrummer/anubis-pro-105b-v1", "openrouter:latitudegames/wayfarer-large-70b-llama-3.3", 
+    "openrouter:thedrummer/skyfall-36b-v2", "openrouter:microsoft/phi-4-multimodal-instruct", 
+    "openrouter:perplexity/sonar-reasoning-pro", "openrouter:perplexity/sonar-pro", 
+    "openrouter:perplexity/sonar-deep-research", "openrouter:deepseek/deepseek-r1-zero:free", 
+    "openrouter:qwen/qwq-32b:free", "openrouter:qwen/qwq-32b", 
+    "openrouter:moonshotai/moonlight-16b-a3b-instruct:free", 
+    "openrouter:nousresearch/deephermes-3-llama-3-8b-preview:free", "openrouter:openai/gpt-4.5-preview", 
+    "openrouter:google/gemini-2.0-flash-lite-001", "openrouter:anthropic/claude-3.7-sonnet", 
+    "openrouter:anthropic/claude-3.7-sonnet:thinking", "openrouter:anthropic/claude-3.7-sonnet:beta", 
+    "openrouter:perplexity/r1-1776", "openrouter:mistralai/mistral-saba", 
+    "openrouter:cognitivecomputations/dolphin3.0-r1-mistral-24b:free", 
+    "openrouter:cognitivecomputations/dolphin3.0-mistral-24b:free", 
+    "openrouter:meta-llama/llama-guard-3-8b", "openrouter:openai/o3-mini-high", 
+    "openrouter:deepseek/deepseek-r1-distill-llama-8b", "openrouter:google/gemini-2.0-flash-001", 
+    "openrouter:qwen/qwen-vl-plus", "openrouter:aion-labs/aion-1.0", "openrouter:aion-labs/aion-1.0-mini", 
+    "openrouter:aion-labs/aion-rp-llama-3.1-8b", "openrouter:qwen/qwen-vl-max", 
+    "openrouter:qwen/qwen-turbo", "openrouter:qwen/qwen2.5-vl-72b-instruct:free"
+];
+
+// Get all OpenRouter models by combining the lists
+const getAllOpenRouterModels = () => {
+    // Add openrouter: prefix to models without it
+    const prefixedStandardModels = openRouterModelsList.map(model => 
+        model.startsWith('openrouter:') ? model : `openrouter:${model}`
+    );
+    
+    // Combine with the already prefixed models
+    return [...prefixedStandardModels, ...openRouterPrefixedModels];
+};
 
 // ---- STORAGE: SAVE SETTINGS (localStorage) ----
 function saveSettings() {
@@ -1564,44 +1896,133 @@ function addOpenRouterModels() {
   const modelSelect = document.getElementById('model-select');
   if (!modelSelect) return;
 
-  // Check if the OpenRouter optgroup already exists
-  let openRouterGroup = modelSelect.querySelector('optgroup[label="OpenRouter"]');
-  if (!openRouterGroup) {
-    // Create OpenRouter optgroup
-    openRouterGroup = document.createElement('optgroup');
-    openRouterGroup.label = "OpenRouter";
+  // Remove any existing OpenRouter optgroups
+  const existingGroups = modelSelect.querySelectorAll('optgroup[label^="OpenRouter"]');
+  existingGroups.forEach(group => group.remove());
 
-    // Add some popular OpenRouter models
-    const openRouterModels = [
-      {value: 'openrouter:anthropic/claude-3.7-sonnet', label: 'OpenRouter: Claude 3.7 Sonnet'},
-      {value: 'openrouter:openai/o1', label: 'OpenRouter: OpenAI o1'},
-      {value: 'openrouter:openai/o3-mini', label: 'OpenRouter: OpenAI o3-mini'},
-      {value: 'openrouter:google/gemini-2.0-flash', label: 'OpenRouter: Gemini 2.0 Flash'},
-      {value: 'openrouter:meta-llama/llama-4-maverick', label: 'OpenRouter: Llama 4 Maverick'},
-      {value: 'openrouter:mistralai/mistral-large', label: 'OpenRouter: Mistral Large'},
-      {value: 'openrouter:deepseek/deepseek-chat', label: 'OpenRouter: DeepSeek Chat'},
-      {value: 'openrouter:x-ai/grok-beta', label: 'OpenRouter: Grok Beta'}
-    ];
-
-    // Add options to the optgroup
-    openRouterModels.forEach(model => {
+  // Get all OpenRouter models
+  const allOpenRouterModels = getAllOpenRouterModels();
+  
+  // Organize models by category
+  const modelCategories = {
+    "OpenRouter: OpenAI": [],
+    "OpenRouter: Anthropic": [],
+    "OpenRouter: Google": [],
+    "OpenRouter: Meta": [],
+    "OpenRouter: Mistral": [],
+    "OpenRouter: Other": []
+  };
+  
+  // Categorize models
+  allOpenRouterModels.forEach(model => {
+    const modelName = model.toLowerCase();
+    
+    if (modelName.includes('openai') || modelName.includes('gpt')) {
+      modelCategories["OpenRouter: OpenAI"].push(model);
+    } else if (modelName.includes('claude') || modelName.includes('anthropic')) {
+      modelCategories["OpenRouter: Anthropic"].push(model);
+    } else if (modelName.includes('gemini') || modelName.includes('google')) {
+      modelCategories["OpenRouter: Google"].push(model);
+    } else if (modelName.includes('llama') || modelName.includes('meta')) {
+      modelCategories["OpenRouter: Meta"].push(model);
+    } else if (modelName.includes('mistral') || modelName.includes('pixtral') || modelName.includes('codestral')) {
+      modelCategories["OpenRouter: Mistral"].push(model);
+    } else {
+      modelCategories["OpenRouter: Other"].push(model);
+    }
+  });
+  
+  // Create optgroups for each category
+  Object.entries(modelCategories).forEach(([category, models]) => {
+    if (models.length === 0) return;
+    
+    // Create optgroup
+    const group = document.createElement('optgroup');
+    group.label = category;
+    
+    // Limit to 10 models per category to avoid overwhelming the dropdown
+    const limitedModels = models.slice(0, 10);
+    
+    // Add models to group
+    limitedModels.forEach(model => {
       const option = document.createElement('option');
-      option.value = model.value;
-      option.textContent = model.label;
-      openRouterGroup.appendChild(option);
-    });
-
-    // Add the group to the select element
-    modelSelect.appendChild(openRouterGroup);
-
-    // Update userSettings with new models
-    openRouterModels.forEach(model => {
-      if (!userSettings.enabledModels.includes(model.value)) {
-        userSettings.enabledModels.push(model.value);
+      option.value = model;
+      
+      // Format display name 
+      let displayName = model.replace('openrouter:', '');
+      if (displayName.length > 30) {
+        // Shorten long names
+        displayName = displayName.split('/')[1] || displayName;
+        if (displayName.length > 30) {
+          displayName = displayName.substring(0, 27) + '...';
+        }
+      }
+      
+      option.textContent = displayName;
+      option.title = model; // Show full model name on hover
+      group.appendChild(option);
+      
+      // Add to enabled models if not already there
+      if (!userSettings.enabledModels.includes(model)) {
+        userSettings.enabledModels.push(model);
       }
     });
+    
+    modelSelect.appendChild(group);
+  });
+  
+  saveSettings();
+}
 
-    saveSettings();
+// Update the model selection dropdown based on OpenRouter toggle
+function updateModelSelectionBasedOnOpenRouterSetting() {
+  const modelSelect = document.getElementById('model-select');
+  if (!modelSelect) return;
+  
+  // Clear current selection
+  const currentValue = modelSelect.value;
+  
+  if (userSettings.openRouterEnabled) {
+    // Hide non-OpenRouter models
+    Array.from(modelSelect.options).forEach(option => {
+      const optgroup = option.parentNode;
+      if (optgroup.tagName === 'OPTGROUP' && !optgroup.label.startsWith('OpenRouter')) {
+        option.style.display = 'none';
+      }
+    });
+    
+    // Show OpenRouter models
+    Array.from(modelSelect.options).forEach(option => {
+      const optgroup = option.parentNode;
+      if (optgroup.tagName === 'OPTGROUP' && optgroup.label.startsWith('OpenRouter')) {
+        option.style.display = '';
+      }
+    });
+    
+    // If current selection is hidden, select first visible option
+    if (!currentValue.startsWith('openrouter:')) {
+      const firstVisibleOption = Array.from(modelSelect.options).find(opt => opt.style.display !== 'none');
+      if (firstVisibleOption) {
+        modelSelect.value = firstVisibleOption.value;
+      }
+    }
+  } else {
+    // Show all options
+    Array.from(modelSelect.options).forEach(option => {
+      option.style.display = '';
+    });
+    
+    // If current selection is from OpenRouter, select first standard option
+    if (currentValue.startsWith('openrouter:')) {
+      const firstStandardOption = Array.from(modelSelect.options).find(opt => {
+        const optgroup = opt.parentNode;
+        return optgroup.tagName === 'OPTGROUP' && !optgroup.label.startsWith('OpenRouter');
+      });
+      
+      if (firstStandardOption) {
+        modelSelect.value = firstStandardOption.value;
+      }
+    }
   }
 }
 
@@ -1633,32 +2054,28 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add OpenRouter models if enabled
     if (userSettings.openRouterEnabled) {
       addOpenRouterModels();
+      updateModelSelectionBasedOnOpenRouterSetting();
     }
     
-    // Safe initialization of toggle switches with error handling
-    try {
-      const streamingToggle = document.getElementById('streaming-toggle');
-      if (streamingToggle) {
-        streamingToggle.checked = streamingMode;
-        streamingToggle.addEventListener('change', function() {
-          window.toggleStreamingMode(this.checked);
-        });
-      }
-    } catch (error) {
-      console.error('Error initializing streaming toggle:', error);
+    // Initialize toggle switches
+    const streamingToggle = document.getElementById('streaming-toggle');
+    if (streamingToggle) {
+      streamingToggle.checked = streamingMode;
+      streamingToggle.addEventListener('change', function() {
+        toggleStreamingMode(this.checked);
+      });
     }
     
-    try {
-      const multiToggle = document.getElementById('multi-toggle');
-      if (multiToggle) {
-        multiToggle.checked = multiModelMode;
-        multiToggle.addEventListener('change', function() {
-          window.toggleMultiModel(this.checked);
-        });
-      }
-    } catch (error) {
-      console.error('Error initializing multi toggle:', error);
+    const multiToggle = document.getElementById('multi-toggle');
+    if (multiToggle) {
+      multiToggle.checked = multiModelMode;
+      multiToggle.addEventListener('change', function() {
+        toggleMultiModel(this.checked);
+      });
     }
+    
+    // Initialize models list in settings
+    populateModelsList();
     
     // Mobile optimization
     let resizeTimeout;
