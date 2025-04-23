@@ -627,16 +627,14 @@ function renderChat() {
       <button onclick="speakMsg(${i})" class="action-button speak" title="Speak"><i class="fa fa-volume-up"></i></button>`;
 
     if (m.role === 'user') {
-      // For user messages, put label and buttons below the bubble
+      // For user messages, put label above and buttons below the bubble
       container.innerHTML += `
         <div class="chat-message ${align}">
+          <div class="message-timestamp text-right mb-1">${label}</div>
           <div class="chat-bubble ${bubbleClr}">
             ${typeof m.content === 'string' ? m.content : m.content && m.content.type === "img" ? `<img src='${m.content.url}' alt='image' class='rounded-cool'>` : ""}
           </div>
-          <div class="message-info">
-            <div class="message-timestamp">${label}</div>
-            <div class="message-actions">${iconBtns}</div>
-          </div>
+          <div class="message-actions mt-1 text-right">${iconBtns}</div>
         </div>
       `;
     } else {
@@ -663,7 +661,10 @@ document.addEventListener('DOMContentLoaded', function() {
       let chatInput = document.getElementById('chat-input');
       let txt = chatInput.value.trim();
       if (!txt) return;
-      const model = document.getElementById('model-select').value;
+      
+      const modelSelect = document.getElementById('model-select');
+      const model = modelSelect ? modelSelect.value : 'gpt-4o-mini'; // Default if not found
+      
       const time = nowStr();
       currentChat.push({ role: 'user', content: txt, time, model: null });
       renderChat();
@@ -698,7 +699,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // send to AI
 async function aiSend(txt, model, usetime) {
-  const models = multiModelMode ? selectedModels : [model];
+  const models = multiModelMode ? (selectedModels.length > 0 ? selectedModels : [model]) : [model];
 
   for (const currentModel of models) {
     const idx = currentChat.length;
@@ -732,11 +733,11 @@ async function aiSend(txt, model, usetime) {
           let text = '';
 
           // Handle different response formats
-          if (resp.message && resp.message.text) {
+          if (resp && resp.message && resp.message.text) {
             text = resp.message.text;
-          } else if (resp.message && resp.message.content) {
+          } else if (resp && resp.message && resp.message.content) {
             text = resp.message.content;
-          } else if (resp.text) {
+          } else if (resp && resp.text) {
             text = resp.text;
           } else if (typeof resp === 'string') {
             text = resp;
@@ -798,77 +799,97 @@ window.speakMsg = function(idx) {
         loadingIndicator.id = loadingId;
         loadingIndicator.className = 'text-xs text-blue-600 mt-1 flex items-center';
         loadingIndicator.innerHTML = '<i class="fa fa-spinner fa-spin mr-1"></i> Generating speech...';
-        bubbleElement.querySelector('.flex.flex-row').appendChild(loadingIndicator);
+        
+        // Add the loading indicator to the message
+        const chatBubble = bubbleElement.querySelector('.chat-bubble');
+        if (chatBubble) {
+          chatBubble.appendChild(loadingIndicator);
+        } else {
+          bubbleElement.appendChild(loadingIndicator);
+        }
 
         // Get voice setting with fallbacks for compatibility
         const speechVoiceSelect = document.getElementById('speech-voice-select');
         // Default to 'en-US' if no setting found to ensure compatibility
         const voice = speechVoiceSelect?.value || userSettings.speechVoice || 'en-US';
 
-        // Use different options for text to speech to improve compatibility
-        puter.ai.txt2speech(txt, {
-          voice: voice,
-          engine: 'neural'  // Try neural engine
-        })
-        .then(audio => {
-          // Remove loading indicator
-          document.getElementById(loadingId)?.remove();
+        // Use simple parameters to improve compatibility
+        puter.ai.txt2speech(txt, voice)
+          .then(audio => {
+            // Remove loading indicator
+            document.getElementById(loadingId)?.remove();
 
-          if (audio && audio instanceof HTMLAudioElement) {
-            // Add audio controls to the message
-            audio.controls = true;
-            audio.className = 'mt-2 w-full';
-            audio.style.maxWidth = '300px';
+            if (audio && audio instanceof HTMLAudioElement) {
+              // Add audio controls to the message
+              audio.controls = true;
+              audio.className = 'mt-2 w-full';
+              audio.style.maxWidth = '300px';
 
-            // Add the audio element to the message
-            bubbleElement.querySelector('.border').appendChild(audio);
+              // Add the audio element to the message
+              if (chatBubble) {
+                chatBubble.appendChild(audio);
+              } else {
+                bubbleElement.appendChild(audio);
+              }
 
-            // Auto-play the audio
-            audio.play().catch(err => {
-              console.warn("Auto-play failed (may require user interaction):", err);
-              // Create a play button as fallback
-              const playButton = document.createElement('button');
-              playButton.className = 'bg-blue-600 text-white px-2 py-1 rounded mt-1 text-xs';
-              playButton.innerHTML = '<i class="fa fa-play mr-1"></i> Play Audio';
-              playButton.onclick = () => audio.play();
-              bubbleElement.querySelector('.border').appendChild(playButton);
-            });
-          } else {
-            throw new Error("Invalid audio returned");
-          }
-        })
-        .catch(err => {
-          console.error("Speech error:", err);
-
-          // Remove loading indicator
-          document.getElementById(loadingId)?.remove();
-
-          // Show error message
-          const errorMsg = document.createElement('div');
-          errorMsg.className = 'text-xs text-red-600 mt-1';
-          errorMsg.textContent = "Speech generation failed. Trying alternative voice...";
-          bubbleElement.querySelector('.flex.flex-row').appendChild(errorMsg);
-
-          // Try again with alternative method
-          setTimeout(() => {
-            // Fallback to standard engine and default voice
-            puter.ai.txt2speech(txt)
-              .then(audio => {
-                errorMsg.remove();
-                if (audio) {
-                  audio.controls = true;
-                  audio.className = 'mt-2 w-full';
-                  audio.style.maxWidth = '300px';
-                  bubbleElement.querySelector('.border').appendChild(audio);
-                  audio.play();
+              // Auto-play the audio
+              audio.play().catch(err => {
+                console.warn("Auto-play failed (may require user interaction):", err);
+                // Create a play button as fallback
+                const playButton = document.createElement('button');
+                playButton.className = 'bg-blue-600 text-white px-2 py-1 rounded mt-1 text-xs';
+                playButton.innerHTML = '<i class="fa fa-play mr-1"></i> Play Audio';
+                playButton.onclick = () => audio.play();
+                if (chatBubble) {
+                  chatBubble.appendChild(playButton);
+                } else {
+                  bubbleElement.appendChild(playButton);
                 }
-              })
-              .catch(fallbackErr => {
-                console.error("Fallback speech error:", fallbackErr);
-                errorMsg.textContent = "Speech generation unavailable at this time";
               });
-          }, 500);
-        });
+            } else {
+              throw new Error("Invalid audio returned");
+            }
+          })
+          .catch(err => {
+            console.error("Speech error:", err);
+
+            // Remove loading indicator
+            document.getElementById(loadingId)?.remove();
+
+            // Show error message
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'text-xs text-red-600 mt-1';
+            errorMsg.textContent = "Speech generation failed. Trying alternative voice...";
+            if (chatBubble) {
+              chatBubble.appendChild(errorMsg);
+            } else {
+              bubbleElement.appendChild(errorMsg);
+            }
+
+            // Try again with alternative method
+            setTimeout(() => {
+              // Fallback to standard engine and default voice
+              puter.ai.txt2speech(txt)
+                .then(audio => {
+                  errorMsg.remove();
+                  if (audio) {
+                    audio.controls = true;
+                    audio.className = 'mt-2 w-full';
+                    audio.style.maxWidth = '300px';
+                    if (chatBubble) {
+                      chatBubble.appendChild(audio);
+                    } else {
+                      bubbleElement.appendChild(audio);
+                    }
+                    audio.play();
+                  }
+                })
+                .catch(fallbackErr => {
+                  console.error("Fallback speech error:", fallbackErr);
+                  errorMsg.textContent = "Speech generation unavailable at this time";
+                });
+            }, 500);
+          });
       }
     } catch (err) {
       console.error("Speech error:", err);
