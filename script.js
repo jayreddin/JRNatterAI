@@ -4237,12 +4237,21 @@ async function speakText(text) {
       }
       
       // Play the audio
-      audio.play().catch(console.error);
-
-      // Cleanup when done
-      audio.onended = () => {
-        currentSpeech = null;
-      };
+      audio.play().catch(err => {
+        console.warn("Auto-play failed (may require user interaction):", err);
+        // Create a play button as fallback
+        const playButton = document.createElement('button');
+        playButton.className = 'bg-blue-600 text-white px-2 py-1 rounded mt-1 text-xs';
+        playButton.innerHTML = '<i class="fa fa-play mr-1"></i> Play Audio';
+        playButton.onclick = () => audio.play();
+        if (chatBubble) {
+          chatBubble.appendChild(playButton);
+        } else {
+          bubbleElement.appendChild(playButton);
+        }
+      });
+    } else {
+      throw new Error("Invalid audio returned");
     }
   } catch (error) {
     console.error('TTS error:', error);
@@ -5247,4 +5256,249 @@ function speakText(text, isPartial = false) {
   
   // Speak the text
   window.speechSynthesis.speak(speech);
+}
+
+// Update the speakText function to properly handle TTS
+function speakText(text, isPartial = false) {
+  // Don't speak empty text
+  if (!text || text.trim() === '') return;
+  
+  // Cancel any current speech synthesis
+  if (window.speechSynthesis.speaking && currentSpeech) {
+    window.speechSynthesis.cancel();
+    currentSpeech = null;
+  }
+  
+  // Create new speech instance
+  const speech = new SpeechSynthesisUtterance(text);
+  
+  // Use selected voice if available
+  const voiceSelect = document.getElementById('speech-voice-select');
+  if (voiceSelect && voiceSelect.value) {
+    // Get voices or wait for them to load
+    let voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      // If voices aren't loaded yet, wait and try again
+      window.speechSynthesis.onvoiceschanged = () => {
+        voices = window.speechSynthesis.getVoices();
+        const selectedVoice = voices.find(voice => voice.lang === voiceSelect.value);
+        if (selectedVoice) {
+          speech.voice = selectedVoice;
+          currentSpeech = speech;
+          window.speechSynthesis.speak(speech);
+        }
+      };
+      return;
+    }
+    
+    const selectedVoice = voices.find(voice => voice.lang === voiceSelect.value);
+    if (selectedVoice) speech.voice = selectedVoice;
+  }
+  
+  // Additional settings for better speech
+  speech.rate = 1.0;  // Normal speed
+  speech.pitch = 1.0; // Normal pitch
+  speech.volume = 1.0; // Full volume
+  
+  // Add event listeners for debugging
+  speech.onstart = () => console.log('Speech started');
+  speech.onend = () => {
+    console.log('Speech ended');
+    currentSpeech = null;
+  };
+  speech.onerror = (e) => console.error('Speech error:', e);
+  
+  // Store reference to current speech
+  currentSpeech = speech;
+  
+  // Speak the text
+  window.speechSynthesis.speak(speech);
+}
+
+// Update the initializeCamera function to implement live TTS
+function initializeCamera() {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const videoElement = document.getElementById('camera-preview');
+      const switchCameraBtn = document.getElementById('switch-camera-btn');
+      const describeBtn = document.getElementById('describe-photo-btn');
+      const descriptionContent = document.getElementById('description-content');
+      const descriptionLoading = document.getElementById('description-loading');
+      const liveTTSCheckbox = document.getElementById('live-tts-checkbox');
+      
+      // Store constraints globally so we can toggle between front/back cameras
+      window.cameraConstraints = { video: { facingMode: 'environment' } };
+      window.currentFacingMode = 'environment'; // Start with back camera
+      
+      // Initialize media stream
+      const stream = await navigator.mediaDevices.getUserMedia(window.cameraConstraints);
+      videoElement.srcObject = stream;
+      
+      // Wait for video to be ready
+      videoElement.onloadedmetadata = () => {
+        videoElement.play();
+        resolve();
+      };
+      
+      // Switch camera button
+      if (switchCameraBtn) {
+        switchCameraBtn.onclick = async () => {
+          try {
+            // Stop all tracks in the current stream
+            if (videoElement.srcObject) {
+              videoElement.srcObject.getTracks().forEach(track => track.stop());
+            }
+            
+            // Toggle facing mode
+            window.currentFacingMode = window.currentFacingMode === 'environment' ? 'user' : 'environment';
+            window.cameraConstraints = { 
+              video: { 
+                facingMode: window.currentFacingMode,
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+              } 
+            };
+            
+            // Get new stream with updated constraints
+            const newStream = await navigator.mediaDevices.getUserMedia(window.cameraConstraints);
+            videoElement.srcObject = newStream;
+          } catch (error) {
+            console.error('Error switching camera:', error);
+            alert('Could not switch camera. Your device may only have one camera or might not support this feature.');
+          }
+        };
+      }
+      
+      // Describe photo button
+      if (describeBtn) {
+        describeBtn.onclick = async () => {
+          // Take photo from current video frame
+          const canvas = document.getElementById('camera-canvas');
+          if (!canvas) return;
+          
+          // Set canvas dimensions to match video
+          canvas.width = videoElement.videoWidth;
+          canvas.height = videoElement.videoHeight;
+          
+          // Draw current video frame to canvas
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+          
+          // Convert to blob
+          canvas.toBlob(async (blob) => {
+            // Check if Live TTS is enabled
+            const useTTS = liveTTSCheckbox && liveTTSCheckbox.checked;
+            // Process the image
+            await describeImage(blob, useTTS);
+          }, 'image/jpeg', 0.8);
+        };
+      }
+      
+      // Live TTS checkbox listener
+      if (liveTTSCheckbox) {
+        // Load saved preference
+        liveTTSCheckbox.checked = localStorage.getItem('liveTTSEnabled') === 'true';
+        
+        // Save preference when changed
+        liveTTSCheckbox.addEventListener('change', () => {
+          localStorage.setItem('liveTTSEnabled', liveTTSCheckbox.checked);
+        });
+      }
+      
+    } catch (error) {
+      console.error('Camera initialization error:', error);
+      reject(error);
+      
+      // Show error message in camera popup
+      const descriptionContent = document.getElementById('description-content');
+      if (descriptionContent) {
+        descriptionContent.innerHTML = `
+          <div class="text-red-500">
+            <p><strong>Camera Error:</strong> ${error.message || 'Could not access camera'}</p>
+            <p class="text-sm mt-2">Please ensure you have given camera permissions and that your device has a working camera.</p>
+          </div>
+        `;
+      }
+    }
+  });
+}
+
+// Update the describeImage function to properly handle TTS
+function describeImage(imageBlob, useTTS = false) {
+  return new Promise(async (resolve, reject) => {
+    const descriptionContent = document.getElementById('description-content');
+    const descriptionLoading = document.getElementById('description-loading');
+    
+    if (!descriptionContent || !descriptionLoading) {
+      reject(new Error('UI elements not found'));
+      return;
+    }
+    
+    try {
+      // Show loading state
+      descriptionContent.innerHTML = '';
+      descriptionLoading.classList.remove('hidden');
+      
+      // Create form data for image upload
+      const formData = new FormData();
+      formData.append('image', imageBlob, 'camera_image.jpg');
+      
+      // Simulate API call for image description (replace with actual API call)
+      setTimeout(() => {
+        // Hide loading
+        descriptionLoading.classList.add('hidden');
+        
+        // Mock response (replace with actual API response)
+        const response = {
+          description: "I can see a person holding a mobile device. The image appears to be taken indoors with good lighting. The camera seems to be capturing a selfie-view or front-facing perspective.",
+          tags: ["person", "mobile", "indoor", "camera"]
+        };
+        
+        // Display the description
+        descriptionContent.innerHTML = `
+          <p class="mb-2">${response.description}</p>
+          <div class="flex flex-wrap gap-1 mt-2">
+            ${response.tags.map(tag => `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded dark:bg-blue-900 dark:text-blue-100">${tag}</span>`).join('')}
+          </div>
+        `;
+        
+        // If Live TTS is enabled, read the description
+        if (useTTS) {
+          speakText(response.description);
+        }
+        
+        resolve(response);
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Error describing image:', error);
+      
+      // Hide loading and show error
+      descriptionLoading.classList.add('hidden');
+      descriptionContent.innerHTML = `
+        <div class="text-red-500">
+          <p><strong>Error:</strong> Could not analyze image</p>
+          <p class="text-sm mt-2">${error.message || 'Unknown error occurred'}</p>
+        </div>
+      `;
+      
+      reject(error);
+    }
+  });
+}
+
+// Stop camera function to properly clean up resources
+function stopCamera() {
+  const videoElement = document.getElementById('camera-preview');
+  if (videoElement && videoElement.srcObject) {
+    const tracks = videoElement.srcObject.getTracks();
+    tracks.forEach(track => track.stop());
+    videoElement.srcObject = null;
+  }
+  
+  // If speech is happening when camera closes, stop it
+  if (window.speechSynthesis.speaking && currentSpeech) {
+    window.speechSynthesis.cancel();
+    currentSpeech = null;
+  }
 }
