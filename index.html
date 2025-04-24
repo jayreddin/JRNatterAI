@@ -73,13 +73,13 @@
 
     <div class="flex flex-1 items-center justify-center mx-2">
       <div id="model-select-container" class="relative w-full max-w-xs mx-auto text-center model-select-wrapper flex flex-col items-center">
-        <div class="w-full flex flex-row items-center gap-2">
-          <select id="model-select" class="multi-model-select flat" style="height: 32px; cursor: pointer;"></select>
-          <button type="button" id="add-model-btn" class="add-model-button" title="Add model" style="display: none;">
+        <div class="w-full flex flex-row items-center gap-2 mb-2">
+          <select id="model-select" class="multi-model-select flat flex-1" style="height: 32px; cursor: pointer;"></select>
+          <button type="button" id="add-model-btn" class="add-model-button" title="Add model">
             <i class="fa fa-plus"></i>
           </button>
         </div>
-        <div class="selected-models-container" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;"></div>
+        <div class="selected-models-container" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 0.5rem;"></div>
       </div>
     </div>
     <!-- Mode toggles -->
@@ -357,16 +357,22 @@
         </button>
       </div>
       <div class="space-y-4">
-        <div class="relative">
-          <video id="camera-preview" class="w-full rounded-cool" autoplay playsinline></video>
+        <div class="relative camera-preview-container">
+          <video id="camera-preview" class="w-full rounded-cool resize-handle" autoplay playsinline></video>
           <canvas id="camera-canvas" class="hidden"></canvas>
+          <div class="resize-handle-se" id="camera-resize-handle"></div>
+          <div class="live-tts-toggle">
+            <label for="live-tts-checkbox" class="text-sm flex items-center">
+              <input type="checkbox" id="live-tts-checkbox" class="mr-1"> Live TTS
+            </label>
+          </div>
         </div>
         <div class="flex justify-center mb-2">
           <button id="switch-camera-btn" class="feature-btn" title="Switch camera">
             <i class="fa fa-camera-rotate"></i>
           </button>
         </div>
-        <div id="camera-description" class="bg-gray-100 dark:bg-gray-800 p-3 rounded-cool min-h-[100px] hidden">
+        <div id="camera-description" class="bg-gray-100 dark:bg-gray-800 p-3 rounded-cool min-h-[100px] max-h-[200px] overflow-y-auto">
           <div id="description-loading" class="flex items-center justify-center py-4 hidden">
             <i class="fa fa-spinner fa-spin mr-2"></i>
             <span>Analyzing image...</span>

@@ -4794,3 +4794,457 @@ if (!document.getElementById('center-last-row-style')) {
   `;
   document.head.appendChild(style);
 }
+
+// Fix multi-model functionality
+function updateMultiModelDisplay() {
+  const container = document.getElementById('model-select-container');
+  if (!container) return;
+
+  const mainSelect = document.getElementById('model-select');
+  const addBtn = document.getElementById('add-model-btn');
+  const chipsContainer = container.querySelector('.selected-models-container');
+
+  // Get all models (with optgroups if needed)
+  let allModels = [];
+  let modelOptions = [];
+  if (mainSelect) {
+    if (mainSelect.options.length > 0) {
+      allModels = Array.from(mainSelect.options).map(o => o.value);
+      modelOptions = Array.from(mainSelect.options).map(o => ({ value: o.value, text: o.textContent, group: o.parentElement && o.parentElement.label }));
+    } else {
+      allModels = [
+        'gpt-4o-mini','gpt-4o','o1','o1-mini','o1-pro','o3','o3-mini','o4-mini','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview',
+        'claude-3-7-sonnet','claude-3-5-sonnet',
+        'deepseek-chat','deepseek-reasoner',
+        'google/gemini-2.5-flash-preview','google/gemini-2.5-flash-preview:thinking','google/gemini-2.5-pro-exp-03-25:free','gemini-2.0-flash','google/gemini-2.0-flash-lite-001','google/gemini-2.0-pro-exp-02-05:free','google/gemini-2.0-flash-thinking-exp:free','google/gemini-pro-1.5','gemini-1.5-flash','google/gemma-2-27b-it',
+        'meta-llama/llama-4-maverick','meta-llama/llama-4-scout','meta-llama/llama-3.3-70b-instruct','meta-llama/llama-guard-3-8b','meta-llama/llama-guard-2-8b','meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
+        'mistral-large-latest','pixtral-large-latest','codestral-latest',
+        'grok-beta','x-ai/grok-3-beta'
+      ];
+      modelOptions = allModels.map(m => ({ value: m, text: formatModelName(m), group: null }));
+    }
+  }
+
+  // Always ensure selectedModels is initialized with default model
+  if (!Array.isArray(window.selectedModels) || !window.selectedModels.length) {
+    window.selectedModels = [mainSelect && mainSelect.value ? mainSelect.value : 'gpt-4o-mini'];
+  }
+
+  // Multi mode UI
+  if (window.multiModelMode) {
+    if (mainSelect) mainSelect.style.display = '';
+    if (addBtn) addBtn.style.display = 'flex';
+    if (chipsContainer) chipsContainer.style.display = 'flex';
+
+    // Only show models not already selected
+    if (mainSelect) {
+      mainSelect.innerHTML = '';
+      
+      // Add option groups if models have categories
+      const modelsByGroup = {};
+      allModels.forEach(model => {
+        if (!window.selectedModels.includes(model)) {
+          const option = modelOptions.find(o => o.value === model) || { value: model, text: formatModelName(model), group: null };
+          const group = option.group || 'Other Models';
+          if (!modelsByGroup[group]) modelsByGroup[group] = [];
+          modelsByGroup[group].push(option);
+        }
+      });
+      
+      // Create option groups
+      Object.entries(modelsByGroup).forEach(([group, models]) => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = group;
+        
+        models.forEach(option => {
+          const opt = document.createElement('option');
+          opt.value = option.value;
+          opt.textContent = option.text;
+          optgroup.appendChild(opt);
+        });
+        
+        if (optgroup.children.length > 0) {
+          mainSelect.appendChild(optgroup);
+        }
+      });
+      
+      // If all models are selected, disable dropdown
+      mainSelect.disabled = mainSelect.options.length === 0;
+    }
+
+    // Add button functionality
+    if (addBtn) {
+      addBtn.disabled = !mainSelect || mainSelect.options.length === 0;
+      addBtn.onclick = function() {
+        const selectedModel = mainSelect.value;
+        if (selectedModel && !window.selectedModels.includes(selectedModel)) {
+          window.selectedModels.push(selectedModel);
+          updateMultiModelDisplay();
+          renderChat();
+        }
+      };
+    }
+
+    // Render chips for selected models
+    if (chipsContainer) {
+      chipsContainer.innerHTML = '';
+      window.selectedModels.forEach((model, idx) => {
+        const chip = document.createElement('div');
+        chip.className = 'selected-model-chip';
+        chip.setAttribute('draggable', 'true');
+        chip.setAttribute('data-idx', idx);
+        chip.innerHTML = `
+          <span title="${model}">${formatModelName(model)}</span>
+          <span class="remove-model" style="cursor:pointer;" title="Remove" data-idx="${idx}">×</span>
+        `;
+        chip.querySelector('.remove-model').onclick = function(e) {
+          e.stopPropagation();
+          window.selectedModels.splice(idx, 1);
+          // Always ensure at least one model is selected
+          if (window.selectedModels.length === 0) {
+            window.selectedModels = [mainSelect && mainSelect.value ? mainSelect.value : 'gpt-4o-mini'];
+          }
+          updateMultiModelDisplay();
+          renderChat();
+        };
+        
+        // Drag-and-drop handlers
+        chip.addEventListener('dragstart', function(e) {
+          chip.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', idx);
+        });
+        chip.addEventListener('dragend', function(e) {
+          chip.classList.remove('dragging');
+        });
+        chip.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+          if (fromIdx !== idx) {
+            chip.classList.add('drag-over');
+          }
+        });
+        chip.addEventListener('dragleave', function(e) {
+          chip.classList.remove('drag-over');
+        });
+        chip.addEventListener('drop', function(e) {
+          e.preventDefault();
+          chip.classList.remove('drag-over');
+          const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+          const toIdx = idx;
+          if (fromIdx !== toIdx) {
+            const moved = window.selectedModels.splice(fromIdx, 1)[0];
+            window.selectedModels.splice(toIdx, 0, moved);
+            updateMultiModelDisplay();
+            renderChat();
+          } else {
+            shakeElement(chip);
+          }
+        });
+        chipsContainer.appendChild(chip);
+      });
+    }
+  } else {
+    // Single mode UI
+    if (mainSelect) {
+      mainSelect.style.display = '';
+      mainSelect.disabled = false;
+      
+      // Repopulate with all models in groups
+      mainSelect.innerHTML = '';
+      const modelsByGroup = {};
+      allModels.forEach(model => {
+        const option = modelOptions.find(o => o.value === model) || { value: model, text: formatModelName(model), group: null };
+        const group = option.group || 'Other Models';
+        if (!modelsByGroup[group]) modelsByGroup[group] = [];
+        modelsByGroup[group].push(option);
+      });
+      
+      Object.entries(modelsByGroup).forEach(([group, models]) => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = group;
+        
+        models.forEach(option => {
+          const opt = document.createElement('option');
+          opt.value = option.value;
+          opt.textContent = option.text;
+          optgroup.appendChild(opt);
+        });
+        
+        if (optgroup.children.length > 0) {
+          mainSelect.appendChild(optgroup);
+        }
+      });
+      
+      // Set to the first selectedModel
+      mainSelect.value = window.selectedModels[0] || 'gpt-4o-mini';
+      
+      // Update selected models when the dropdown changes
+      mainSelect.onchange = function() {
+        window.selectedModels = [this.value];
+        updateMultiModelDisplay();
+        renderChat();
+      };
+    }
+    
+    if (addBtn) addBtn.style.display = 'none';
+    if (chipsContainer) chipsContainer.style.display = 'none';
+  }
+}
+
+// Camera functionality improvements
+async function initializeCamera() {
+  const preview = document.getElementById('camera-preview');
+  const switchBtn = document.getElementById('switch-camera-btn');
+  const describeBtn = document.getElementById('describe-photo-btn');
+  const descriptionDiv = document.getElementById('camera-description');
+  const descriptionContent = document.getElementById('description-content');
+  const descriptionLoading = document.getElementById('description-loading');
+  const liveTTSCheckbox = document.getElementById('live-tts-checkbox');
+  const cameraResizeHandle = document.getElementById('camera-resize-handle');
+  
+  if (!preview || !switchBtn || !describeBtn) return;
+  
+  let stream = null;
+  let frontCamera = true;
+  let availableDevices = [];
+  let currentSpeech = null;
+  
+  // Check if device is mobile
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  // Only show switch camera button on mobile
+  switchBtn.style.display = isMobile ? 'block' : 'none';
+  
+  try {
+    // Initialize with front camera first
+    const constraints = {
+      video: { facingMode: frontCamera ? 'user' : 'environment' },
+      audio: false
+    };
+    
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    preview.srcObject = stream;
+    
+    // Get available video devices for camera switching
+    availableDevices = (await navigator.mediaDevices.enumerateDevices())
+      .filter(device => device.kind === 'videoinput');
+    
+    // Update switch button visibility
+    if (availableDevices.length < 2) {
+      switchBtn.style.display = 'none';
+    }
+  } catch (err) {
+    console.error('Error accessing camera:', err);
+    descriptionContent.textContent = 'Camera access denied or not available. Please check your browser permissions.';
+    return;
+  }
+  
+  // Handle camera switching
+  switchBtn.onclick = async function() {
+    if (!stream) return;
+    
+    // Stop current stream
+    stream.getTracks().forEach(track => track.stop());
+    
+    // Toggle camera
+    frontCamera = !frontCamera;
+    
+    try {
+      const constraints = {
+        video: { facingMode: frontCamera ? 'user' : 'environment' },
+        audio: false
+      };
+      
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+      preview.srcObject = stream;
+    } catch (err) {
+      console.error('Error switching camera:', err);
+      descriptionContent.textContent = 'Failed to switch camera. Please try again.';
+    }
+  };
+  
+  // Make camera preview resizable
+  if (cameraResizeHandle) {
+    let isResizing = false;
+    let startX, startY, startWidth, startHeight;
+    
+    cameraResizeHandle.addEventListener('mousedown', function(e) {
+      isResizing = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      startWidth = preview.offsetWidth;
+      startHeight = preview.offsetHeight;
+      
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', function() {
+        isResizing = false;
+        document.removeEventListener('mousemove', handleMouseMove);
+      }, { once: true });
+      
+      e.preventDefault();
+    });
+    
+    // For touch devices
+    cameraResizeHandle.addEventListener('touchstart', function(e) {
+      isResizing = true;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startWidth = preview.offsetWidth;
+      startHeight = preview.offsetHeight;
+      
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', function() {
+        isResizing = false;
+        document.removeEventListener('touchmove', handleTouchMove);
+      }, { once: true });
+      
+      e.preventDefault();
+    });
+    
+    function handleMouseMove(e) {
+      if (!isResizing) return;
+      
+      const width = startWidth + (e.clientX - startX);
+      const height = startHeight + (e.clientY - startY);
+      
+      preview.style.width = width + 'px';
+      preview.style.height = height + 'px';
+    }
+    
+    function handleTouchMove(e) {
+      if (!isResizing) return;
+      
+      const width = startWidth + (e.touches[0].clientX - startX);
+      const height = startHeight + (e.touches[0].clientY - startY);
+      
+      preview.style.width = width + 'px';
+      preview.style.height = height + 'px';
+    }
+    
+    // Preview can also be dragged
+    preview.addEventListener('mousedown', function(e) {
+      if (e.target !== cameraResizeHandle) {
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startLeft = parseInt(window.getComputedStyle(preview).left) || 0;
+        const startTop = parseInt(window.getComputedStyle(preview).top) || 0;
+        
+        function handleDrag(e) {
+          preview.style.position = 'relative';
+          preview.style.left = (startLeft + e.clientX - startX) + 'px';
+          preview.style.top = (startTop + e.clientY - startY) + 'px';
+        }
+        
+        document.addEventListener('mousemove', handleDrag);
+        document.addEventListener('mouseup', function() {
+          document.removeEventListener('mousemove', handleDrag);
+        }, { once: true });
+      }
+    });
+  }
+  
+  // Handle describe photo button
+  describeBtn.onclick = async function() {
+    const canvas = document.getElementById('camera-canvas');
+    if (!canvas || !preview || !stream) return;
+    
+    descriptionContent.textContent = '';
+    descriptionDiv.style.display = 'block';
+    descriptionLoading.style.display = 'flex';
+    
+    // Stop any existing speech
+    if (currentSpeech) {
+      window.speechSynthesis.cancel();
+      currentSpeech = null;
+    }
+    
+    // Capture image from camera
+    const context = canvas.getContext('2d');
+    canvas.width = preview.videoWidth;
+    canvas.height = preview.videoHeight;
+    context.drawImage(preview, 0, 0, canvas.width, canvas.height);
+    
+    // Convert to blob
+    try {
+      const imageBlob = await new Promise(resolve => {
+        canvas.toBlob(resolve, 'image/jpeg');
+      });
+      
+      // Create a description using AI
+      // This is a placeholder - actual implementation would depend on your AI service
+      describeImage(imageBlob, liveTTSCheckbox.checked);
+    } catch (err) {
+      console.error('Error processing image:', err);
+      descriptionLoading.style.display = 'none';
+      descriptionContent.textContent = 'Failed to process image. Please try again.';
+    }
+  };
+  
+  // Handle Live TTS checkbox
+  liveTTSCheckbox.onchange = function() {
+    // The actual TTS will be triggered when generating the description
+    if (!this.checked && currentSpeech) {
+      window.speechSynthesis.cancel();
+      currentSpeech = null;
+    }
+  };
+  
+  function describeImage(imageBlob, useTTS = false) {
+    // Simulated AI description - replace with actual API call
+    setTimeout(() => {
+      const mockDescription = "This image shows a person using a mobile device with a chat interface open. The interface appears to be a multi-model AI chat application with multiple language models displayed in a grid layout. The person seems to be in a well-lit room, possibly at home or in an office setting.";
+      
+      descriptionLoading.style.display = 'none';
+      
+      // Display description character by character
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i <= mockDescription.length) {
+          descriptionContent.textContent = mockDescription.substring(0, i);
+          i++;
+          
+          // If live TTS is enabled, speak the current portion
+          if (useTTS && i % 10 === 0) { // Speak in chunks to sound more natural
+            speakText(mockDescription.substring(i-10, i), true);
+          }
+        } else {
+          clearInterval(interval);
+          
+          // If live TTS is enabled, speak the full text once completed
+          if (useTTS) {
+            speakText(mockDescription, false);
+          }
+        }
+      }, 30);
+    }, 1500);
+  }
+}
+
+// Function to speak text (used for live TTS)
+function speakText(text, isPartial = false) {
+  if (!window.speechSynthesis) return;
+  
+  // Cancel current speech if this is not a partial update
+  if (!isPartial && currentSpeech) {
+    window.speechSynthesis.cancel();
+    currentSpeech = null;
+  }
+  
+  // Create new speech instance
+  const speech = new SpeechSynthesisUtterance(text);
+  
+  // Use selected voice if available
+  const voiceSelect = document.getElementById('speech-voice-select');
+  if (voiceSelect && voiceSelect.value) {
+    const voices = window.speechSynthesis.getVoices();
+    const selectedVoice = voices.find(voice => voice.lang === voiceSelect.value);
+    if (selectedVoice) speech.voice = selectedVoice;
+  }
+  
+  // Store reference to current speech
+  currentSpeech = speech;
+  
+  // Speak the text
+  window.speechSynthesis.speak(speech);
+}
