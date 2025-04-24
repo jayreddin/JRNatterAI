@@ -67,13 +67,15 @@ window.toggleMultiModel = function(enabled) {
   // Update UI
   const multiToggle = document.getElementById('multi-toggle');
   const container = document.getElementById('model-select-container');
-  
   if (multiToggle) {
     multiToggle.checked = enabled;
   }
-
   if (container) {
-    container.classList.toggle('multi-mode-active', enabled);
+    if (enabled) {
+      container.classList.add('multi-mode-active');
+    } else {
+      container.classList.remove('multi-mode-active');
+    }
   }
 
   if (!enabled) {
@@ -81,77 +83,146 @@ window.toggleMultiModel = function(enabled) {
     selectedModels = [];
     const modelSelect = document.getElementById('model-select');
     if (modelSelect) {
+      modelSelect.style.display = '';
       // Re-enable all options
       Array.from(modelSelect.options).forEach(option => {
         option.disabled = false;
       });
     }
-  } else if (selectedModels.length === 0) {
+    // Remove: Hide add button logic
+  } else {
     // Initialize with current model when enabling
     const modelSelect = document.getElementById('model-select');
     if (modelSelect) {
-      selectedModels = [modelSelect.value];
+      modelSelect.style.display = 'none';
+      if (selectedModels.length === 0) {
+        selectedModels = [modelSelect.value];
+      }
     }
+    // Remove: Show add button logic
   }
 
   updateMultiModelDisplay();
   renderChat();
 }
 
-// Update multi-model display
+/**
+ * Update the multi-model display in the header.
+ * - Hides main dropdown in multi mode.
+ * - Shows up to 5 small dropdowns side by side, each with a red X.
+ * - Only last dropdown has a + button (if less than 5).
+ * - Already-selected models are greyed out in other dropdowns.
+ */
 function updateMultiModelDisplay() {
   const container = document.getElementById('model-select-container');
   if (!container) return;
 
-  // Remove existing display
-  const existingDisplay = container.querySelector('.selected-models-container');
-  if (existingDisplay) {
-    existingDisplay.remove();
-  }
+  // Elements
+  const mainSelect = document.getElementById('model-select');
+  const multiRow = document.getElementById('multi-model-row');
+  const multiSelect = document.getElementById('multi-model-select');
+  const addBtn = document.getElementById('add-model-btn');
+  const chipsContainer = container.querySelector('.selected-models-container');
 
-  // Only show selected models when in multi-model mode
-  if (!multiModelMode) {
-    // Hide add button when not in multi-model mode
-    const addButton = document.getElementById('add-model-btn');
-    if (addButton) {
-      addButton.style.display = 'none';
+  // Get all models (with optgroups if needed)
+  let allModels = [];
+  let modelOptions = [];
+  if (mainSelect) {
+    // If mainSelect has options, use them
+    if (mainSelect.options.length > 0) {
+      allModels = Array.from(mainSelect.options).map(o => o.value);
+      modelOptions = Array.from(mainSelect.options).map(o => ({ value: o.value, text: o.textContent, group: o.parentElement && o.parentElement.label }));
+    } else {
+      // If not, populate with default models (fallback)
+      allModels = [
+        'gpt-4o-mini','gpt-4o','o1','o1-mini','o1-pro','o3','o3-mini','o4-mini','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview',
+        'claude-3-7-sonnet','claude-3-5-sonnet',
+        'deepseek-chat','deepseek-reasoner',
+        'google/gemini-2.5-flash-preview','google/gemini-2.5-flash-preview:thinking','google/gemini-2.5-pro-exp-03-25:free','gemini-2.0-flash','google/gemini-2.0-flash-lite-001','google/gemini-2.0-pro-exp-02-05:free','google/gemini-2.0-flash-thinking-exp:free','google/gemini-pro-1.5','gemini-1.5-flash','google/gemma-2-27b-it',
+        'meta-llama/llama-4-maverick','meta-llama/llama-4-scout','meta-llama/llama-3.3-70b-instruct','meta-llama/llama-guard-3-8b','meta-llama/llama-guard-2-8b','meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
+        'mistral-large-latest','pixtral-large-latest','codestral-latest',
+        'grok-beta','x-ai/grok-3-beta'
+      ];
+      modelOptions = allModels.map(m => ({ value: m, text: formatModelName(m), group: null }));
     }
-    return;
   }
 
-  // Show add button in multi-model mode
-  const addButton = document.getElementById('add-model-btn');
-  if (addButton) {
-    addButton.style.display = 'flex';
-  }
+  // Multi mode UI
+  if (multiModelMode) {
+    if (mainSelect) mainSelect.style.display = 'none';
+    if (multiRow) multiRow.style.display = 'flex';
+    if (chipsContainer) chipsContainer.style.display = 'flex';
 
-  // Create new display container
-  const displayContainer = document.createElement('div');
-  displayContainer.className = 'selected-models-container';
+    // Populate multi-model-select with unselected models
+    if (multiSelect) {
+      multiSelect.innerHTML = '<option value="" disabled selected>Select a model...</option>';
+      allModels.forEach(model => {
+        if (!selectedModels.includes(model)) {
+          const opt = document.createElement('option');
+          opt.value = model;
+          opt.textContent = formatModelName(model);
+          multiSelect.appendChild(opt);
+        }
+      });
+      multiSelect.value = '';
+    }
 
-  selectedModels.forEach((model, idx) => {
-    const chip = document.createElement('div');
-    chip.className = 'selected-model-chip';
-    
-    // Format model name for display
-    const displayName = formatModelName(model);
-    
-    chip.innerHTML = `
-      <span title="${model}">${displayName}</span>
-      <span class="remove-model" onclick="removeSelectedModel(${idx})" title="Remove model">×</span>
-    `;
-    
-    displayContainer.appendChild(chip);
-  });
+    // Enable/disable + button
+    if (addBtn) {
+      addBtn.disabled = !multiSelect || multiSelect.options.length <= 1;
+    }
 
-  container.appendChild(displayContainer);
-
-  // Update the model dropdown to disable selected models
-  const modelSelect = document.getElementById('model-select');
-  if (modelSelect) {
-    Array.from(modelSelect.options).forEach(option => {
-      option.disabled = selectedModels.includes(option.value);
-    });
+    // Render chips for selected models
+    if (chipsContainer) {
+      chipsContainer.innerHTML = '';
+      selectedModels.forEach((model, idx) => {
+        const chip = document.createElement('div');
+        chip.className = 'selected-model-chip';
+        chip.innerHTML = `
+          <span title="${model}">${formatModelName(model)}</span>
+          <span class="remove-model" style="cursor:pointer;" title="Remove" data-idx="${idx}">×</span>
+        `;
+        chip.querySelector('.remove-model').onclick = function() {
+          selectedModels.splice(idx, 1);
+          updateMultiModelDisplay();
+          renderChat();
+        };
+        chipsContainer.appendChild(chip);
+      });
+    }
+  } else {
+    // Single mode UI
+    if (mainSelect) {
+      mainSelect.style.display = '';
+      mainSelect.className = 'multi-model-select flat';
+      // Populate mainSelect with all models and optgroups if needed
+      if (mainSelect.options.length === 0) {
+        // Example: add optgroups for providers
+        const groups = {
+          '📊 OpenAI': ['gpt-4o-mini','gpt-4o','o1','o1-mini','o1-pro','o3','o3-mini','o4-mini','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview'],
+          '💬 Anthropic': ['claude-3-7-sonnet','claude-3-5-sonnet'],
+          '🔍 DeepSeek': ['deepseek-chat','deepseek-reasoner'],
+          '🔰 Google': ['google/gemini-2.5-flash-preview','google/gemini-2.5-flash-preview:thinking','google/gemini-2.5-pro-exp-03-25:free','gemini-2.0-flash','google/gemini-2.0-flash-lite-001','google/gemini-2.0-pro-exp-02-05:free','google/gemini-2.0-flash-thinking-exp:free','google/gemini-pro-1.5','gemini-1.5-flash','google/gemma-2-27b-it'],
+          '📘 Meta': ['meta-llama/llama-4-maverick','meta-llama/llama-4-scout','meta-llama/llama-3.3-70b-instruct','meta-llama/llama-guard-3-8b','meta-llama/llama-guard-2-8b','meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo'],
+          '💨 Mistral': ['mistral-large-latest','pixtral-large-latest','codestral-latest'],
+          '❇️ Other': ['grok-beta','x-ai/grok-3-beta']
+        };
+        mainSelect.innerHTML = '';
+        for (const [label, models] of Object.entries(groups)) {
+          const optgroup = document.createElement('optgroup');
+          optgroup.label = label;
+          models.forEach(model => {
+            const opt = document.createElement('option');
+            opt.value = model;
+            opt.textContent = formatModelName(model);
+            optgroup.appendChild(opt);
+          });
+          mainSelect.appendChild(optgroup);
+        }
+      }
+    }
+    if (multiRow) multiRow.style.display = 'none';
+    if (chipsContainer) chipsContainer.style.display = 'none';
   }
 }
 
@@ -404,17 +475,23 @@ function toggleMultiModel(enabled) {
     selectedModels = [];
     const modelSelect = document.getElementById('model-select');
     if (modelSelect) {
+      modelSelect.style.display = '';
       // Re-enable all options
       Array.from(modelSelect.options).forEach(option => {
         option.disabled = false;
       });
     }
-  } else if (selectedModels.length === 0) {
+    // Remove: Hide add button logic
+  } else {
     // Initialize with current model when enabling
     const modelSelect = document.getElementById('model-select');
     if (modelSelect) {
-      selectedModels = [modelSelect.value];
+      modelSelect.style.display = 'none';
+      if (selectedModels.length === 0) {
+        selectedModels = [modelSelect.value];
+      }
     }
+    // Remove: Show add button logic
   }
 
   updateMultiModelDisplay();
@@ -426,34 +503,113 @@ function updateMultiModelDisplay() {
   const container = document.getElementById('model-select-container');
   if (!container) return;
 
-  // Remove existing display
-  const existingDisplay = container.querySelector('.selected-models-container');
-  if (existingDisplay) {
-    existingDisplay.remove();
+  // Elements
+  const mainSelect = document.getElementById('model-select');
+  const multiRow = document.getElementById('multi-model-row');
+  const multiSelect = document.getElementById('multi-model-select');
+  const addBtn = document.getElementById('add-model-btn');
+  const chipsContainer = container.querySelector('.selected-models-container');
+
+  // Get all models (with optgroups if needed)
+  let allModels = [];
+  let modelOptions = [];
+  if (mainSelect) {
+    // If mainSelect has options, use them
+    if (mainSelect.options.length > 0) {
+      allModels = Array.from(mainSelect.options).map(o => o.value);
+      modelOptions = Array.from(mainSelect.options).map(o => ({ value: o.value, text: o.textContent, group: o.parentElement && o.parentElement.label }));
+    } else {
+      // If not, populate with default models (fallback)
+      allModels = [
+        'gpt-4o-mini','gpt-4o','o1','o1-mini','o1-pro','o3','o3-mini','o4-mini','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview',
+        'claude-3-7-sonnet','claude-3-5-sonnet',
+        'deepseek-chat','deepseek-reasoner',
+        'google/gemini-2.5-flash-preview','google/gemini-2.5-flash-preview:thinking','google/gemini-2.5-pro-exp-03-25:free','gemini-2.0-flash','google/gemini-2.0-flash-lite-001','google/gemini-2.0-pro-exp-02-05:free','google/gemini-2.0-flash-thinking-exp:free','google/gemini-pro-1.5','gemini-1.5-flash','google/gemma-2-27b-it',
+        'meta-llama/llama-4-maverick','meta-llama/llama-4-scout','meta-llama/llama-3.3-70b-instruct','meta-llama/llama-guard-3-8b','meta-llama/llama-guard-2-8b','meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
+        'mistral-large-latest','pixtral-large-latest','codestral-latest',
+        'grok-beta','x-ai/grok-3-beta'
+      ];
+      modelOptions = allModels.map(m => ({ value: m, text: formatModelName(m), group: null }));
+    }
   }
 
-  if (!multiModelMode) return;
+  // Multi mode UI
+  if (multiModelMode) {
+    if (mainSelect) mainSelect.style.display = 'none';
+    if (multiRow) multiRow.style.display = 'flex';
+    if (chipsContainer) chipsContainer.style.display = 'flex';
 
-  // Create new display container
-  const displayContainer = document.createElement('div');
-  displayContainer.className = 'selected-models-container';
+    // Populate multi-model-select with unselected models
+    if (multiSelect) {
+      multiSelect.innerHTML = '<option value="" disabled selected>Select a model...</option>';
+      allModels.forEach(model => {
+        if (!selectedModels.includes(model)) {
+          const opt = document.createElement('option');
+          opt.value = model;
+          opt.textContent = formatModelName(model);
+          multiSelect.appendChild(opt);
+        }
+      });
+      multiSelect.value = '';
+    }
 
-  selectedModels.forEach((model, idx) => {
-    const chip = document.createElement('div');
-    chip.className = 'selected-model-chip';
-    
-    // Format model name for display
-    const displayName = model.length > 20 ? model.substring(0, 17) + '...' : model;
-    
-    chip.innerHTML = `
-      <span title="${model}">${displayName}</span>
-      <span class="remove-model" onclick="removeSelectedModel(${idx})">×</span>
-    `;
-    
-    displayContainer.appendChild(chip);
-  });
+    // Enable/disable + button
+    if (addBtn) {
+      addBtn.disabled = !multiSelect || multiSelect.options.length <= 1;
+    }
 
-  container.appendChild(displayContainer);
+    // Render chips for selected models
+    if (chipsContainer) {
+      chipsContainer.innerHTML = '';
+      selectedModels.forEach((model, idx) => {
+        const chip = document.createElement('div');
+        chip.className = 'selected-model-chip';
+        chip.innerHTML = `
+          <span title="${model}">${formatModelName(model)}</span>
+          <span class="remove-model" style="cursor:pointer;" title="Remove" data-idx="${idx}">×</span>
+        `;
+        chip.querySelector('.remove-model').onclick = function() {
+          selectedModels.splice(idx, 1);
+          updateMultiModelDisplay();
+          renderChat();
+        };
+        chipsContainer.appendChild(chip);
+      });
+    }
+  } else {
+    // Single mode UI
+    if (mainSelect) {
+      mainSelect.style.display = '';
+      mainSelect.className = 'multi-model-select flat';
+      // Populate mainSelect with all models and optgroups if needed
+      if (mainSelect.options.length === 0) {
+        // Example: add optgroups for providers
+        const groups = {
+          '📊 OpenAI': ['gpt-4o-mini','gpt-4o','o1','o1-mini','o1-pro','o3','o3-mini','o4-mini','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview'],
+          '💬 Anthropic': ['claude-3-7-sonnet','claude-3-5-sonnet'],
+          '🔍 DeepSeek': ['deepseek-chat','deepseek-reasoner'],
+          '🔰 Google': ['google/gemini-2.5-flash-preview','google/gemini-2.5-flash-preview:thinking','google/gemini-2.5-pro-exp-03-25:free','gemini-2.0-flash','google/gemini-2.0-flash-lite-001','google/gemini-2.0-pro-exp-02-05:free','google/gemini-2.0-flash-thinking-exp:free','google/gemini-pro-1.5','gemini-1.5-flash','google/gemma-2-27b-it'],
+          '📘 Meta': ['meta-llama/llama-4-maverick','meta-llama/llama-4-scout','meta-llama/llama-3.3-70b-instruct','meta-llama/llama-guard-3-8b','meta-llama/llama-guard-2-8b','meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo'],
+          '💨 Mistral': ['mistral-large-latest','pixtral-large-latest','codestral-latest'],
+          '❇️ Other': ['grok-beta','x-ai/grok-3-beta']
+        };
+        mainSelect.innerHTML = '';
+        for (const [label, models] of Object.entries(groups)) {
+          const optgroup = document.createElement('optgroup');
+          optgroup.label = label;
+          models.forEach(model => {
+            const opt = document.createElement('option');
+            opt.value = model;
+            opt.textContent = formatModelName(model);
+            optgroup.appendChild(opt);
+          });
+          mainSelect.appendChild(optgroup);
+        }
+      }
+    }
+    if (multiRow) multiRow.style.display = 'none';
+    if (chipsContainer) chipsContainer.style.display = 'none';
+  }
 }
 
 // Remove a model from the selected models list
@@ -490,34 +646,113 @@ function updateMultiModelDisplay() {
   const container = document.getElementById('model-select-container');
   if (!container) return;
 
-  // Remove existing display
-  const existingDisplay = container.querySelector('.selected-models-container');
-  if (existingDisplay) {
-    existingDisplay.remove();
+  // Elements
+  const mainSelect = document.getElementById('model-select');
+  const multiRow = document.getElementById('multi-model-row');
+  const multiSelect = document.getElementById('multi-model-select');
+  const addBtn = document.getElementById('add-model-btn');
+  const chipsContainer = container.querySelector('.selected-models-container');
+
+  // Get all models (with optgroups if needed)
+  let allModels = [];
+  let modelOptions = [];
+  if (mainSelect) {
+    // If mainSelect has options, use them
+    if (mainSelect.options.length > 0) {
+      allModels = Array.from(mainSelect.options).map(o => o.value);
+      modelOptions = Array.from(mainSelect.options).map(o => ({ value: o.value, text: o.textContent, group: o.parentElement && o.parentElement.label }));
+    } else {
+      // If not, populate with default models (fallback)
+      allModels = [
+        'gpt-4o-mini','gpt-4o','o1','o1-mini','o1-pro','o3','o3-mini','o4-mini','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview',
+        'claude-3-7-sonnet','claude-3-5-sonnet',
+        'deepseek-chat','deepseek-reasoner',
+        'google/gemini-2.5-flash-preview','google/gemini-2.5-flash-preview:thinking','google/gemini-2.5-pro-exp-03-25:free','gemini-2.0-flash','google/gemini-2.0-flash-lite-001','google/gemini-2.0-pro-exp-02-05:free','google/gemini-2.0-flash-thinking-exp:free','google/gemini-pro-1.5','gemini-1.5-flash','google/gemma-2-27b-it',
+        'meta-llama/llama-4-maverick','meta-llama/llama-4-scout','meta-llama/llama-3.3-70b-instruct','meta-llama/llama-guard-3-8b','meta-llama/llama-guard-2-8b','meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
+        'mistral-large-latest','pixtral-large-latest','codestral-latest',
+        'grok-beta','x-ai/grok-3-beta'
+      ];
+      modelOptions = allModels.map(m => ({ value: m, text: formatModelName(m), group: null }));
+    }
   }
 
-  if (!multiModelMode) return;
+  // Multi mode UI
+  if (multiModelMode) {
+    if (mainSelect) mainSelect.style.display = 'none';
+    if (multiRow) multiRow.style.display = 'flex';
+    if (chipsContainer) chipsContainer.style.display = 'flex';
 
-  // Create new display container
-  const displayContainer = document.createElement('div');
-  displayContainer.className = 'selected-models-container';
+    // Populate multi-model-select with unselected models
+    if (multiSelect) {
+      multiSelect.innerHTML = '<option value="" disabled selected>Select a model...</option>';
+      allModels.forEach(model => {
+        if (!selectedModels.includes(model)) {
+          const opt = document.createElement('option');
+          opt.value = model;
+          opt.textContent = formatModelName(model);
+          multiSelect.appendChild(opt);
+        }
+      });
+      multiSelect.value = '';
+    }
 
-  selectedModels.forEach((model, idx) => {
-    const chip = document.createElement('div');
-    chip.className = 'selected-model-chip';
-    
-    // Format model name for display
-    const displayName = model.length > 20 ? model.substring(0, 17) + '...' : model;
-    
-    chip.innerHTML = `
-      <span title="${model}">${displayName}</span>
-      <span class="remove-model" onclick="removeSelectedModel(${idx})">×</span>
-    `;
-    
-    displayContainer.appendChild(chip);
-  });
+    // Enable/disable + button
+    if (addBtn) {
+      addBtn.disabled = !multiSelect || multiSelect.options.length <= 1;
+    }
 
-  container.appendChild(displayContainer);
+    // Render chips for selected models
+    if (chipsContainer) {
+      chipsContainer.innerHTML = '';
+      selectedModels.forEach((model, idx) => {
+        const chip = document.createElement('div');
+        chip.className = 'selected-model-chip';
+        chip.innerHTML = `
+          <span title="${model}">${formatModelName(model)}</span>
+          <span class="remove-model" style="cursor:pointer;" title="Remove" data-idx="${idx}">×</span>
+        `;
+        chip.querySelector('.remove-model').onclick = function() {
+          selectedModels.splice(idx, 1);
+          updateMultiModelDisplay();
+          renderChat();
+        };
+        chipsContainer.appendChild(chip);
+      });
+    }
+  } else {
+    // Single mode UI
+    if (mainSelect) {
+      mainSelect.style.display = '';
+      mainSelect.className = 'multi-model-select flat';
+      // Populate mainSelect with all models and optgroups if needed
+      if (mainSelect.options.length === 0) {
+        // Example: add optgroups for providers
+        const groups = {
+          '📊 OpenAI': ['gpt-4o-mini','gpt-4o','o1','o1-mini','o1-pro','o3','o3-mini','o4-mini','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview'],
+          '💬 Anthropic': ['claude-3-7-sonnet','claude-3-5-sonnet'],
+          '🔍 DeepSeek': ['deepseek-chat','deepseek-reasoner'],
+          '🔰 Google': ['google/gemini-2.5-flash-preview','google/gemini-2.5-flash-preview:thinking','google/gemini-2.5-pro-exp-03-25:free','gemini-2.0-flash','google/gemini-2.0-flash-lite-001','google/gemini-2.0-pro-exp-02-05:free','google/gemini-2.0-flash-thinking-exp:free','google/gemini-pro-1.5','gemini-1.5-flash','google/gemma-2-27b-it'],
+          '📘 Meta': ['meta-llama/llama-4-maverick','meta-llama/llama-4-scout','meta-llama/llama-3.3-70b-instruct','meta-llama/llama-guard-3-8b','meta-llama/llama-guard-2-8b','meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo'],
+          '💨 Mistral': ['mistral-large-latest','pixtral-large-latest','codestral-latest'],
+          '❇️ Other': ['grok-beta','x-ai/grok-3-beta']
+        };
+        mainSelect.innerHTML = '';
+        for (const [label, models] of Object.entries(groups)) {
+          const optgroup = document.createElement('optgroup');
+          optgroup.label = label;
+          models.forEach(model => {
+            const opt = document.createElement('option');
+            opt.value = model;
+            opt.textContent = formatModelName(model);
+            optgroup.appendChild(opt);
+          });
+          mainSelect.appendChild(optgroup);
+        }
+      }
+    }
+    if (multiRow) multiRow.style.display = 'none';
+    if (chipsContainer) chipsContainer.style.display = 'none';
+  }
 }
 
 // Remove model from selection
@@ -635,24 +870,7 @@ function renderChat() {
 
 // Safe markdown parsing function
 function parseMarkdown(text) {
-  if (typeof text !== 'string') return text;
-  try {
-    if (typeof marked === 'undefined') {
-      return text;
-    }
-
-    // Handle different versions of marked
-    if (typeof marked === 'function') {
-      return marked(text);
-    } else if (typeof marked.parse === 'function') {
-      return marked.parse(text);
-    }
-
-    return text;
-  } catch (error) {
-    console.warn('Markdown parsing failed:', error);
-    return text;
-  }
+  return text;
 }
 
 // Update createMessageElement function
@@ -4179,16 +4397,24 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// Render chat for multi-model mode
+// Add global variable for expanded model
+let expandedModel = null;
+
+// Update renderMultiModelChat function
 function renderMultiModelChat() {
   const container = document.getElementById('chat-container');
   if (!container) return;
 
   container.innerHTML = '';
-  
+
+  // Overlay for expanded view
+  let overlay = document.createElement('div');
+  overlay.className = 'model-box-overlay';
+  container.appendChild(overlay);
+
   // Create grid container
   const gridContainer = document.createElement('div');
-  gridContainer.className = 'multi-model-chat';
+  gridContainer.className = `multi-model-chat multi-model-chat-cols-${Math.min(selectedModels.length, 3)}`;
   container.appendChild(gridContainer);
 
   // Group messages by model
@@ -4205,12 +4431,32 @@ function renderMultiModelChat() {
   // Create response boxes for each model
   selectedModels.forEach(model => {
     const responseBox = document.createElement('div');
-    responseBox.className = 'model-response-box';
-    
+    responseBox.className = 'model-box model-response-box';
+    if (expandedModel === model) {
+      responseBox.classList.add('expanded');
+      overlay.classList.add('visible');
+    }
+
     // Add model header
     const header = document.createElement('div');
     header.className = 'model-response-header';
     header.textContent = formatModelName(model);
+
+    // Add close button in expanded mode
+    if (expandedModel === model) {
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'feature-btn';
+      closeBtn.style.marginLeft = '1rem';
+      closeBtn.title = 'Close';
+      closeBtn.innerHTML = '<i class="fa fa-times"></i>';
+      closeBtn.onclick = function(e) {
+        e.stopPropagation();
+        expandedModel = null;
+        renderMultiModelChat();
+      };
+      header.appendChild(closeBtn);
+    }
+
     responseBox.appendChild(header);
 
     // Add messages for this model
@@ -4220,8 +4466,22 @@ function renderMultiModelChat() {
       responseBox.appendChild(messageEl);
     });
 
+    // Expand/collapse logic
+    responseBox.onclick = function(e) {
+      if (expandedModel !== model) {
+        expandedModel = model;
+        renderMultiModelChat();
+      }
+    };
+
     gridContainer.appendChild(responseBox);
   });
+
+  // Overlay click closes expanded view
+  overlay.onclick = function() {
+    expandedModel = null;
+    renderMultiModelChat();
+  };
 }
 
 // Update aiSend function to handle multi-model responses
@@ -4469,4 +4729,111 @@ document.addEventListener('DOMContentLoaded', function() {
       console.warn('Error configuring marked:', e);
     }
   }
+});
+
+// Session flag for all-models modal
+let allModelsModalShown = false;
+
+function showAllModelsModal() {
+  const modal = document.getElementById('modal-all-models');
+  if (modal) {
+    modal.classList.remove('hidden');
+  }
+}
+
+function hideAllModelsModal() {
+  const modal = document.getElementById('modal-all-models');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const dismissBtn = document.getElementById('dismiss-all-models-modal');
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', function() {
+      hideAllModelsModal();
+    });
+  }
+});
+
+// Add event listener for the static add-model-btn
+function setupAddModelBtn() {
+  const addBtn = document.getElementById('add-model-btn');
+  if (!addBtn) return;
+  let addDropdown = null;
+
+  addBtn.onclick = function(e) {
+    e.stopPropagation();
+    // Remove any existing add-dropdown
+    if (addDropdown && addDropdown.parentNode) {
+      addDropdown.parentNode.removeChild(addDropdown);
+      addDropdown = null;
+      return;
+    }
+    // Create dropdown
+    const modelSelect = document.getElementById('model-select');
+    const allModels = modelSelect ? Array.from(modelSelect.options).map(o => o.value) : [];
+    const unselectedModels = allModels.filter(m => !selectedModels.includes(m));
+    if (unselectedModels.length === 0) return;
+
+    addDropdown = document.createElement('select');
+    addDropdown.className = 'multi-model-select flat';
+    addDropdown.style.position = 'absolute';
+    addDropdown.style.right = '0';
+    addDropdown.style.top = '40px';
+    addDropdown.style.zIndex = '1000';
+    addDropdown.innerHTML = '<option value="" disabled selected>Select a model...</option>';
+    unselectedModels.forEach(optVal => {
+      const opt = document.createElement('option');
+      opt.value = optVal;
+      opt.textContent = formatModelName(optVal);
+      addDropdown.appendChild(opt);
+    });
+    addDropdown.onchange = function() {
+      if (this.value) {
+        selectedModels.push(this.value);
+        updateMultiModelDisplay();
+        renderChat();
+        if (addDropdown && addDropdown.parentNode) {
+          addDropdown.parentNode.removeChild(addDropdown);
+          addDropdown = null;
+        }
+      }
+    };
+    // Remove dropdown if user clicks elsewhere
+    document.addEventListener('click', function handler(ev) {
+      if (addDropdown && !addDropdown.contains(ev.target) && ev.target !== addBtn) {
+        if (addDropdown.parentNode) addDropdown.parentNode.removeChild(addDropdown);
+        addDropdown = null;
+        document.removeEventListener('click', handler);
+      }
+    });
+    // Insert dropdown after the button
+    addBtn.parentNode.appendChild(addDropdown);
+    addDropdown.focus();
+  };
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  setupAddModelBtn();
+});
+
+// Add event listeners for dropdown and + button
+function setupMultiModelHeader() {
+  const multiSelect = document.getElementById('multi-model-select');
+  const addBtn = document.getElementById('add-model-btn');
+  if (multiSelect && addBtn) {
+    addBtn.onclick = function() {
+      if (multiSelect.value) {
+        selectedModels.push(multiSelect.value);
+        updateMultiModelDisplay();
+        renderChat();
+      }
+    };
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  setupMultiModelHeader();
 });

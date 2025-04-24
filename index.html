@@ -32,7 +32,7 @@
   <script src="https://js.puter.com/v2/"></script>
 
   <!-- Markdown support -->
-  <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/lib/marked.umd.min.js"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script> -->
 
   <!-- Initialize marked -->
   <script>
@@ -72,95 +72,15 @@
     </div>
 
     <div class="flex flex-1 items-center justify-center mx-2">
-      <div id="model-select-container" class="relative w-full max-w-xs mx-auto text-center">
-        <div class="model-select-wrapper">
-          <select id="model-select"
-            class="bg-gray-50 border rounded-cool py-1 px-3 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base font-semibold appearance-none flat dark:bg-gray-800 dark:text-base text-center shadow-sm hover:shadow transition-all hide-scrollbar"
-            style="height: 32px; cursor: pointer;">
-            <!-- OpenAI Models -->
-            <optgroup label="📊 OpenAI">
-              <option value="gpt-4o-mini" selected>GPT-4o mini</option>
-              <option value="gpt-4o">GPT-4o</option>
-              <option value="o1">O1</option>
-              <option value="o1-mini">O1-mini</option>
-              <option value="o1-pro">O1-pro</option>
-              <option value="o3">O3</option>
-              <option value="o3-mini">O3-mini</option>
-              <option value="o4-mini">O4-mini</option>
-              <option value="gpt-4.1">GPT-4.1</option>
-              <option value="gpt-4.1-mini">GPT-4.1 mini</option>
-              <option value="gpt-4.1-nano">GPT-4.1 nano</option>
-              <option value="gpt-4.5-preview">GPT-4.5 preview</option>
-            </optgroup>
-
-            <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
-
-            <!-- Anthropic Models -->
-            <optgroup label="💬 Anthropic">
-              <option value="claude-3-7-sonnet">Claude-3.7 Sonnet</option>
-              <option value="claude-3-5-sonnet">Claude-3.5 Sonnet</option>
-            </optgroup>
-
-            <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
-
-            <!-- DeepSeek Models -->
-            <optgroup label="🔍 DeepSeek">
-              <option value="deepseek-chat">DeepSeek Chat</option>
-              <option value="deepseek-reasoner">DeepSeek Reasoner</option>
-            </optgroup>
-
-            <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
-
-            <!-- Google Models -->
-            <optgroup label="🔰 Google">
-              <option value="google/gemini-2.5-flash-preview">Gemini 2.5 Flash Preview</option>
-              <option value="google/gemini-2.5-flash-preview:thinking">Gemini 2.5 Flash Preview Thinking</option>
-              <option value="google/gemini-2.5-pro-exp-03-25:free">Gemini 2.5 Pro Exp</option>
-              <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-              <option value="google/gemini-2.0-flash-lite-001">Gemini 2.0 Flash Lite</option>
-              <option value="google/gemini-2.0-pro-exp-02-05:free">Gemini 2.0 Pro Exp</option>
-              <option value="google/gemini-2.0-flash-thinking-exp:free">Gemini 2.0 Flash Thinking</option>
-              <option value="google/gemini-pro-1.5">Gemini Pro 1.5</option>
-              <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-              <option value="google/gemma-2-27b-it">Gemma 2 27B IT</option>
-            </optgroup>
-
-            <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
-
-            <!-- Meta Models -->
-            <optgroup label="📘 Meta">
-              <option value="meta-llama/llama-4-maverick">Llama 4 Maverick</option>
-              <option value="meta-llama/llama-4-scout">Llama 4 Scout</option>
-              <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B Instruct</option>
-              <option value="meta-llama/llama-guard-3-8b">Llama Guard 3 8B</option>
-              <option value="meta-llama/llama-guard-2-8b">Llama Guard 2 8B</option>
-              <option value="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo">Llama 3.1 8B Turbo</option>
-              <option value="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo">Llama 3.1 70B Turbo</option>
-              <option value="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo">Llama 3.1 405B Turbo</option>
-            </optgroup>
-
-            <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
-
-            <!-- Mistral Models -->
-            <optgroup label="💨 Mistral">
-              <option value="mistral-large-latest">Mistral Large</option>
-              <option value="pixtral-large-latest">Pixtral Large</option>
-              <option value="codestral-latest">Codestral</option>
-            </optgroup>
-
-            <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
-
-            <!-- Other Models -->
-            <optgroup label="❇️ Other">
-              <option value="grok-beta">Grok Beta</option>
-              <option value="x-ai/grok-3-beta">Grok 3 Beta</option>
-            </optgroup>
-          </select>
-          <button class="add-model-button" id="add-model-btn" title="Add model">
+      <div id="model-select-container" class="relative w-full max-w-xs mx-auto text-center model-select-wrapper">
+        <select id="model-select" class="multi-model-select flat" style="height: 32px; cursor: pointer;"></select>
+        <div id="multi-model-row" style="display: none; flex-direction: row; align-items: center; gap: 0.5rem;">
+          <select id="multi-model-select" class="multi-model-select flat" style="flex:1; min-width:0;"></select>
+          <button type="button" id="add-model-btn" class="add-model-button" title="Add model">
             <i class="fa fa-plus"></i>
           </button>
         </div>
-        <div class="selected-models-container"></div>
+        <div class="selected-models-container" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;"></div>
       </div>
     </div>
     <!-- Mode toggles -->
@@ -202,11 +122,11 @@
   <footer class="footer-container w-full max-w-3xl mx-auto fixed bottom-0 left-0 right-0 px-1 sm:px-0 z-40 bg-white dark:bg-gray-900">
     <form id="chat-form" class="flex items-end py-1 space-x-2" autocomplete="off">
       <button type="button" id="voice-input-btn" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full focus:outline-none transition ease-in-out duration-150 flat" aria-label="Voice input">
-        <i class="fa fa-microphone"></i>
+        <i class="fas fa-microphone"></i>
       </button>
       <textarea id="chat-input" required class="flex-1 resize-none border flat rounded-cool py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[30px] max-h-32 dark:bg-gray-800 dark:text-base" placeholder="Type your message..." rows="1" aria-label="Chat input"></textarea>
       <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full focus:outline-none transition ease-in-out duration-150 flat" aria-label="Send message">
-        <i class="fa fa-paper-plane"></i>
+        <i class="fas fa-paper-plane"></i>
       </button>
     </form>
 
@@ -458,6 +378,22 @@
           <i class="fa fa-magic mr-2"></i>Describe Photo
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal for all models selected warning -->
+  <div id="modal-all-models" class="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-gray-900 flat p-6 rounded-cool w-full max-w-md mx-auto shadow-lg border-black border flex flex-col items-center">
+      <div class="flex items-center mb-4">
+        <i class="fa fa-exclamation-triangle text-yellow-500 text-3xl mr-3"></i>
+        <span class="text-lg font-semibold text-gray-800 dark:text-gray-200">All Models Selected</span>
+      </div>
+      <div class="text-gray-700 dark:text-gray-300 mb-4 text-center">
+        You have selected all available models. This may increase usage and response time. Please proceed with caution.
+      </div>
+      <button id="dismiss-all-models-modal" class="bg-blue-600 hover:bg-blue-700 text-white rounded-cool px-4 py-2 mt-2 flat focus:outline-none transition">
+        Dismiss
+      </button>
     </div>
   </div>
 </body>
