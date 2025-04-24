@@ -1760,17 +1760,99 @@ margin-bottom: 0.5rem;
   border-radius: 0.4rem;
   border: 1px dashed var(--primary-color);
   animation: thinkingPulse 2s infinite;
+  white-space: pre-wrap;
+}
+
+/* Model-specific thinking styles */
+.thinking-process.deepseek-reasoner {
+  border-color: #4a90e2;
+  background: rgba(74, 144, 226, 0.1);
+}
+
+.thinking-process.deepseek-reasoner::before {
+  content: "🔍 Systematic Analysis: ";
+  color: #4a90e2;
+}
+
+.thinking-process.o1-mini {
+  border-color: #9c27b0;
+  background: rgba(156, 39, 176, 0.1);
+}
+
+.thinking-process.o1-mini::before {
+  content: "🧩 Logical Reasoning: ";
+  color: #9c27b0;
+}
+
+.thinking-process.o3-mini {
+  border-color: #2196f3;
+  background: rgba(33, 150, 243, 0.1);
+}
+
+.thinking-process.o3-mini::before {
+  content: "🔄 Comprehensive Analysis: ";
+  color: #2196f3;
+}
+
+/* Default thinking process style */
+.thinking-process.default::before {
+  content: "🤔 Thinking: ";
+  color: var(--primary-color);
 }
 
 @keyframes thinkingPulse {
-  0%, 100% { border-color: var(--primary-color); opacity: 0.7; }
-  50% { border-color: var(--accent-color); opacity: 0.9; }
+  0%, 100% { 
+    border-color: currentColor; 
+    opacity: 0.7; 
+  }
+  50% { 
+    border-color: var(--primary-color); 
+    opacity: 0.9; 
+  }
 }
 
-.thinking-process::before {
-  content: "🤔 Analyzing: ";
-  font-weight: 500;
+/* Thinking process sections */
+.thinking-process h3 {
+  font-size: 0.9rem;
+  font-weight: bold;
+  margin: 0.8rem 0 0.4rem 0;
+  color: var(--text-color);
+}
+
+.thinking-process ul {
+  margin: 0.4rem 0;
+  padding-left: 1.2rem;
+}
+
+.thinking-process li {
+  margin: 0.2rem 0;
+}
+
+.thinking-process code {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.2rem;
+  font-size: 0.8rem;
+}
+
+/* Thinking process steps */
+.thinking-process .step {
+  margin: 0.6rem 0;
+  padding-left: 1rem;
+  border-left: 2px solid currentColor;
+}
+
+.thinking-process .step-number {
+  font-weight: bold;
   color: var(--primary-color);
+}
+
+/* Thinking process conclusion */
+.thinking-process .conclusion {
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed currentColor;
+  font-style: italic;
 }
 
 /* Model capability badges improvements */
@@ -1860,4 +1942,65 @@ margin-bottom: 0.5rem;
 .action-button:hover {
   color: var(--primary-color);
   opacity: 1;
+}
+
+/* Camera interface styles */
+#camera-preview {
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  background: #000;
+  border-radius: var(--radius-lg);
+}
+
+#camera-canvas {
+  display: none;
+}
+
+#camera-description {
+  transition: all 0.3s ease;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+#description-loading {
+  color: var(--primary-color);
+}
+
+#describe-photo-btn {
+  transition: all 0.2s ease;
+}
+
+#describe-photo-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#describe-photo-btn:active {
+  transform: translateY(0);
+}
+
+/* Camera permissions error */
+.camera-error {
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  margin: 1rem 0;
+}
+
+.camera-error i {
+  color: var(--primary-color);
+  margin-right: 0.5rem;
+}
+
+/* Responsive camera interface */
+@media (max-width: 640px) {
+  #camera-preview {
+    max-height: 40vh;
+  }
+  
+  #camera-description {
+    max-height: 150px;
+  }
 }

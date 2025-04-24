@@ -576,7 +576,8 @@ function renderChat() {
       modelHeader.textContent = model;
       modelBox.appendChild(modelHeader);
 
-      messages.forEach(m => {
+      // Reverse messages to show newest first
+      messages.reverse().forEach(m => {
         const messageEl = createMessageElement(m);
         modelBox.appendChild(messageEl);
       });
@@ -584,22 +585,20 @@ function renderChat() {
       wrapper.appendChild(modelBox);
     });
   } else {
+    // Reverse messages to show newest first
     for (let i = currentChat.length - 1; i >= 0; i--) {
       const messageEl = createMessageElement(currentChat[i]);
       wrapper.appendChild(messageEl);
     }
   }
 
-  // Always scroll to the latest message
-  if (currentChat.length > 0) {
-    setTimeout(() => {
-      container.scrollTop = container.scrollHeight;
-    }, 0);
-  }
+  scrollToBottom();
 }
 
+// Update createMessageElement with better thinking process handling
 function createMessageElement(m) {
   const isUser = m.role === 'user';
+  const isThinking = m.role === 'thinking';
   const bubbleClr = isUser ? 
     `border-black ${isDarkMode ? 'bg-gray-800' : 'bg-white'}` : 
     `border-black ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`;
@@ -610,15 +609,30 @@ function createMessageElement(m) {
   messageDiv.className = `chat-message ${align} ${m.streaming ? 'streaming' : ''}`;
 
   let content = "";
-  if (typeof m.content === 'string') {
-    if (userSettings.markdownEnabled && window.marked) {
-      try {
-        content = `<div class="markdown-content">${window.marked(m.content)}</div>`;
-      } catch (e) {
-        console.warn("Markdown parsing failed, falling back to plain text:", e);
+  if (isThinking) {
+    // Determine model-specific thinking class
+    let thinkingClass = 'default';
+    if (m.model) {
+      const modelLower = m.model.toLowerCase();
+      if (modelLower.includes('deepseek-reasoner')) {
+        thinkingClass = 'deepseek-reasoner';
+      } else if (modelLower.includes('o1-mini')) {
+        thinkingClass = 'o1-mini';
+      } else if (modelLower.includes('o3-mini')) {
+        thinkingClass = 'o3-mini';
+      }
+    }
+    
+    content = `<div class="thinking-process ${thinkingClass}">${m.content || ''}</div>`;
+  } else if (typeof m.content === 'string') {
+    try {
+      if (userSettings.markdownEnabled && typeof marked !== 'undefined') {
+        content = `<div class="markdown-content">${marked.parse(m.content)}</div>`;
+      } else {
         content = `<div>${m.content}</div>`;
       }
-    } else {
+    } catch (e) {
+      console.warn("Markdown parsing failed:", e);
       content = `<div>${m.content}</div>`;
     }
   } else if (m.content?.type === "img") {
@@ -641,6 +655,14 @@ function createMessageElement(m) {
   `;
 
   return messageDiv;
+}
+
+// Add scroll to bottom function
+function scrollToBottom() {
+  const container = document.getElementById('chat-container');
+  if (container) {
+    container.scrollTop = 0; // Scroll to top since messages are reversed
+  }
 }
 
 // ---- CHAT INPUT ----
@@ -688,9 +710,78 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// Update thinking process prompt format
-function formatThinkingPrompt(text) {
-  return `Let's approach this step by step:
+// Update thinking process prompt format based on model
+function formatThinkingPrompt(text, model) {
+  // DeepSeek Reasoner format
+  if (model.toLowerCase().includes('deepseek-reasoner')) {
+    return `Let's analyze this systematically:
+
+1. Problem Statement:
+   ${text}
+
+2. Key Components to Consider:
+   - Break down the main elements
+   - Identify relationships and dependencies
+   - Consider potential constraints
+
+3. Analysis Process:
+   - Examine each component
+   - Evaluate interactions
+   - Consider implications
+
+4. Reasoning Steps:
+   [Let's think through this step by step]
+
+Please provide a structured analysis following this framework.`;
+  }
+  
+  // o1-mini format (focused on logical reasoning)
+  else if (model.toLowerCase().includes('o1-mini')) {
+    return `Let's solve this through logical reasoning:
+
+Input: ${text}
+
+Reasoning Process:
+1. Initial State:
+   - What do we know?
+   - What are we trying to achieve?
+
+2. Logical Steps:
+   - Break down the problem
+   - Consider each possibility
+   - Eliminate invalid options
+
+3. Solution Path:
+   [Working through step-by-step]
+
+Please provide clear logical reasoning.`;
+  }
+  
+  // o3-mini format (focused on comprehensive analysis)
+  else if (model.toLowerCase().includes('o3-mini')) {
+    return `Let's analyze this comprehensively:
+
+Question/Task: ${text}
+
+Analysis Framework:
+1. Context & Background:
+   - Key information
+   - Relevant factors
+
+2. Detailed Examination:
+   - Primary considerations
+   - Secondary effects
+   - Potential implications
+
+3. Synthesis:
+   [Building understanding step by step]
+
+Please provide a thorough analysis.`;
+  }
+  
+  // Default format for other models
+  else {
+    return `Let's approach this step by step:
 
 1. First, let's understand what's being asked:
    ${text}
@@ -708,97 +799,27 @@ function formatThinkingPrompt(text) {
    - Form conclusions
 
 Please provide a structured analysis following this framework.`;
+  }
 }
 
-// Enhanced model capabilities
-function getModelCapabilities(model) {
-  const capabilities = {
-    think: false,
-    stream: false,
-    vision: false,
-    code: false,
-    context: false
-  };
-
-  // Thinking capability
-  if (model.toLowerCase().includes('reason') || 
-      model.toLowerCase().includes('think') ||
-      model.includes('claude-3') ||
-      model.includes('gpt-4') ||
-      model.includes('o1') ||
-      model.includes('mistral') ||
-      model.includes('deepseek-reasoner')) {
-    capabilities.think = true;
-  }
-
-  // Streaming capability
-  if (isModelStreamCapable(model)) {
-    capabilities.stream = true;
-  }
-
-  // Vision capability
-  if (model.includes('vision') || 
-      model.includes('vl') || 
-      model.includes('pixtral') || 
-      model.includes('gpt-4') || 
-      model.includes('o3') || 
-      model.includes('o4') || 
-      model.includes('claude-3')) {
-    capabilities.vision = true;
-  }
-
-  // Code capability
-  if (model.includes('codestral') || 
-      model.includes('code') || 
-      model.includes('coder') ||
-      model.includes('gpt-4') || 
-      model.includes('claude-3')) {
-    capabilities.code = true;
-  }
-
-  // Long context capability
-  if (model.includes('32k') || 
-      model.includes('128k') || 
-      model.includes('gemini-1.5') || 
-      model.includes('claude-3') || 
-      model.includes('o1-pro')) {
-    capabilities.context = true;
-  }
-
-  return capabilities;
+// Update isModelThinkCapable function to better identify thinking capabilities
+function isModelThinkCapable(model) {
+  const modelLower = model.toLowerCase();
+  
+  // Specific model checks
+  return (
+    modelLower.includes('deepseek-reasoner') ||
+    modelLower.includes('o1') ||
+    modelLower.includes('o3') ||
+    modelLower.includes('claude-3') ||
+    modelLower.includes('gpt-4') ||
+    modelLower.includes('mistral') ||
+    modelLower.includes('think') ||
+    modelLower.includes('reason')
+  );
 }
 
-// Update model option display
-function createModelOption(model, capabilities) {
-  const optionDiv = document.createElement('div');
-  optionDiv.className = 'model-select-option';
-  
-  let badges = '';
-  if (capabilities.think) {
-    badges += '<span class="model-capability think"><i class="fa fa-brain"></i>Think</span>';
-  }
-  if (capabilities.stream) {
-    badges += '<span class="model-capability stream"><i class="fa fa-stream"></i>Stream</span>';
-  }
-  if (capabilities.vision) {
-    badges += '<span class="model-capability vision"><i class="fa fa-eye"></i>Vision</span>';
-  }
-  if (capabilities.code) {
-    badges += '<span class="model-capability code"><i class="fa fa-code"></i>Code</span>';
-  }
-  if (capabilities.context) {
-    badges += '<span class="model-capability context"><i class="fa fa-file-alt"></i>Long</span>';
-  }
-  
-  optionDiv.innerHTML = `
-    <span class="model-name">${model}</span>
-    <div class="model-badges">${badges}</div>
-  `;
-  
-  return optionDiv;
-}
-
-// Update aiSend function to use new thinking prompt
+// Update aiSend function to pass model to formatThinkingPrompt
 async function aiSend(txt, model, usetime) {
   const models = multiModelMode ? (selectedModels.length > 0 ? selectedModels : [model]) : [model];
 
@@ -809,7 +830,7 @@ async function aiSend(txt, model, usetime) {
       content: "", 
       time: nowStr(), 
       model: currentModel,
-      streaming: true 
+      streaming: streamingMode && isModelStreamCapable(currentModel)
     });
     renderChat();
 
@@ -831,23 +852,24 @@ async function aiSend(txt, model, usetime) {
         });
         renderChat();
 
-        // Generate thinking process with new format
-        const thinkingPrompt = formatThinkingPrompt(txt);
+        // Generate thinking process with model-specific format
+        const thinkingPrompt = formatThinkingPrompt(txt, currentModel);
         try {
-          let thinkingProcess = '';
-          const thinkingStream = await puter.ai.chat(thinkingPrompt, { ...opts, stream: true });
-
-          for await (const chunk of thinkingStream) {
-            if (chunk?.text) {
-              thinkingProcess += chunk.text;
-              currentChat[thinkingIdx].content = thinkingProcess;
-              renderChat();
-            }
-          }
-
-          // Now generate the actual response
-          const finalPrompt = `Based on this analysis:\n${thinkingProcess}\n\nProvide a clear and concise response to: ${txt}`;
           if (opts.stream) {
+            let thinkingProcess = '';
+            const thinkingStream = await puter.ai.chat(thinkingPrompt, { ...opts, stream: true });
+
+            for await (const chunk of thinkingStream) {
+              if (chunk?.text) {
+                thinkingProcess += chunk.text;
+                currentChat[thinkingIdx].content = thinkingProcess;
+                renderChat();
+                scrollToBottom();
+              }
+            }
+
+            // Now generate the actual response
+            const finalPrompt = `Based on this analysis:\n${thinkingProcess}\n\nProvide a clear and concise response to: ${txt}`;
             let fullResponse = '';
             const stream = await puter.ai.chat(finalPrompt, opts);
 
@@ -856,16 +878,27 @@ async function aiSend(txt, model, usetime) {
                 fullResponse += chunk.text;
                 currentChat[idx].content = fullResponse;
                 renderChat();
+                scrollToBottom();
               }
             }
           } else {
+            // Non-streaming mode
+            const thinkingResp = await puter.ai.chat(thinkingPrompt, opts);
+            const thinkingProcess = thinkingResp?.message?.content || thinkingResp?.message?.text || thinkingResp?.text || '';
+            currentChat[thinkingIdx].content = thinkingProcess;
+            renderChat();
+
+            const finalPrompt = `Based on this analysis:\n${thinkingProcess}\n\nProvide a clear and concise response to: ${txt}`;
             const resp = await puter.ai.chat(finalPrompt, opts);
             currentChat[idx].content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
+            renderChat();
+            scrollToBottom();
           }
         } catch (error) {
           console.error("Thinking process error:", error);
           currentChat[thinkingIdx].content = "[ANALYSIS ERROR]: " + (error.message || "Unknown error");
           currentChat[idx].content = "[ERROR]: Failed to complete analysis";
+          renderChat();
         }
       } else {
         // Normal response without thinking process
@@ -878,11 +911,15 @@ async function aiSend(txt, model, usetime) {
               fullResponse += chunk.text;
               currentChat[idx].content = fullResponse;
               renderChat();
+              scrollToBottom();
             }
           }
         } else {
+          // Non-streaming mode
           const resp = await puter.ai.chat(txt, opts);
           currentChat[idx].content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
+          renderChat();
+          scrollToBottom();
         }
       }
 
@@ -1735,36 +1772,23 @@ function getProviderIcon(provider) {
 
 // Get model capabilities
 function isModelStreamCapable(model) {
-  const streamingModels = [
-    // OpenAI Models
-    'gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4.5-preview',
-    'o1', 'o1-mini', 'o1-pro', 'o3', 'o3-mini', 'o4-mini',
-    
-    // Anthropic Models
-    'claude-3-7-sonnet', 'claude-3-5-sonnet',
-    
-    // DeepSeek Models
-    'deepseek-chat', 'deepseek-reasoner',
-    
-    // Google Models
-    'gemini-2.0-flash', 'gemini-1.5-flash',
-    
-    // Meta/Llama Models
-    'meta-llama/llama-4-maverick', 'meta-llama/llama-4-scout',
-    'meta-llama/llama-3.3-70b-instruct', 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
-    'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
-    
-    // Mistral Models
-    'mistral-large-latest', 'pixtral-large-latest', 'codestral-latest',
-  ];
+  const modelLower = model.toLowerCase();
   
-  // Check if model is in the list or matches known streaming patterns
-  return streamingModels.includes(model) || 
-         model.toLowerCase().includes('stream') ||
-         model.toLowerCase().includes('claude-3') ||
-         model.toLowerCase().includes('gpt-4') ||
-         model.toLowerCase().includes('mistral') ||
-         model.toLowerCase().includes('gemini');
+  // Check for specific model patterns
+  return (
+    modelLower.includes('gpt-4') ||
+    modelLower.includes('claude-3') ||
+    modelLower.includes('deepseek') ||
+    modelLower.includes('gemini') ||
+    modelLower.includes('mistral') ||
+    modelLower.includes('llama') ||
+    modelLower.includes('grok') ||
+    modelLower.includes('o1') ||
+    modelLower.includes('o3') ||
+    modelLower.includes('o4') ||
+    modelLower.includes('stream') ||
+    modelLower.includes('flash')
+  );
 }
 
 function getModelCapabilities(model) {
@@ -3792,5 +3816,113 @@ document.addEventListener('DOMContentLoaded', function() {
   const loginBtn = document.getElementById('puter-login-btn');
   if (loginBtn) {
     loginBtn.onclick = handlePuterAuth;
+  }
+});
+
+// Camera functionality
+let cameraStream = null;
+
+async function initializeCamera() {
+  const video = document.getElementById('camera-preview');
+  const canvas = document.getElementById('camera-canvas');
+  const describeBtn = document.getElementById('describe-photo-btn');
+  const descriptionDiv = document.getElementById('camera-description');
+  const descriptionLoading = document.getElementById('description-loading');
+  const descriptionContent = document.getElementById('description-content');
+
+  try {
+    // Get camera access
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        facingMode: 'environment',
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      } 
+    });
+    
+    video.srcObject = stream;
+    cameraStream = stream;
+    
+    // Setup describe photo button
+    describeBtn.onclick = async function() {
+      // Capture frame
+      const context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // Convert to data URL
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      
+      // Show description area and loading state
+      descriptionDiv.classList.remove('hidden');
+      descriptionLoading.classList.remove('hidden');
+      descriptionContent.innerHTML = '';
+      
+      try {
+        // Get description from AI
+        const response = await puter.ai.chat("Please describe this image in detail, including any notable objects, people, actions, or text visible in the image.", imageData);
+        
+        // Display description
+        descriptionLoading.classList.add('hidden');
+        descriptionContent.innerHTML = response?.message?.content || response?.text || response;
+      } catch (error) {
+        console.error('Error getting image description:', error);
+        descriptionLoading.classList.add('hidden');
+        descriptionContent.innerHTML = `<span class="text-red-500">Error analyzing image: ${error.message}</span>`;
+      }
+    };
+  } catch (error) {
+    console.error('Error accessing camera:', error);
+    video.parentElement.innerHTML = `
+      <div class="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 p-4 rounded-cool">
+        <p><i class="fa fa-exclamation-triangle mr-2"></i>Error accessing camera:</p>
+        <p class="text-sm mt-2">${error.message}</p>
+        <p class="text-sm mt-2">Please make sure you have granted camera permissions.</p>
+      </div>
+    `;
+  }
+}
+
+// Stop camera stream when popup is closed
+function stopCamera() {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
+}
+
+// Update document ready event listener to include camera button
+document.addEventListener('DOMContentLoaded', function() {
+  // ... existing code ...
+
+  const cameraBtn = document.getElementById('btn-camera');
+  if (cameraBtn) {
+    cameraBtn.onclick = function() {
+      togglePopup('camera', true);
+      initializeCamera();
+    };
+  }
+
+  // Add camera cleanup when popup is closed
+  const popupOverlay = document.getElementById('popup-overlay');
+  if (popupOverlay) {
+    const originalOnClick = popupOverlay.onclick;
+    popupOverlay.onclick = function(event) {
+      if (event.target === popupOverlay) {
+        stopCamera();
+        if (originalOnClick) originalOnClick.call(this, event);
+      }
+    };
+  }
+
+  // Add camera cleanup to popup close button
+  const cameraCloseBtn = document.querySelector('#popup-camera .fa-times').parentElement;
+  if (cameraCloseBtn) {
+    const originalOnClick = cameraCloseBtn.onclick;
+    cameraCloseBtn.onclick = function() {
+      stopCamera();
+      if (originalOnClick) originalOnClick.call(this);
+    };
   }
 });

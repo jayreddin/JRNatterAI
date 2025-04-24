@@ -28,20 +28,27 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-javascript.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-css.min.js" defer></script>
 
-  <!-- Markdown support -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
   <!-- Core script -->
   <script src="https://js.puter.com/v2/"></script>
+
+  <!-- Markdown support -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+
+  <!-- Initialize marked -->
   <script>
-    // Initialize marked with default options
-    window.marked = marked;
-    window.marked.setOptions({
-      breaks: true,
-      gfm: true,
-      headerIds: false,
-      mangle: false
-    });
+    window.onload = function() {
+      if (typeof marked !== 'undefined') {
+        marked.use({
+          mangle: false,
+          headerIds: false
+        });
+        window.marked = {
+          parse: function(text) {
+            return marked.parse(text);
+          }
+        };
+      }
+    };
   </script>
 
   <!-- Main script -->
@@ -209,6 +216,7 @@
         <button class="feature-btn" id="btn-history" aria-label="Chat history"><i class="fa fa-history" aria-hidden="true"></i></button>
         <button class="feature-btn" id="btn-file" aria-label="File upload & OCR"><i class="fa fa-file-arrow-up" aria-hidden="true"></i></button>
         <button class="feature-btn" id="btn-image" aria-label="Generate image"><i class="fa fa-image" aria-hidden="true"></i></button>
+        <button class="feature-btn" id="btn-camera" aria-label="Camera"><i class="fa fa-camera" aria-hidden="true"></i></button>
         <button class="feature-btn" id="btn-settings" aria-label="Settings"><i class="fa fa-gear" aria-hidden="true"></i></button>
       </div>
 
@@ -414,6 +422,35 @@
         <div class="token-usage-details space-y-2">
           <!-- Additional token usage details will be injected here -->
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add camera popup dialog -->
+  <div id="popup-camera" class="popup-ptr hidden">
+    <div class="bg-white dark:bg-gray-900 flat p-4 rounded-cool w-full max-w-lg mx-auto shadow-lg border-black border">
+      <div class="flex justify-between items-center mb-2">
+        <strong class="text-lg">Camera</strong>
+        <button class="text-gray-400 hover:text-black dark:hover:text-yellow-400 text-xl focus:outline-none"
+          onclick="togglePopup('camera',false)">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <div class="relative">
+          <video id="camera-preview" class="w-full rounded-cool" autoplay playsinline></video>
+          <canvas id="camera-canvas" class="hidden"></canvas>
+        </div>
+        <div id="camera-description" class="bg-gray-100 dark:bg-gray-800 p-3 rounded-cool min-h-[100px] hidden">
+          <div id="description-loading" class="flex items-center justify-center py-4 hidden">
+            <i class="fa fa-spinner fa-spin mr-2"></i>
+            <span>Analyzing image...</span>
+          </div>
+          <div id="description-content" class="text-sm"></div>
+        </div>
+        <button id="describe-photo-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-cool">
+          <i class="fa fa-magic mr-2"></i>Describe Photo
+        </button>
       </div>
     </div>
   </div>
