@@ -560,12 +560,31 @@ select#model-select {
 /* Multi-model chat improvements */
 .multi-model-chat {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  padding: 0.5rem;
-  height: auto;
+  gap: 1rem;
+  padding: 1rem;
   min-height: 200px;
   overflow-y: visible;
+}
+
+.multi-model-chat-cols-1 { grid-template-columns: 1fr; }
+.multi-model-chat-cols-2 { grid-template-columns: 1fr 1fr; }
+.multi-model-chat-cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.multi-model-chat-cols-4, .multi-model-chat-cols-5, .multi-model-chat-cols-6 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+@media (max-width: 900px) {
+  .multi-model-chat-cols-2, .multi-model-chat-cols-3, .multi-model-chat-cols-4, .multi-model-chat-cols-5, .multi-model-chat-cols-6 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .multi-model-chat,
+  .multi-model-chat-cols-1,
+  .multi-model-chat-cols-2,
+  .multi-model-chat-cols-3,
+  .multi-model-chat-cols-4,
+  .multi-model-chat-cols-5,
+  .multi-model-chat-cols-6 {
+    grid-template-columns: 1fr;
+  }
 }
 
 .model-box {
@@ -760,115 +779,122 @@ select#model-select {
 /* Multi-model mode styles */
 .multi-model-container {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
   margin-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  overflow-y: auto;
-  max-height: 8rem;
-  width: 100%;
-  justify-content: center;
+  padding: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.model-select-container {
-  position: relative;
-  width: 100%;
-  max-width: 300px;
-  margin: 0 auto;
-  text-align: center;
+.selected-models-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  align-items: center;
 }
 
-.model-selector-container {
+.selected-model-chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--button-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  gap: 0.5rem;
+  color: var(--text-color);
+}
+
+.selected-model-chip .remove-model {
+  cursor: pointer;
+  padding: 0.1rem;
+  border-radius: 50%;
+  width: 1.2em;
+  height: 1.2em;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 0.5rem;
+  transition: background-color 0.2s;
+  color: #ef4444;
+}
+
+.selected-model-chip .remove-model:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* Multi-model chat grid layout */
+.multi-model-chat {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.model-response-box {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  min-height: 200px;
+}
+
+.model-response-header {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .multi-model-chat {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .multi-model-chat {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Model select wrapper and add button */
+.model-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   width: 100%;
 }
 
-/* Enhanced model list styling */
-.model-item {
-  padding: 0.3rem 0.4rem;
-  border-bottom: 1px solid var(--border-color);
-  font-size: 0.85rem;
+.model-select-wrapper select {
+  flex: 1;
 }
 
-.model-item .form-checkbox {
-  width: 0.9rem;
-  height: 0.9rem;
-  margin-right: 0.4rem;
+.add-model-button {
+  display: none; /* Hidden by default, shown in multi-mode */
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px; /* Prevent squashing */
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  margin: 0;
 }
 
-.model-item .model-name {
-  font-size: 0.85rem;
+.add-model-button:hover {
+  background: var(--primary-hover);
+  transform: scale(1.05);
 }
 
-.provider-header {
-  font-size: 0.9rem;
-  padding: 0.3rem 0;
-  margin: 0.4rem 0 0.2rem 0;
-}
-
-/* Chat message improvements */
-.chat-message.user-message {
-  align-items: flex-end;
-}
-
-.message-timestamp {
-  font-size: 0.62rem;
-  opacity: 0.7;
-  margin: 0 0.2rem;
-  color: var(--text-color);
-}
-
-.chat-bubble {
-  position: relative;
-  max-width: 85%;
-  padding: 0.25rem 0.5rem;
-  margin: 0.1rem 0;
-  border-radius: 0.8rem;
-  line-height: 1.15;
-  font-size: 0.88rem;
-  min-height: 1.6em;
-}
-
-.user-message .chat-bubble {
-  border-bottom-right-radius: 0.2rem;
-  background: var(--button-bg);
-  border: 1px solid var(--border-color);
-  color: var(--text-color);
-}
-
-.assistant-message .chat-bubble {
-  border-bottom-left-radius: 0.2rem;
-  background: var(--bg-color);
-  border: 1px solid var(--border-color);
-  color: var(--text-color);
-}
-
-.message-actions {
+.multi-mode-active .add-model-button {
   display: flex;
-  gap: 0.25rem;
-  opacity: 0;
-  transition: opacity 0.2s;
-  margin: 0.1rem 0.2rem;
-}
-
-.chat-message:hover .message-actions {
-  opacity: 1;
-}
-
-.action-button {
-  padding: 0.12rem;
-  font-size: 0.7rem;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-  color: var(--icon-color);
-}
-
-.action-button:hover {
-  color: var(--primary-color);
-  opacity: 1;
 }
 
 /* Model search improvements */
@@ -1322,7 +1348,12 @@ margin-bottom: 0.5rem;
   }
   
   #model-select-container {
-    max-width: 180px;
+    max-width: 100vw;
+    width: 100vw;
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 0;
   }
   
   #model-select {
@@ -1357,6 +1388,21 @@ margin-bottom: 0.5rem;
     margin-left: 0.5rem;
     margin-right: 0.5rem;
     max-width: calc(100vw - 1rem);
+  }
+  
+  .model-select-dropdown {
+    position: absolute;
+    left: 0;
+    right: 0;
+    width: 100vw !important;
+    min-width: 0;
+    max-width: 100vw;
+    margin-left: -16px; /* adjust if needed to align with container padding */
+    border-radius: 0 0 0.7rem 0.7rem;
+    z-index: 100;
+    max-height: 50vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
   }
 }
 
@@ -1410,9 +1456,10 @@ margin-bottom: 0.5rem;
 /* Multi-model chat grid layout */
 .multi-model-chat {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   padding: 1rem;
+  min-height: 200px;
+  overflow-y: visible;
 }
 
 .multi-model-chat .chat-message {
@@ -1687,320 +1734,114 @@ margin-bottom: 0.5rem;
   color: var(--text-color);
 }
 
-/* Multi-model add button */
-.add-model-button {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 1.8rem;
-  height: 1.8rem;
-  border-radius: 50%;
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-left: 0.5rem;
-}
-
-.add-model-button:hover {
-  background: var(--primary-hover);
-  transform: scale(1.05);
-}
-
-.multi-mode-active .add-model-button {
+/* Camera popup improvements */
+#popup-camera .popup-content {
+  max-height: 90vh;
   display: flex;
+  flex-direction: column;
 }
 
-/* Model selection dropdown */
-.model-select-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: var(--bg-color);
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  box-shadow: var(--shadow-md);
-  z-index: 100;
-  max-height: 300px;
-  overflow-y: auto;
-  display: none;
-}
-
-.model-select-dropdown.visible {
-  display: block;
-}
-
-.model-select-option {
-  display: flex;
-  align-items: center;
-  padding: 0.4rem 0.6rem;
-  cursor: pointer;
-  border-radius: 0.3rem;
-  color: var(--text-color);
-}
-
-.model-select-option:hover {
-  background: var(--button-hover);
-}
-
-/* Thinking process display improvements */
-.thinking-process {
-  font-family: monospace;
-  font-size: 0.82rem;
-  color: var(--text-color);
-  opacity: 0.85;
-  padding: 0.3rem 0.6rem;
-  margin: 0.15rem 0;
-  background: var(--button-bg);
-  border-radius: 0.4rem;
-  border: 1px dashed var(--primary-color);
-  animation: thinkingPulse 2s infinite;
-  white-space: pre-wrap;
-}
-
-/* Model-specific thinking styles */
-.thinking-process.deepseek-reasoner {
-  border-color: #4a90e2;
-  background: rgba(74, 144, 226, 0.1);
-}
-
-.thinking-process.deepseek-reasoner::before {
-  content: "🔍 Systematic Analysis: ";
-  color: #4a90e2;
-}
-
-.thinking-process.o1-mini {
-  border-color: #9c27b0;
-  background: rgba(156, 39, 176, 0.1);
-}
-
-.thinking-process.o1-mini::before {
-  content: "🧩 Logical Reasoning: ";
-  color: #9c27b0;
-}
-
-.thinking-process.o3-mini {
-  border-color: #2196f3;
-  background: rgba(33, 150, 243, 0.1);
-}
-
-.thinking-process.o3-mini::before {
-  content: "🔄 Comprehensive Analysis: ";
-  color: #2196f3;
-}
-
-/* Default thinking process style */
-.thinking-process.default::before {
-  content: "🤔 Thinking: ";
-  color: var(--primary-color);
-}
-
-@keyframes thinkingPulse {
-  0%, 100% { 
-    border-color: currentColor; 
-    opacity: 0.7; 
-  }
-  50% { 
-    border-color: var(--primary-color); 
-    opacity: 0.9; 
-  }
-}
-
-/* Thinking process sections */
-.thinking-process h3 {
-  font-size: 0.9rem;
-  font-weight: bold;
-  margin: 0.8rem 0 0.4rem 0;
-  color: var(--text-color);
-}
-
-.thinking-process ul {
-  margin: 0.4rem 0;
-  padding-left: 1.2rem;
-}
-
-.thinking-process li {
-  margin: 0.2rem 0;
-}
-
-.thinking-process code {
-  background: rgba(0, 0, 0, 0.1);
-  padding: 0.1rem 0.3rem;
-  border-radius: 0.2rem;
-  font-size: 0.8rem;
-}
-
-/* Thinking process steps */
-.thinking-process .step {
-  margin: 0.6rem 0;
-  padding-left: 1rem;
-  border-left: 2px solid currentColor;
-}
-
-.thinking-process .step-number {
-  font-weight: bold;
-  color: var(--primary-color);
-}
-
-/* Thinking process conclusion */
-.thinking-process .conclusion {
-  margin-top: 1rem;
-  padding-top: 0.5rem;
-  border-top: 1px dashed currentColor;
-  font-style: italic;
-}
-
-/* Model capability badges improvements */
-.model-capability {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.15rem 0.3rem;
-  border-radius: 0.3rem;
-  font-size: 0.65rem;
-  margin-left: 0.3rem;
-  background: var(--primary-color);
-  color: white;
-  opacity: 0.9;
-  gap: 0.2rem;
-}
-
-.model-capability i {
-  font-size: 0.65rem;
-}
-
-.model-capability.think {
-  background: #9333ea;
-}
-
-.model-capability.stream {
-  background: #0891b2;
-}
-
-.model-capability.vision {
-  background: #15803d;
-}
-
-.model-capability.code {
-  background: #b91c1c;
-}
-
-.model-capability.context {
-  background: #c2410c;
-}
-
-/* Bubble size variations - more compact */
-.bubble-size-compact .chat-bubble {
-  padding: 0.15rem 0.35rem;
-  margin: 0.03rem 0;
-  font-size: 0.82rem;
-  line-height: 1.1;
-  min-height: 1.4em;
-}
-
-.bubble-size-normal .chat-bubble {
-  padding: 0.25rem 0.5rem;
-  margin: 0.1rem 0;
-  font-size: 0.88rem;
-  line-height: 1.15;
-  min-height: 1.6em;
-}
-
-.bubble-size-large .chat-bubble {
-  padding: 0.35rem 0.65rem;
-  margin: 0.15rem 0;
-  font-size: 0.95rem;
-  line-height: 1.2;
-  min-height: 1.8em;
-}
-
-/* Message actions improvements */
-.message-actions {
-  display: flex;
-  gap: 0.25rem;
-  opacity: 0;
-  transition: opacity 0.2s;
-  margin: 0.1rem 0.2rem;
-}
-
-.chat-message:hover .message-actions {
-  opacity: 1;
-}
-
-.action-button {
-  padding: 0.12rem;
-  font-size: 0.7rem;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-  color: var(--icon-color);
-}
-
-.action-button:hover {
-  color: var(--primary-color);
-  opacity: 1;
-}
-
-/* Camera interface styles */
 #camera-preview {
   width: 100%;
-  max-height: 60vh;
+  max-height: 50vh;
   object-fit: contain;
-  background: #000;
-  border-radius: var(--radius-lg);
+  transition: max-height 0.3s ease;
 }
 
-#camera-canvas {
-  display: none;
+#camera-preview.small {
+  max-height: 30vh;
 }
 
 #camera-description {
-  transition: all 0.3s ease;
-  max-height: 200px;
+  flex: 1;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-#description-loading {
-  color: var(--primary-color);
+#camera-description::-webkit-scrollbar {
+  display: none;
 }
 
-#describe-photo-btn {
-  transition: all 0.2s ease;
-}
-
-#describe-photo-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-#describe-photo-btn:active {
-  transform: translateY(0);
-}
-
-/* Camera permissions error */
-.camera-error {
-  padding: 1rem;
-  border-radius: var(--radius-lg);
-  background: var(--bg-color);
-  border: 1px solid var(--border-color);
+.camera-controls {
+  display: flex;
+  gap: 0.5rem;
   margin: 1rem 0;
 }
 
-.camera-error i {
-  color: var(--primary-color);
+.camera-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.camera-button:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.camera-button i {
   margin-right: 0.5rem;
 }
 
-/* Responsive camera interface */
-@media (max-width: 640px) {
-  #camera-preview {
-    max-height: 40vh;
-  }
-  
-  #camera-description {
-    max-height: 150px;
-  }
+/* Markdown styles */
+.markdown-content {
+  line-height: 1.6;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+.markdown-content h1 { font-size: 1.5em; }
+.markdown-content h2 { font-size: 1.3em; }
+.markdown-content h3 { font-size: 1.1em; }
+
+.markdown-content p {
+  margin-bottom: 1em;
+}
+
+.markdown-content pre {
+  background: var(--button-bg);
+  padding: 1em;
+  border-radius: 0.5em;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.markdown-content code {
+  background: var(--button-bg);
+  padding: 0.2em 0.4em;
+  border-radius: 0.3em;
+  font-family: monospace;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin: 1em 0;
+  padding-left: 2em;
+}
+
+.markdown-content li {
+  margin: 0.5em 0;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid var(--border-color);
+  padding-left: 1em;
+  margin: 1em 0;
+  color: var(--text-color);
+  opacity: 0.8;
 }

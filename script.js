@@ -59,44 +59,42 @@ window.toggleStreamingMode = function(enabled) {
 };
 
 window.toggleMultiModel = function(enabled) {
-  try {
-    multiModelMode = enabled;
-    userSettings.multiModelMode = enabled;
-    saveSettings();
+  multiModelMode = enabled;
+  userSettings.multiModelMode = enabled;
+  saveSettings();
 
-    // Update UI
-    const multiToggle = document.getElementById('multi-toggle');
-    const container = document.getElementById('model-select-container');
-    
-    if (multiToggle) {
-      multiToggle.checked = enabled;
-    }
-
-    if (container) {
-      container.classList.toggle('multi-mode-active', enabled);
-    }
-
-    // Update model selection display
-    if (enabled) {
-      if (selectedModels.length === 0) {
-        const modelSelect = document.getElementById('model-select');
-        selectedModels = modelSelect ? [modelSelect.value] : ["gpt-4o-mini"];
-      }
-            updateMultiModelDisplay();
-    } else {
-      // Keep only the first selected model when turning off multi-model mode
-      const modelSelect = document.getElementById('model-select');
-      if (modelSelect && selectedModels.length > 0) {
-        modelSelect.value = selectedModels[0];
-      }
-      selectedModels = [];
-    }
-
-    // Re-render chat to update layout
-    renderChat();
-  } catch (error) {
-    console.error('Error toggling multi-model mode:', error);
+  // Update UI
+  const multiToggle = document.getElementById('multi-toggle');
+  const container = document.getElementById('model-select-container');
+  
+  if (multiToggle) {
+    multiToggle.checked = enabled;
   }
+
+  if (container) {
+    container.classList.toggle('multi-mode-active', enabled);
+  }
+
+  if (!enabled) {
+    // Clear selected models when disabling multi-mode
+    selectedModels = [];
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect) {
+      // Re-enable all options
+      Array.from(modelSelect.options).forEach(option => {
+        option.disabled = false;
+      });
+    }
+  } else if (selectedModels.length === 0) {
+    // Initialize with current model when enabling
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect) {
+      selectedModels = [modelSelect.value];
+    }
+  }
+
+  updateMultiModelDisplay();
+  renderChat();
 }
 
 // Update multi-model display
@@ -110,7 +108,21 @@ function updateMultiModelDisplay() {
     existingDisplay.remove();
   }
 
-  if (!multiModelMode) return;
+  // Only show selected models when in multi-model mode
+  if (!multiModelMode) {
+    // Hide add button when not in multi-model mode
+    const addButton = document.getElementById('add-model-btn');
+    if (addButton) {
+      addButton.style.display = 'none';
+    }
+    return;
+  }
+
+  // Show add button in multi-model mode
+  const addButton = document.getElementById('add-model-btn');
+  if (addButton) {
+    addButton.style.display = 'flex';
+  }
 
   // Create new display container
   const displayContainer = document.createElement('div');
@@ -119,19 +131,62 @@ function updateMultiModelDisplay() {
   selectedModels.forEach((model, idx) => {
     const chip = document.createElement('div');
     chip.className = 'selected-model-chip';
-
+    
     // Format model name for display
-    const displayName = model.length > 20 ? model.substring(0, 17) + '...' : model;
-
+    const displayName = formatModelName(model);
+    
     chip.innerHTML = `
       <span title="${model}">${displayName}</span>
-      <span class="remove-model" onclick="removeSelectedModel(${idx})">×</span>
+      <span class="remove-model" onclick="removeSelectedModel(${idx})" title="Remove model">×</span>
     `;
     
     displayContainer.appendChild(chip);
   });
 
   container.appendChild(displayContainer);
+
+  // Update the model dropdown to disable selected models
+  const modelSelect = document.getElementById('model-select');
+  if (modelSelect) {
+    Array.from(modelSelect.options).forEach(option => {
+      option.disabled = selectedModels.includes(option.value);
+    });
+  }
+}
+
+// Format model name for display
+function formatModelName(model) {
+  if (!model) return 'Unknown Model';
+  
+  // Remove common prefixes
+  let displayName = model
+    .replace('openrouter:', '')
+    .replace('meta-llama/', '')
+    .replace('google/', '')
+    .replace('anthropic/', '')
+    .replace('mistralai/', '');
+
+  // Split on last part of path if exists
+  const parts = displayName.split('/');
+  if (parts.length > 1) {
+    displayName = parts[parts.length - 1];
+  }
+
+  // Clean up common model names
+  displayName = displayName
+    .replace('llama-', 'Llama ')
+    .replace('gpt-', 'GPT-')
+    .replace('claude-', 'Claude ')
+    .replace('-instruct', '')
+    .replace('-turbo', '')
+    .replace('-latest', '');
+
+  // Truncate if still too long
+  if (displayName.length > 20) {
+    displayName = displayName.substring(0, 17) + '...';
+  }
+
+  return displayName;
 }
 
 // Global function for removing models from multi-model selection
@@ -299,70 +354,70 @@ function setTheme(mode) {
 
 // Toggle streaming mode
 function toggleStreamingMode(enabled) {
-  try {
-    streamingMode = enabled;
-    userSettings.streamingMode = enabled;
-    saveSettings();
-    updateModelSelectOptions();
+  streamingMode = enabled;
+  userSettings.streamingMode = enabled;
+  saveSettings();
 
-    // Update UI to reflect streaming mode
-    const streamToggle = document.getElementById('streaming-toggle');
-    if (streamToggle) {
-      streamToggle.checked = enabled;
-    }
+  // Update UI
+  const streamToggle = document.getElementById('streaming-toggle');
+  if (streamToggle) {
+    streamToggle.checked = enabled;
+  }
 
-    // Disable non-streaming models
+  // Update available models
+  updateModelSelectOptions();
+
+  // If current model isn't stream capable, switch to one that is
+  if (enabled) {
     const modelSelect = document.getElementById('model-select');
-    if (modelSelect) {
-      Array.from(modelSelect.options).forEach(option => {
-        option.disabled = enabled && !isModelStreamCapable(option.value);
-      });
+    if (modelSelect && !isModelStreamCapable(modelSelect.value)) {
+      const streamCapableOption = Array.from(modelSelect.options)
+        .find(opt => isModelStreamCapable(opt.value) && opt.style.display !== 'none');
+      if (streamCapableOption) {
+        modelSelect.value = streamCapableOption.value;
+      }
     }
-  } catch (error) {
-    console.error('Error toggling streaming mode:', error);
   }
 }
 
 // Toggle multi-model mode
 function toggleMultiModel(enabled) {
-  try {
-    multiModelMode = enabled;
-    userSettings.multiModelMode = enabled;
-    saveSettings();
+  multiModelMode = enabled;
+  userSettings.multiModelMode = enabled;
+  saveSettings();
 
-    // Update UI
-    const multiToggle = document.getElementById('multi-toggle');
-    const container = document.getElementById('model-select-container');
-    
-    if (multiToggle) {
-      multiToggle.checked = enabled;
-    }
-
-    if (container) {
-      container.classList.toggle('multi-mode-active', enabled);
-    }
-
-    // Update model selection display
-    if (enabled) {
-      if (selectedModels.length === 0) {
-        const modelSelect = document.getElementById('model-select');
-        selectedModels = modelSelect ? [modelSelect.value] : ["gpt-4o-mini"];
-      }
-            updateMultiModelDisplay();
-    } else {
-      // Keep only the first selected model when turning off multi-model mode
-      const modelSelect = document.getElementById('model-select');
-      if (modelSelect && selectedModels.length > 0) {
-        modelSelect.value = selectedModels[0];
-      }
-      selectedModels = [];
-    }
-
-    // Re-render chat to update layout
-    renderChat();
-  } catch (error) {
-    console.error('Error toggling multi-model mode:', error);
+  // Update UI
+  const multiToggle = document.getElementById('multi-toggle');
+  const container = document.getElementById('model-select-container');
+  
+  if (multiToggle) {
+    multiToggle.checked = enabled;
   }
+
+  if (container) {
+    container.classList.toggle('multi-mode-active', enabled);
+  }
+
+  if (!enabled) {
+    // Clear selected models when disabling multi-mode
+    selectedModels = [];
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect) {
+      // Re-enable all options
+      Array.from(modelSelect.options).forEach(option => {
+        option.disabled = false;
+      });
+    }
+  } else if (selectedModels.length === 0) {
+    // Initialize with current model when enabling
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect) {
+      selectedModels = [modelSelect.value];
+    }
+  }
+
+  updateMultiModelDisplay();
+  renderChat();
 }
 
 // Update multi-model display with selected models
@@ -385,10 +440,10 @@ function updateMultiModelDisplay() {
   selectedModels.forEach((model, idx) => {
     const chip = document.createElement('div');
     chip.className = 'selected-model-chip';
-
+    
     // Format model name for display
     const displayName = model.length > 20 ? model.substring(0, 17) + '...' : model;
-
+    
     chip.innerHTML = `
       <span title="${model}">${displayName}</span>
       <span class="remove-model" onclick="removeSelectedModel(${idx})">×</span>
@@ -405,21 +460,27 @@ window.removeSelectedModel = function(idx) {
   if (idx >= 0 && idx < selectedModels.length) {
     const removedModel = selectedModels[idx];
     selectedModels.splice(idx, 1);
-
-    // If no models are left, add the currently selected model
+    
+    // If no models left, add the currently selected model
     if (selectedModels.length === 0) {
       const modelSelect = document.getElementById('model-select');
-      if (modelSelect) selectedModels.push(modelSelect.value);
+      if (modelSelect) {
+        selectedModels.push(modelSelect.value);
+      }
     }
-
+    
+    // Re-enable the option in the dropdown
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect) {
+      Array.from(modelSelect.options).forEach(option => {
+        if (option.value === removedModel) {
+          option.disabled = false;
+        }
+      });
+    }
+    
     updateMultiModelDisplay();
-
-    // Re-enable the option in the multi-model select dropdown
-    const multiModelSelect = document.getElementById('multi-model-select');
-    if (multiModelSelect) {
-      const option = multiModelSelect.querySelector(`option[value="${removedModel}"]`);
-      if (option) option.disabled = false;
-    }
+    renderChat(); // Re-render chat to update the display
   }
 };
 
@@ -547,46 +608,20 @@ document.querySelectorAll('.popup-ptr').forEach(popup => {
 
 // ---- CHAT MESSAGE RENDERING ----
 function renderChat() {
-  const container = document.getElementById('chat-container');
-  if (!container) return;
-
-  container.innerHTML = '';
-  const wrapper = document.createElement('div');
-  wrapper.className = multiModelMode ? 'multi-model-chat' : '';
-  container.appendChild(wrapper);
-
   if (multiModelMode) {
-    const messagesByModel = {};
-    currentChat.forEach(m => {
-      if (m.role === 'model') {
-        if (!messagesByModel[m.model]) {
-          messagesByModel[m.model] = [];
-        }
-        messagesByModel[m.model].push(m);
-      }
-    });
-
-    Object.entries(messagesByModel).forEach(([model, messages]) => {
-      const modelBox = document.createElement('div');
-      modelBox.className = 'model-box p-2';
-      modelBox.addEventListener('click', handleModelBoxClick);
-      
-      const modelHeader = document.createElement('div');
-      modelHeader.className = 'font-medium text-sm mb-2 text-center';
-      modelHeader.textContent = model;
-      modelBox.appendChild(modelHeader);
-
-      // Reverse messages to show newest first
-      messages.reverse().forEach(m => {
-        const messageEl = createMessageElement(m);
-        modelBox.appendChild(messageEl);
-      });
-
-      wrapper.appendChild(modelBox);
-    });
+    renderMultiModelChat();
   } else {
+    // Existing single model chat rendering code
+    const container = document.getElementById('chat-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+    const wrapper = document.createElement('div');
+    wrapper.className = '';
+    container.appendChild(wrapper);
+
     // Reverse messages to show newest first
-  for (let i = currentChat.length - 1; i >= 0; i--) {
+    for (let i = currentChat.length - 1; i >= 0; i--) {
       const messageEl = createMessageElement(currentChat[i]);
       wrapper.appendChild(messageEl);
     }
@@ -677,14 +712,18 @@ document.addEventListener('DOMContentLoaded', function() {
       
       const modelSelect = document.getElementById('model-select');
       const model = modelSelect ? modelSelect.value : 'gpt-4o-mini'; // Default if not found
-      
       const time = nowStr();
       currentChat.push({ role: 'user', content: txt, time, model: null });
       renderChat();
       chatInput.value = "";
-      // Reset the height of textarea
       chatInput.style.height = 'auto';
-      await aiSend(txt, model, time);
+      if (multiModelMode && selectedModels.length > 0) {
+        for (const m of selectedModels) {
+          await aiSend(txt, m, time);
+        }
+      } else {
+        await aiSend(txt, model, time);
+      }
     };
   }
 
@@ -821,116 +860,122 @@ function isModelThinkCapable(model) {
 
 // Update aiSend function to pass model to formatThinkingPrompt
 async function aiSend(txt, model, usetime) {
-  const models = multiModelMode ? (selectedModels.length > 0 ? selectedModels : [model]) : [model];
-
-  for (const currentModel of models) {
-    const idx = currentChat.length;
-    currentChat.push({ 
-      role: 'model', 
-      content: "", 
-      time: nowStr(), 
-      model: currentModel,
-      streaming: streamingMode && isModelStreamCapable(currentModel)
-    });
-    renderChat();
-
-    try {
-      const opts = { 
-        model: currentModel,
-        stream: streamingMode && isModelStreamCapable(currentModel)
+  if (multiModelMode) {
+    // Add user message once for multi-model mode
+    if (selectedModels.length > 0) {
+      const userMsg = {
+        role: 'user',
+        content: txt,
+        time: nowStr(),
+        model: null
       };
+      currentChat.push(userMsg);
+      renderChat();
 
-      if (userSettings.thinkingMode && isModelThinkCapable(currentModel)) {
-        // Add thinking process message
-        const thinkingIdx = currentChat.length;
-        currentChat.push({
-          role: 'thinking',
-          content: '',
-          time: nowStr(),
-          model: currentModel,
-          streaming: true
-        });
-        renderChat();
+      // Create all model responses at once
+      const modelResponses = selectedModels.map(currentModel => ({
+        role: 'model',
+        content: '',
+        time: nowStr(),
+        model: currentModel,
+        streaming: streamingMode && isModelStreamCapable(currentModel),
+        responded: false // Track if model has responded
+      }));
 
-        // Generate thinking process with model-specific format
-        const thinkingPrompt = formatThinkingPrompt(txt, currentModel);
+      // Add all responses to chat
+      currentChat.push(...modelResponses);
+      renderChat();
+
+      // Process each model response
+      await Promise.all(selectedModels.map(async (currentModel, index) => {
         try {
+          const opts = {
+            model: currentModel,
+            stream: streamingMode && isModelStreamCapable(currentModel)
+          };
+
+          const responseIndex = currentChat.length - modelResponses.length + index;
+
           if (opts.stream) {
-            let thinkingProcess = '';
-            const thinkingStream = await puter.ai.chat(thinkingPrompt, { ...opts, stream: true });
+            let fullResponse = '';
+            const stream = await puter.ai.chat(txt, opts);
 
-            for await (const chunk of thinkingStream) {
-              if (chunk?.text) {
-                thinkingProcess += chunk.text;
-                currentChat[thinkingIdx].content = thinkingProcess;
-                renderChat();
-                scrollToBottom();
-              }
-            }
-
-            // Now generate the actual response
-            const finalPrompt = `Based on this analysis:\n${thinkingProcess}\n\nProvide a clear and concise response to: ${txt}`;
-          let fullResponse = '';
-            const stream = await puter.ai.chat(finalPrompt, opts);
-
-          for await (const chunk of stream) {
+            for await (const chunk of stream) {
               if (chunk?.text) {
                 fullResponse += chunk.text;
-            currentChat[idx].content = fullResponse;
-            renderChat();
-                scrollToBottom();
+                currentChat[responseIndex].content = marked.parse(fullResponse);
+                renderChat();
               }
             }
           } else {
-            // Non-streaming mode
-            const thinkingResp = await puter.ai.chat(thinkingPrompt, opts);
-            const thinkingProcess = thinkingResp?.message?.content || thinkingResp?.message?.text || thinkingResp?.text || '';
-            currentChat[thinkingIdx].content = thinkingProcess;
+            const resp = await puter.ai.chat(txt, opts);
+            const content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
+            currentChat[responseIndex].content = marked.parse(content);
             renderChat();
-
-            const finalPrompt = `Based on this analysis:\n${thinkingProcess}\n\nProvide a clear and concise response to: ${txt}`;
-            const resp = await puter.ai.chat(finalPrompt, opts);
-            currentChat[idx].content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
-            renderChat();
-            scrollToBottom();
           }
-        } catch (error) {
-          console.error("Thinking process error:", error);
-          currentChat[thinkingIdx].content = "[ANALYSIS ERROR]: " + (error.message || "Unknown error");
-          currentChat[idx].content = "[ERROR]: Failed to complete analysis";
+
+          currentChat[responseIndex].streaming = false;
+          currentChat[responseIndex].responded = true;
           renderChat();
+        } catch (err) {
+          console.error("AI error:", err);
+          currentChat[responseIndex].streaming = false;
+          currentChat[responseIndex].content = `[ERROR]: ${err.message || JSON.stringify(err)}`;
+          currentChat[responseIndex].responded = true;
+          renderChat();
+        }
+      }));
+    }
+  } else {
+    // Single model mode
+    const userMsg = {
+      role: 'user',
+      content: txt,
+      time: nowStr(),
+      model: null
+    };
+    currentChat.push(userMsg);
+
+    const modelMsg = {
+      role: 'model',
+      content: '',
+      time: nowStr(),
+      model: model,
+      streaming: streamingMode && isModelStreamCapable(model)
+    };
+    currentChat.push(modelMsg);
+    renderChat();
+
+    try {
+      const opts = {
+        model: model,
+        stream: streamingMode && isModelStreamCapable(model)
+      };
+
+      if (opts.stream) {
+        let fullResponse = '';
+        const stream = await puter.ai.chat(txt, opts);
+
+        for await (const chunk of stream) {
+          if (chunk?.text) {
+            fullResponse += chunk.text;
+            modelMsg.content = marked.parse(fullResponse);
+            renderChat();
+          }
         }
       } else {
-        // Normal response without thinking process
-        if (opts.stream) {
-          let fullResponse = '';
-          const stream = await puter.ai.chat(txt, opts);
-
-          for await (const chunk of stream) {
-            if (chunk?.text) {
-              fullResponse += chunk.text;
-              currentChat[idx].content = fullResponse;
-              renderChat();
-              scrollToBottom();
-            }
-          }
-        } else {
-          // Non-streaming mode
-          const resp = await puter.ai.chat(txt, opts);
-          currentChat[idx].content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
-          renderChat();
-          scrollToBottom();
-        }
+        const resp = await puter.ai.chat(txt, opts);
+        const content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
+        modelMsg.content = marked.parse(content);
+        renderChat();
       }
 
-      // Remove streaming state when done
-      currentChat[idx].streaming = false;
+      modelMsg.streaming = false;
       renderChat();
-
     } catch (err) {
       console.error("AI error:", err);
-      currentChat[idx].streaming = false;
-      currentChat[idx].content = `[ERROR]: ${err.message || JSON.stringify(err)}`;
+      modelMsg.streaming = false;
+      modelMsg.content = `[ERROR]: ${err.message || JSON.stringify(err)}`;
       renderChat();
     }
   }
@@ -1426,6 +1471,32 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         populateModelsList(false);
         this.textContent = 'Show Enabled';
+      }
+    });
+  }
+
+  // Add event listener for the + button in multi-model mode
+  const addModelBtn = document.getElementById('add-model-btn');
+  const modelDropdown = document.getElementById('model-dropdown');
+  if (addModelBtn && modelDropdown) {
+    addModelBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (multiModelMode) {
+        // Toggle dropdown visibility
+        if (modelDropdown.classList.contains('visible')) {
+          modelDropdown.classList.remove('visible');
+        } else {
+          updateModelDropdown();
+          modelDropdown.classList.add('visible');
+        }
+      }
+    });
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+      if (modelDropdown.classList.contains('visible')) {
+        if (!modelDropdown.contains(event.target) && event.target !== addModelBtn) {
+          modelDropdown.classList.remove('visible');
+        }
       }
     });
   }
@@ -3821,6 +3892,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Camera functionality
 let cameraStream = null;
+let currentFacingMode = 'environment'; // Track current camera mode
 
 async function initializeCamera() {
   const video = document.getElementById('camera-preview');
@@ -3829,12 +3901,19 @@ async function initializeCamera() {
   const descriptionDiv = document.getElementById('camera-description');
   const descriptionLoading = document.getElementById('description-loading');
   const descriptionContent = document.getElementById('description-content');
+  const switchCameraBtn = document.getElementById('switch-camera-btn');
+
+  // Stop any existing stream
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+  }
 
   try {
     // Get camera access
     const stream = await navigator.mediaDevices.getUserMedia({ 
       video: { 
-        facingMode: 'environment',
+        facingMode: currentFacingMode,
         width: { ideal: 1280 },
         height: { ideal: 720 }
       } 
@@ -3842,37 +3921,95 @@ async function initializeCamera() {
     
     video.srcObject = stream;
     cameraStream = stream;
+
+    // Setup switch camera button
+    if (switchCameraBtn) {
+      switchCameraBtn.onclick = async function() {
+        currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+        this.innerHTML = `<i class="fa fa-camera-${currentFacingMode === 'environment' ? 'rotate' : 'front'}"></i>`;
+        await initializeCamera();
+      };
+
+      switchCameraBtn.innerHTML = `<i class="fa fa-camera-${currentFacingMode === 'environment' ? 'rotate' : 'front'}"></i>`;
+    }
     
     // Setup describe photo button
-    describeBtn.onclick = async function() {
-      // Capture frame
-      const context = canvas.getContext('2d');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      // Convert to data URL
-      const imageData = canvas.toDataURL('image/jpeg', 0.8);
-      
-      // Show description area and loading state
-      descriptionDiv.classList.remove('hidden');
-      descriptionLoading.classList.remove('hidden');
-      descriptionContent.innerHTML = '';
-      
-      try {
-        // Get description from AI
-        const response = await puter.ai.chat("Please describe this image in detail, including any notable objects, people, actions, or text visible in the image.", imageData);
+    if (describeBtn) {
+      describeBtn.onclick = async function() {
+        // Shrink video preview
+        video.classList.add('small');
         
-        // Display description
-        descriptionLoading.classList.add('hidden');
-        descriptionContent.innerHTML = response?.message?.content || response?.text || response;
-      } catch (error) {
-        console.error('Error getting image description:', error);
-        descriptionLoading.classList.add('hidden');
-        descriptionContent.innerHTML = `<span class="text-red-500">Error analyzing image: ${error.message}</span>`;
-      }
-    };
-    } catch (error) {
+        // Capture frame
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert to data URL
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        
+        // Show description area and loading state
+        descriptionDiv.classList.remove('hidden');
+        descriptionLoading.classList.remove('hidden');
+        descriptionContent.innerHTML = '';
+        
+        try {
+          // Get description from AI
+          const response = await puter.ai.chat("Please describe this image in detail, including any notable objects, people, actions, or text visible in the image.", imageData);
+          
+          // Get the description text
+          const description = response?.message?.content || response?.text || response;
+          
+          // Display description with markdown
+          descriptionLoading.classList.add('hidden');
+          descriptionContent.innerHTML = marked.parse(description);
+
+          // Add TTS button
+          const ttsButton = document.createElement('button');
+          ttsButton.className = 'camera-button mt-4';
+          ttsButton.innerHTML = '<i class="fa fa-volume-up"></i>Read Description';
+          ttsButton.onclick = async function() {
+            try {
+              // Show loading state
+              this.innerHTML = '<i class="fa fa-spinner fa-spin"></i>Generating audio...';
+              this.disabled = true;
+
+              // Get voice setting
+              const speechVoiceSelect = document.getElementById('speech-voice-select');
+              const voice = speechVoiceSelect?.value || userSettings.speechVoice || 'en-US';
+
+              // Generate speech
+              const audio = await puter.ai.txt2speech(description, voice);
+              
+              if (audio && audio instanceof HTMLAudioElement) {
+                // Add audio controls
+                audio.controls = true;
+                audio.className = 'mt-4 w-full';
+                audio.style.maxWidth = '100%';
+                
+                // Replace button with audio element
+                this.replaceWith(audio);
+                
+                // Auto-play
+                audio.play().catch(console.error);
+              }
+            } catch (error) {
+              console.error('TTS error:', error);
+              this.innerHTML = '<i class="fa fa-volume-up"></i>Read Description';
+              this.disabled = false;
+              alert('Failed to generate speech: ' + error.message);
+            }
+          };
+          
+          descriptionContent.appendChild(ttsButton);
+        } catch (error) {
+          console.error('Error getting image description:', error);
+          descriptionLoading.classList.add('hidden');
+          descriptionContent.innerHTML = `<div class="text-red-500">Error analyzing image: ${error.message}</div>`;
+        }
+      };
+    }
+  } catch (error) {
     console.error('Error accessing camera:', error);
     video.parentElement.innerHTML = `
       <div class="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 p-4 rounded-cool">
@@ -3925,4 +4062,276 @@ document.addEventListener('DOMContentLoaded', function() {
       if (originalOnClick) originalOnClick.call(this);
     };
     }
+});
+
+// Render chat for multi-model mode
+function renderMultiModelChat() {
+  const container = document.getElementById('chat-container');
+  if (!container) return;
+
+  container.innerHTML = '';
+  
+  // Create grid container
+  const gridContainer = document.createElement('div');
+  gridContainer.className = 'multi-model-chat';
+  container.appendChild(gridContainer);
+
+  // Group messages by model
+  const messagesByModel = {};
+  currentChat.forEach(msg => {
+    if (msg.role === 'model') {
+      if (!messagesByModel[msg.model]) {
+        messagesByModel[msg.model] = [];
+      }
+      messagesByModel[msg.model].push(msg);
+    }
+  });
+
+  // Create response boxes for each model
+  selectedModels.forEach(model => {
+    const responseBox = document.createElement('div');
+    responseBox.className = 'model-response-box';
+    
+    // Add model header
+    const header = document.createElement('div');
+    header.className = 'model-response-header';
+    header.textContent = formatModelName(model);
+    responseBox.appendChild(header);
+
+    // Add messages for this model
+    const messages = messagesByModel[model] || [];
+    messages.forEach(msg => {
+      const messageEl = createMessageElement(msg);
+      responseBox.appendChild(messageEl);
+    });
+
+    gridContainer.appendChild(responseBox);
+  });
+}
+
+// Update aiSend function to handle multi-model responses
+async function aiSend(txt, model, usetime) {
+  if (multiModelMode) {
+    // Add user message once for multi-model mode
+    if (selectedModels.length > 0) {
+      const userMsg = {
+        role: 'user',
+        content: txt,
+        time: nowStr(),
+        model: null
+      };
+      currentChat.push(userMsg);
+      renderChat();
+
+      // Create all model responses at once
+      const modelResponses = selectedModels.map(currentModel => ({
+        role: 'model',
+        content: '',
+        time: nowStr(),
+        model: currentModel,
+        streaming: streamingMode && isModelStreamCapable(currentModel),
+        responded: false // Track if model has responded
+      }));
+
+      // Add all responses to chat
+      currentChat.push(...modelResponses);
+      renderChat();
+
+      // Process each model response
+      await Promise.all(selectedModels.map(async (currentModel, index) => {
+        try {
+          const opts = {
+            model: currentModel,
+            stream: streamingMode && isModelStreamCapable(currentModel)
+          };
+
+          const responseIndex = currentChat.length - modelResponses.length + index;
+
+          if (opts.stream) {
+            let fullResponse = '';
+            const stream = await puter.ai.chat(txt, opts);
+
+            for await (const chunk of stream) {
+              if (chunk?.text) {
+                fullResponse += chunk.text;
+                currentChat[responseIndex].content = marked.parse(fullResponse);
+                renderChat();
+              }
+            }
+          } else {
+            const resp = await puter.ai.chat(txt, opts);
+            const content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
+            currentChat[responseIndex].content = marked.parse(content);
+            renderChat();
+          }
+
+          currentChat[responseIndex].streaming = false;
+          currentChat[responseIndex].responded = true;
+          renderChat();
+        } catch (err) {
+          console.error("AI error:", err);
+          currentChat[responseIndex].streaming = false;
+          currentChat[responseIndex].content = `[ERROR]: ${err.message || JSON.stringify(err)}`;
+          currentChat[responseIndex].responded = true;
+          renderChat();
+        }
+      }));
+    }
+  } else {
+    // Single model mode
+    const userMsg = {
+      role: 'user',
+      content: txt,
+      time: nowStr(),
+      model: null
+    };
+    currentChat.push(userMsg);
+
+    const modelMsg = {
+      role: 'model',
+      content: '',
+      time: nowStr(),
+      model: model,
+      streaming: streamingMode && isModelStreamCapable(model)
+    };
+    currentChat.push(modelMsg);
+    renderChat();
+
+    try {
+      const opts = {
+        model: model,
+        stream: streamingMode && isModelStreamCapable(model)
+      };
+
+      if (opts.stream) {
+        let fullResponse = '';
+        const stream = await puter.ai.chat(txt, opts);
+
+        for await (const chunk of stream) {
+          if (chunk?.text) {
+            fullResponse += chunk.text;
+            modelMsg.content = marked.parse(fullResponse);
+            renderChat();
+          }
+        }
+      } else {
+        const resp = await puter.ai.chat(txt, opts);
+        const content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
+        modelMsg.content = marked.parse(content);
+        renderChat();
+      }
+
+      modelMsg.streaming = false;
+      renderChat();
+    } catch (err) {
+      console.error("AI error:", err);
+      modelMsg.streaming = false;
+      modelMsg.content = `[ERROR]: ${err.message || JSON.stringify(err)}`;
+      renderChat();
+    }
+  }
+}
+
+// Add model to selection
+function addSelectedModel(model) {
+  if (!selectedModels.includes(model)) {
+    selectedModels.push(model);
+    updateMultiModelDisplay();
+    renderChat(); // Immediately update chat display
+  }
+}
+
+// Initialize multi-model functionality
+function initializeMultiModel() {
+  const addButton = document.getElementById('add-model-btn');
+  const modelSelect = document.getElementById('model-select');
+
+  if (addButton && modelSelect) {
+    // Initially hide add button
+    addButton.style.display = multiModelMode ? 'flex' : 'none';
+
+    // Add button click handler
+    addButton.onclick = function() {
+      const selectedModel = modelSelect.value;
+      if (selectedModel) {
+        addSelectedModel(selectedModel);
+      }
+    };
+
+    // Update display when model is changed
+    modelSelect.onchange = function() {
+      if (multiModelMode && selectedModels.length === 0) {
+        addSelectedModel(this.value);
+      }
+    };
+  }
+}
+
+// Add document ready handler for multi-model initialization
+document.addEventListener('DOMContentLoaded', function() {
+  initializeMultiModel();
+  // ... rest of the existing DOMContentLoaded code ...
+});
+
+// Toggle thinking mode
+function toggleThinkingMode(enabled) {
+  userSettings.thinkingMode = enabled;
+  saveSettings();
+
+  // Update UI
+  const thinkingToggle = document.getElementById('thinking-toggle');
+  if (thinkingToggle) {
+    thinkingToggle.checked = enabled;
+  }
+
+  // Update available models
+  updateModelSelectOptions();
+
+  // If current model isn't think capable, switch to one that is
+  if (enabled) {
+    const modelSelect = document.getElementById('model-select');
+    if (modelSelect && !isModelThinkCapable(modelSelect.value)) {
+      const thinkCapableOption = Array.from(modelSelect.options)
+        .find(opt => isModelThinkCapable(opt.value) && opt.style.display !== 'none');
+      if (thinkCapableOption) {
+        modelSelect.value = thinkCapableOption.value;
+      }
+    }
+  }
+}
+
+// Add event listeners for toggles
+document.addEventListener('DOMContentLoaded', function() {
+  const streamingToggle = document.getElementById('streaming-toggle');
+  const thinkingToggle = document.getElementById('thinking-toggle');
+  const multiToggle = document.getElementById('multi-toggle');
+
+  if (streamingToggle) {
+    streamingToggle.addEventListener('change', function() {
+      toggleStreamingMode(this.checked);
+    });
+  }
+
+  if (thinkingToggle) {
+    thinkingToggle.addEventListener('change', function() {
+      toggleThinkingMode(this.checked);
+    });
+  }
+
+  if (multiToggle) {
+    multiToggle.addEventListener('change', function() {
+      toggleMultiModel(this.checked);
+    });
+  }
+
+  // Initialize toggles from settings
+  if (userSettings.streamingMode) {
+    toggleStreamingMode(true);
+  }
+  if (userSettings.thinkingMode) {
+    toggleThinkingMode(true);
+  }
+  if (userSettings.multiModelMode) {
+    toggleMultiModel(true);
+  }
 });

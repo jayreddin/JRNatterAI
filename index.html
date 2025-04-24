@@ -72,94 +72,94 @@
 
     <div class="flex flex-1 items-center justify-center mx-2">
       <div id="model-select-container" class="relative w-full max-w-xs mx-auto text-center">
-        <select id="model-select"
-          class="bg-gray-50 border rounded-cool py-1 px-3 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base font-semibold appearance-none flat dark:bg-gray-800 dark:text-base text-center shadow-sm hover:shadow transition-all hide-scrollbar"
-          style="height: 32px; cursor: pointer;">
-          <!-- OpenAI Models -->
-          <optgroup label="📊 OpenAI">
-            <option value="gpt-4o-mini" selected>GPT-4o mini</option>
-            <option value="gpt-4o">GPT-4o</option>
-            <option value="o1">O1</option>
-            <option value="o1-mini">O1-mini</option>
-            <option value="o1-pro">O1-pro</option>
-            <option value="o3">O3</option>
-            <option value="o3-mini">O3-mini</option>
-            <option value="o4-mini">O4-mini</option>
-            <option value="gpt-4.1">GPT-4.1</option>
-            <option value="gpt-4.1-mini">GPT-4.1 mini</option>
-            <option value="gpt-4.1-nano">GPT-4.1 nano</option>
-            <option value="gpt-4.5-preview">GPT-4.5 preview</option>
-          </optgroup>
+        <div class="model-select-wrapper">
+          <select id="model-select"
+            class="bg-gray-50 border rounded-cool py-1 px-3 focus:outline-none focus:ring-2 focus:ring-blue-400 text-base font-semibold appearance-none flat dark:bg-gray-800 dark:text-base text-center shadow-sm hover:shadow transition-all hide-scrollbar"
+            style="height: 32px; cursor: pointer;">
+            <!-- OpenAI Models -->
+            <optgroup label="📊 OpenAI">
+              <option value="gpt-4o-mini" selected>GPT-4o mini</option>
+              <option value="gpt-4o">GPT-4o</option>
+              <option value="o1">O1</option>
+              <option value="o1-mini">O1-mini</option>
+              <option value="o1-pro">O1-pro</option>
+              <option value="o3">O3</option>
+              <option value="o3-mini">O3-mini</option>
+              <option value="o4-mini">O4-mini</option>
+              <option value="gpt-4.1">GPT-4.1</option>
+              <option value="gpt-4.1-mini">GPT-4.1 mini</option>
+              <option value="gpt-4.1-nano">GPT-4.1 nano</option>
+              <option value="gpt-4.5-preview">GPT-4.5 preview</option>
+            </optgroup>
 
-          <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
+            <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
 
-          <!-- Anthropic Models -->
-          <optgroup label="💬 Anthropic">
-            <option value="claude-3-7-sonnet">Claude-3.7 Sonnet</option>
-            <option value="claude-3-5-sonnet">Claude-3.5 Sonnet</option>
-          </optgroup>
+            <!-- Anthropic Models -->
+            <optgroup label="💬 Anthropic">
+              <option value="claude-3-7-sonnet">Claude-3.7 Sonnet</option>
+              <option value="claude-3-5-sonnet">Claude-3.5 Sonnet</option>
+            </optgroup>
 
-          <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
+            <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
 
-          <!-- DeepSeek Models -->
-          <optgroup label="🔍 DeepSeek">
-            <option value="deepseek-chat">DeepSeek Chat</option>
-            <option value="deepseek-reasoner">DeepSeek Reasoner</option>
-          </optgroup>
+            <!-- DeepSeek Models -->
+            <optgroup label="🔍 DeepSeek">
+              <option value="deepseek-chat">DeepSeek Chat</option>
+              <option value="deepseek-reasoner">DeepSeek Reasoner</option>
+            </optgroup>
 
-          <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
+            <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
 
-          <!-- Google Models -->
-          <optgroup label="🔰 Google">
-            <option value="google/gemini-2.5-flash-preview">Gemini 2.5 Flash Preview</option>
-            <option value="google/gemini-2.5-flash-preview:thinking">Gemini 2.5 Flash Preview Thinking</option>
-            <option value="google/gemini-2.5-pro-exp-03-25:free">Gemini 2.5 Pro Exp</option>
-            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-            <option value="google/gemini-2.0-flash-lite-001">Gemini 2.0 Flash Lite</option>
-            <option value="google/gemini-2.0-pro-exp-02-05:free">Gemini 2.0 Pro Exp</option>
-            <option value="google/gemini-2.0-flash-thinking-exp:free">Gemini 2.0 Flash Thinking</option>
-            <option value="google/gemini-pro-1.5">Gemini Pro 1.5</option>
-            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-            <option value="google/gemma-2-27b-it">Gemma 2 27B IT</option>
-          </optgroup>
+            <!-- Google Models -->
+            <optgroup label="🔰 Google">
+              <option value="google/gemini-2.5-flash-preview">Gemini 2.5 Flash Preview</option>
+              <option value="google/gemini-2.5-flash-preview:thinking">Gemini 2.5 Flash Preview Thinking</option>
+              <option value="google/gemini-2.5-pro-exp-03-25:free">Gemini 2.5 Pro Exp</option>
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+              <option value="google/gemini-2.0-flash-lite-001">Gemini 2.0 Flash Lite</option>
+              <option value="google/gemini-2.0-pro-exp-02-05:free">Gemini 2.0 Pro Exp</option>
+              <option value="google/gemini-2.0-flash-thinking-exp:free">Gemini 2.0 Flash Thinking</option>
+              <option value="google/gemini-pro-1.5">Gemini Pro 1.5</option>
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+              <option value="google/gemma-2-27b-it">Gemma 2 27B IT</option>
+            </optgroup>
 
-          <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
+            <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
 
-          <!-- Meta Models -->
-          <optgroup label="📘 Meta">
-            <option value="meta-llama/llama-4-maverick">Llama 4 Maverick</option>
-            <option value="meta-llama/llama-4-scout">Llama 4 Scout</option>
-            <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B Instruct</option>
-            <option value="meta-llama/llama-guard-3-8b">Llama Guard 3 8B</option>
-            <option value="meta-llama/llama-guard-2-8b">Llama Guard 2 8B</option>
-            <option value="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo">Llama 3.1 8B Turbo</option>
-            <option value="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo">Llama 3.1 70B Turbo</option>
-            <option value="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo">Llama 3.1 405B Turbo</option>
-          </optgroup>
+            <!-- Meta Models -->
+            <optgroup label="📘 Meta">
+              <option value="meta-llama/llama-4-maverick">Llama 4 Maverick</option>
+              <option value="meta-llama/llama-4-scout">Llama 4 Scout</option>
+              <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B Instruct</option>
+              <option value="meta-llama/llama-guard-3-8b">Llama Guard 3 8B</option>
+              <option value="meta-llama/llama-guard-2-8b">Llama Guard 2 8B</option>
+              <option value="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo">Llama 3.1 8B Turbo</option>
+              <option value="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo">Llama 3.1 70B Turbo</option>
+              <option value="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo">Llama 3.1 405B Turbo</option>
+            </optgroup>
 
-          <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
+            <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
 
-          <!-- Mistral Models -->
-          <optgroup label="💨 Mistral">
-            <option value="mistral-large-latest">Mistral Large</option>
-            <option value="pixtral-large-latest">Pixtral Large</option>
-            <option value="codestral-latest">Codestral</option>
-          </optgroup>
+            <!-- Mistral Models -->
+            <optgroup label="💨 Mistral">
+              <option value="mistral-large-latest">Mistral Large</option>
+              <option value="pixtral-large-latest">Pixtral Large</option>
+              <option value="codestral-latest">Codestral</option>
+            </optgroup>
 
-          <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
+            <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
 
-          <!-- Other Models -->
-          <optgroup label="❇️ Other">
-            <option value="grok-beta">Grok Beta</option>
-            <option value="x-ai/grok-3-beta">Grok 3 Beta</option>
-          </optgroup>
-        </select>
-        <button class="add-model-button" id="add-model-btn" title="Add model">
-          <i class="fa fa-plus"></i>
-        </button>
-        <div class="model-select-dropdown" id="model-dropdown">
-          <!-- Model options will be populated here -->
+            <!-- Other Models -->
+            <optgroup label="❇️ Other">
+              <option value="grok-beta">Grok Beta</option>
+              <option value="x-ai/grok-3-beta">Grok 3 Beta</option>
+            </optgroup>
+          </select>
+          <button class="add-model-button" id="add-model-btn" title="Add model">
+            <i class="fa fa-plus"></i>
+          </button>
         </div>
+        <div class="selected-models-container"></div>
       </div>
     </div>
     <!-- Mode toggles -->
@@ -440,6 +440,11 @@
         <div class="relative">
           <video id="camera-preview" class="w-full rounded-cool" autoplay playsinline></video>
           <canvas id="camera-canvas" class="hidden"></canvas>
+        </div>
+        <div class="flex justify-center mb-2">
+          <button id="switch-camera-btn" class="feature-btn" title="Switch camera">
+            <i class="fa fa-camera-rotate"></i>
+          </button>
         </div>
         <div id="camera-description" class="bg-gray-100 dark:bg-gray-800 p-3 rounded-cool min-h-[100px] hidden">
           <div id="description-loading" class="flex items-center justify-center py-4 hidden">
