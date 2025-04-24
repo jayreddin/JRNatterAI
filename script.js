@@ -626,65 +626,58 @@ function renderChat() {
   const container = document.getElementById('chat-container');
   if (!container) return;
 
-  // Newest at top
-  container.innerHTML = "";
+  const fragment = document.createDocumentFragment();
+  const markdownEnabled = userSettings.markdownEnabled && window.marked;
+  const darkMode = document.body.classList.contains('dark-mode');
+
   for (let i = currentChat.length - 1; i >= 0; i--) {
     const m = currentChat[i];
-    let bubbleClr = m.role === 'user' ? 'border-black bg-white dark:bg-gray-800' : 'border-black bg-gray-50 dark:bg-gray-900';
-    let align = m.role === 'user' ? 'user-message' : 'assistant-message';
-    let label = m.role === 'user' ? `You: ${m.time}` : `${m.model || "Assistant"}: ${m.time}`;
-    
-    // Add translation button to the actions
-    let iconBtns = `
-      <button onclick="resendMsg(${i})" class="action-button" title="Resend"><i class="fa fa-redo"></i></button>
-      <button onclick="copyMsg(${i})" class="action-button" title="Copy"><i class="fa fa-copy"></i></button>
-      <button onclick="deleteMsg(${i})" class="action-button delete" title="Delete"><i class="fa fa-trash"></i></button>
-      <button onclick="speakMsg(${i})" class="action-button speak" title="Speak"><i class="fa fa-volume-up"></i></button>
-      <button class="action-button" title="Translate" data-message-idx="${i}"><i class="fa fa-language"></i></button>`;
+    const isUser = m.role === 'user';
+    const bubbleClr = isUser ? 
+      `border-black ${darkMode ? 'bg-gray-800' : 'bg-white'}` : 
+      `border-black ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`;
+    const align = isUser ? 'user-message' : 'assistant-message';
+    const label = isUser ? `You: ${m.time}` : `${m.model || "Assistant"}: ${m.time}`;
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${align}`;
 
     // Process content with markdown if enabled
     let content = "";
     if (typeof m.content === 'string') {
-      if (userSettings.markdownEnabled && window.marked) {
+      if (markdownEnabled && window.marked) {
         try {
-          content = `<div class="markdown-content">${marked(m.content)}</div>`;
+          content = `<div class="markdown-content">${window.marked(m.content)}</div>`;
         } catch (e) {
-          console.error("Markdown parsing error:", e);
-          content = m.content;
+          console.warn("Markdown parsing failed, falling back to plain text:", e);
+          content = `<div>${m.content}</div>`;
         }
       } else {
-        content = m.content;
+        content = `<div>${m.content}</div>`;
       }
-    } else if (m.content && m.content.type === "img") {
-      content = `<img src='${m.content.url}' alt='image' class='rounded-cool'>`;
+    } else if (m.content?.type === "img") {
+      content = `<img src='${m.content.url}' alt='image' class='rounded-cool' loading="lazy">`;
     }
 
-    if (m.role === 'user') {
-      // For user messages, put label above and buttons below the bubble
-      container.innerHTML += `
-        <div class="chat-message ${align}">
-          <div class="message-timestamp text-right mb-1">${label}</div>
-          <div class="chat-bubble ${bubbleClr}">
-            ${content}
-          </div>
-          <div class="message-actions mt-1 text-right">${iconBtns}</div>
-        </div>
-      `;
-    } else {
-      // For assistant messages
-      container.innerHTML += `
-        <div class="chat-message ${align}">
-          <div class="message-timestamp mb-1">${label}</div>
-          <div class="chat-bubble ${bubbleClr}">
-            ${content}
-          </div>
-          <div class="message-actions mt-1">${iconBtns}</div>
-        </div>
-      `;
-    }
+    messageDiv.innerHTML = `
+      <div class="message-timestamp ${isUser ? 'text-right' : ''} mb-1">${label}</div>
+      <div class="chat-bubble ${bubbleClr}">
+        ${content}
+      </div>
+      <div class="message-actions mt-1 ${isUser ? 'text-right' : ''}">
+        <button onclick="resendMsg(${i})" class="action-button" title="Resend"><i class="fa fa-redo"></i></button>
+        <button onclick="copyMsg(${i})" class="action-button" title="Copy"><i class="fa fa-copy"></i></button>
+        <button onclick="deleteMsg(${i})" class="action-button delete" title="Delete"><i class="fa fa-trash"></i></button>
+        <button onclick="speakMsg(${i})" class="action-button speak" title="Speak"><i class="fa fa-volume-up"></i></button>
+        <button class="action-button" title="Translate" data-message-idx="${i}"><i class="fa fa-language"></i></button>
+      </div>
+    `;
+
+    fragment.appendChild(messageDiv);
   }
-  
-  // Update token usage display
+
+  container.textContent = '';
+  container.appendChild(fragment);
   updateTokenUsageDisplay();
 }
 
@@ -1408,7 +1401,7 @@ const defaultModels = [
   "gpt-4o", "gpt-4.1-mini", "gpt-4.5-preview", "o1-mini", "o3-mini", "o4-mini", 
   "claude-3-5-sonnet", "claude-3-7-sonnet", "deepseek-chat", "deepseek-reasoner", 
   "gemini-2.0-flash", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo", 
-  "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "mistral-large-latest", "grok-beta"
+  "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo", "mistral-large-latest", "pixtral-large-latest", "codestral-latest", "google/gemma-2-27b-it", "grok-beta"
 ];
 
 // Populate the models list
@@ -1974,12 +1967,17 @@ function loadSettings() {
 function searchMessages(query) {
   if (!query) return [];
   
-  query = query.toLowerCase();
+  // Check cache first
+  const cacheKey = query.toLowerCase();
+  if (searchCache.has(cacheKey)) {
+    return searchCache.get(cacheKey);
+  }
+  
   const results = [];
   
   // Search in current chat
   currentChat.forEach((msg, idx) => {
-    if (typeof msg.content === 'string' && msg.content.toLowerCase().includes(query)) {
+    if (typeof msg.content === 'string' && msg.content.toLowerCase().includes(cacheKey)) {
       results.push({
         type: 'current',
         index: idx,
@@ -1992,7 +1990,7 @@ function searchMessages(query) {
   // Search in chat history
   chatHistory.forEach((chat, chatIdx) => {
     chat.messages.forEach((msg, msgIdx) => {
-      if (typeof msg.content === 'string' && msg.content.toLowerCase().includes(query)) {
+      if (typeof msg.content === 'string' && msg.content.toLowerCase().includes(cacheKey)) {
         results.push({
           type: 'history',
           chatIndex: chatIdx,
@@ -2003,6 +2001,15 @@ function searchMessages(query) {
       }
     });
   });
+  
+  // Cache results
+  searchCache.set(cacheKey, results);
+  
+  // Clear old cache entries
+  if (searchCache.size > 100) {
+    const oldestKey = searchCache.keys().next().value;
+    searchCache.delete(oldestKey);
+  }
   
   return results;
 }
@@ -3474,4 +3481,89 @@ function setupVoiceInput() {
 document.addEventListener('DOMContentLoaded', function() {
   setupVoiceInput();
   // Rest of initialization code...
+});
+
+// Load marked.js before using it
+function loadMarked() {
+  return new Promise((resolve, reject) => {
+    if (window.marked) {
+      resolve(window.marked);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/marked@4.0.2/marked.min.js';
+    script.onload = () => resolve(window.marked);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+// Initialize marked when the page loads
+document.addEventListener('DOMContentLoaded', async function() {
+  try {
+    await loadMarked();
+  } catch (error) {
+    console.error('Failed to load marked.js:', error);
+  }
+});
+
+// Add token info functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const tokenInfoBtn = document.getElementById('token-info-btn');
+  const tokenUsage = document.getElementById('token-usage');
+
+  if (tokenInfoBtn && tokenUsage) {
+    tokenInfoBtn.addEventListener('click', function() {
+      const tokenStats = document.createElement('div');
+      tokenStats.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
+      
+      const currentTokens = userSettings.tokenUsage?.current || 0;
+      const tokenLimit = userSettings.tokenUsage?.limit || 4000;
+      const percentage = Math.round((currentTokens / tokenLimit) * 100);
+      
+      tokenStats.innerHTML = `
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-cool max-w-md w-full mx-4">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">Token Usage Statistics</h3>
+            <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" onclick="this.parentElement.parentElement.remove()">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between mb-1">
+                <span>Current Usage</span>
+                <span>${currentTokens} tokens</span>
+              </div>
+              <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div class="bg-blue-600 h-2 rounded-full" style="width: ${percentage}%"></div>
+              </div>
+            </div>
+            <div class="flex justify-between">
+              <span>Token Limit</span>
+              <span>${tokenLimit} tokens</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Remaining</span>
+              <span>${tokenLimit - currentTokens} tokens</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Usage Percentage</span>
+              <span>${percentage}%</span>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(tokenStats);
+      
+      // Close on click outside
+      tokenStats.addEventListener('click', function(e) {
+        if (e.target === tokenStats) {
+          tokenStats.remove();
+        }
+      });
+    });
+  }
 });
