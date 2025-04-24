@@ -4127,31 +4127,56 @@ document.addEventListener('DOMContentLoaded', function() {
   if (cameraBtn) {
     cameraBtn.onclick = function() {
       togglePopup('camera', true);
-      initializeCamera();
-    };
-  }
-
-  // Add camera cleanup when popup is closed
-  const popupOverlay = document.getElementById('popup-overlay');
-  if (popupOverlay) {
-    const originalOnClick = popupOverlay.onclick;
-    popupOverlay.onclick = function(event) {
-      if (event.target === popupOverlay) {
-        stopCamera();
-        if (originalOnClick) originalOnClick.call(this, event);
+      // Only initialize camera when popup is opened, and not already initialized
+      if (!cameraInitialized) {
+        initializeCamera().catch(console.error);
       }
     };
   }
 
-  // Add camera cleanup to popup close button
-  const cameraCloseBtn = document.querySelector('#popup-camera .fa-times').parentElement;
+  // Add camera cleanup when popup is closed via overlay click
+  const popupOverlay = document.getElementById('popup-overlay');
+  if (popupOverlay) {
+    // Remove any pre-existing inline handler to avoid conflicts
+    popupOverlay.onclick = null;
+    popupOverlay.addEventListener('click', function(event) {
+      // Only act if the overlay background itself was clicked
+      if (event.target === popupOverlay) {
+        // Hide all popups
+        document.querySelectorAll('.popup-ptr').forEach(el => el.classList.add('hidden'));
+        // Hide the overlay
+        popupOverlay.classList.add('hidden');
+        // Stop the camera if it was the active popup
+        stopCamera(); // Safe to call even if camera wasn't running
+      }
+    });
+  }
+
+  // Add camera cleanup to the camera popup's close button
+  const cameraCloseBtn = document.querySelector('#popup-camera .fa-times');
   if (cameraCloseBtn) {
-    const originalOnClick = cameraCloseBtn.onclick;
-    cameraCloseBtn.onclick = function() {
-      stopCamera();
-      if (originalOnClick) originalOnClick.call(this);
-    };
-    }
+      // Find the button element itself (the parent might not be the clickable element if the icon is)
+      const clickableCloseElement = cameraCloseBtn.closest('button');
+      if (clickableCloseElement) {
+          // Remove the inline onclick handler from HTML to prevent conflicts
+          const originalOnClick = clickableCloseElement.onclick;
+          clickableCloseElement.onclick = null;
+
+          clickableCloseElement.addEventListener('click', function() {
+              stopCamera(); // Ensure camera stops
+              // Explicitly call togglePopup to handle hiding
+              togglePopup('camera', false);
+              // If there was an original handler (likely togglePopup), we could call it,
+              // but calling togglePopup directly is cleaner.
+              // if (originalOnClick) originalOnClick.call(this);
+          });
+      }
+  }
+
+  // Defensive measure: Ensure overlay is hidden after all init
+  if (popupOverlay) {
+      popupOverlay.classList.add('hidden');
+  }
 });
 
 // Render chat for multi-model mode

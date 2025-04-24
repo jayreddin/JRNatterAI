@@ -349,6 +349,10 @@ img:hover {
   overflow: auto;
 }
 
+.hidden {
+  display: none !important;
+}
+
 .dark-mode input,
 .dark-mode textarea,
 .dark-mode select,
