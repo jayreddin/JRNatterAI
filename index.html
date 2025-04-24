@@ -32,23 +32,24 @@
   <script src="https://js.puter.com/v2/"></script>
 
   <!-- Markdown support -->
-  <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/lib/marked.umd.min.js"></script>
 
   <!-- Initialize marked -->
   <script>
-    window.onload = function() {
+    document.addEventListener('DOMContentLoaded', function() {
       if (typeof marked !== 'undefined') {
-        marked.use({
-          mangle: false,
-          headerIds: false
-        });
-        window.marked = {
-          parse: function(text) {
-            return marked.parse(text);
-          }
-        };
+        try {
+          marked.setOptions({
+            gfm: true,
+            breaks: true,
+            mangle: false,
+            headerIds: false
+          });
+        } catch (e) {
+          console.warn('Error configuring marked:', e);
+        }
       }
-    };
+    });
   </script>
 
   <!-- Main script -->

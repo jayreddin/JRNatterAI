@@ -30,6 +30,7 @@ let userSettings = {
     limit: 4000
   },
   thinkingMode: false,
+  liveTTSEnabled: false,
 };
 
 // Define toggle functions
@@ -544,46 +545,47 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---- POPUP DIALOGS ----
 const popupOverlay = document.getElementById('popup-overlay');
 function togglePopup(name, open) {
+  const popupOverlay = document.getElementById('popup-overlay');
+  const popup = document.getElementById('popup-' + name);
+
   // Ensure all popups are hidden first
-  document.querySelectorAll('.popup-ptr').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.popup-ptr').forEach(el => {
+    if (el.id !== 'popup-' + name) {
+      el.classList.add('hidden');
+    }
+  });
 
   if (open) {
-    // Show the overlay and the requested popup
-    popupOverlay.classList.remove('hidden');
-    const popup = document.getElementById('popup-' + name);
     if (popup) {
+      popupOverlay.classList.remove('hidden');
       popup.classList.remove('hidden');
+      
+      // Initialize camera only when opening camera popup
+      if (name === 'camera') {
+        initializeCamera().catch(console.error);
+      }
     } else {
       console.error(`Popup with id 'popup-${name}' not found`);
     }
   } else {
-    // Hide the overlay
     popupOverlay.classList.add('hidden');
-
-    // Hide the specific popup if it exists
-    const popup = document.getElementById('popup-' + name);
     if (popup) {
       popup.classList.add('hidden');
     }
 
-    // Cleanup for certain popups
-    if (name === 'file') {
+    // Cleanup based on popup type
+    if (name === 'camera') {
+      stopCamera();
+    } else if (name === 'file') {
       const fileInput = document.getElementById('file-input-file');
       const previewBox = document.getElementById('file-preview-box');
-      if (fileInput) fileInput.value = "";
+      if (fileInput) fileInput.value = '';
       if (previewBox) previewBox.innerHTML = '';
-    }
-    if (name === 'image') {
+    } else if (name === 'image') {
       const promptInput = document.getElementById('image-gen-prompt');
       const genArea = document.getElementById('image-gen-area');
       if (promptInput) promptInput.value = '';
       if (genArea) genArea.innerHTML = '';
-    }
-    if (name === 'code') {
-      const codePrompt = document.getElementById('code-gen-prompt');
-      const codeResult = document.getElementById('code-result');
-      if (codePrompt) codePrompt.value = '';
-      if (codeResult) codeResult.textContent = '';
     }
   }
 }
@@ -595,6 +597,7 @@ if (popupOverlay) {
     if (event.target === popupOverlay) {
       document.querySelectorAll('.popup-ptr').forEach(el => el.classList.add('hidden'));
       popupOverlay.classList.add('hidden');
+      stopCamera(); // Stop camera when closing via overlay
     }
   };
 }
@@ -634,11 +637,17 @@ function renderChat() {
 function parseMarkdown(text) {
   if (typeof text !== 'string') return text;
   try {
-    if (window.marked && typeof window.marked === 'function') {
-      return window.marked(text);
-    } else if (window.marked && typeof window.marked.parse === 'function') {
-      return window.marked.parse(text);
+    if (typeof marked === 'undefined') {
+      return text;
     }
+
+    // Handle different versions of marked
+    if (typeof marked === 'function') {
+      return marked(text);
+    } else if (typeof marked.parse === 'function') {
+      return marked.parse(text);
+    }
+
     return text;
   } catch (error) {
     console.warn('Markdown parsing failed:', error);
@@ -3886,10 +3895,19 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Camera functionality
+let currentFacingMode = 'environment';
 let cameraStream = null;
-let currentFacingMode = 'environment'; // Track current camera mode
+let liveTTSEnabled = false;
+let currentSpeech = null;
+let cameraInitialized = false;
 
+// Initialize camera only when needed
 async function initializeCamera() {
+  if (cameraInitialized) {
+    return;
+  }
+  cameraInitialized = true;
+
   const video = document.getElementById('camera-preview');
   const canvas = document.getElementById('camera-canvas');
   const describeBtn = document.getElementById('describe-photo-btn');
@@ -3898,10 +3916,35 @@ async function initializeCamera() {
   const descriptionContent = document.getElementById('description-content');
   const switchCameraBtn = document.getElementById('switch-camera-btn');
 
-  // Stop any existing stream
-  if (cameraStream) {
-    cameraStream.getTracks().forEach(track => track.stop());
-    cameraStream = null;
+  // Create preview container if it doesn't exist
+  if (!video.parentElement.classList.contains('camera-preview-container')) {
+    const container = document.createElement('div');
+    container.className = 'camera-preview-container';
+    video.parentNode.insertBefore(container, video);
+    container.appendChild(video);
+
+    // Add live TTS toggle
+    const ttsToggle = document.createElement('label');
+    ttsToggle.className = 'live-tts-toggle';
+    ttsToggle.innerHTML = `
+      <input type="checkbox" ${liveTTSEnabled ? 'checked' : ''}>
+      <i class="fa fa-volume-up"></i>
+      <span>Live TTS</span>
+    `;
+    container.appendChild(ttsToggle);
+
+    // Setup live TTS toggle
+    const ttsCheckbox = ttsToggle.querySelector('input');
+    ttsCheckbox.addEventListener('change', function() {
+      liveTTSEnabled = this.checked;
+      userSettings.liveTTSEnabled = liveTTSEnabled;
+      saveSettings();
+
+      if (!liveTTSEnabled && currentSpeech) {
+        currentSpeech.pause();
+        currentSpeech = null;
+      }
+    });
   }
 
   try {
@@ -3932,7 +3975,8 @@ async function initializeCamera() {
     if (describeBtn) {
       describeBtn.onclick = async function() {
         // Shrink video preview
-        video.classList.add('small');
+        const previewContainer = video.parentElement;
+        previewContainer.classList.add('small');
         
         // Capture frame
         const context = canvas.getContext('2d');
@@ -3959,78 +4003,21 @@ async function initializeCamera() {
           descriptionLoading.classList.add('hidden');
           descriptionContent.innerHTML = parseMarkdown(description);
 
-          // Add TTS controls
-          const ttsControls = document.createElement('div');
-          ttsControls.className = 'camera-controls';
-
-          // Add TTS button
-          const ttsButton = document.createElement('button');
-          ttsButton.className = 'camera-button';
-          ttsButton.innerHTML = '<i class="fa fa-volume-up"></i>Read Description';
-          
-          // Add auto-speak toggle
-          const autoSpeakLabel = document.createElement('label');
-          autoSpeakLabel.className = 'flex items-center gap-2 text-sm';
-          autoSpeakLabel.innerHTML = `
-            <input type="checkbox" class="form-checkbox" id="auto-speak-toggle">
-            <span>Auto-speak</span>
-          `;
-
-          ttsControls.appendChild(ttsButton);
-          ttsControls.appendChild(autoSpeakLabel);
-          descriptionContent.appendChild(ttsControls);
-
-          // Setup TTS functionality
-          const speakDescription = async () => {
-            try {
-              ttsButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i>Generating audio...';
-              ttsButton.disabled = true;
-
-              const speechVoiceSelect = document.getElementById('speech-voice-select');
-              const voice = speechVoiceSelect?.value || userSettings.speechVoice || 'en-US';
-
-              const audio = await puter.ai.txt2speech(description, voice);
-              
-              if (audio && audio instanceof HTMLAudioElement) {
-                audio.controls = true;
-                audio.className = 'mt-4 w-full';
-                audio.style.maxWidth = '100%';
-                
-                const audioContainer = document.createElement('div');
-                audioContainer.className = 'mt-4';
-                audioContainer.appendChild(audio);
-                descriptionContent.appendChild(audioContainer);
-                
-                audio.play().catch(console.error);
-                
-                // Reset button
-                ttsButton.innerHTML = '<i class="fa fa-volume-up"></i>Read Description';
-                ttsButton.disabled = false;
-              }
-            } catch (error) {
-              console.error('TTS error:', error);
-              ttsButton.innerHTML = '<i class="fa fa-volume-up"></i>Read Description';
-              ttsButton.disabled = false;
-              alert('Failed to generate speech: ' + error.message);
-            }
-          };
-
-          // Setup event handlers
-          ttsButton.onclick = speakDescription;
-          
-          // Auto-speak if enabled
-          const autoSpeakToggle = document.getElementById('auto-speak-toggle');
-          if (autoSpeakToggle) {
-            autoSpeakToggle.checked = userSettings.autoSpeak || false;
-            autoSpeakToggle.onchange = function() {
-              userSettings.autoSpeak = this.checked;
-              saveSettings();
-            };
-            
-            if (userSettings.autoSpeak) {
-              speakDescription();
-            }
+          // If live TTS is enabled, speak the description
+          if (liveTTSEnabled) {
+            speakText(description);
           }
+
+          // Add manual TTS button
+          const ttsButton = document.createElement('button');
+          ttsButton.className = 'camera-button mt-4';
+          ttsButton.innerHTML = '<i class="fa fa-volume-up"></i>Read Description';
+          ttsButton.onclick = () => speakText(description);
+          
+          const controls = document.createElement('div');
+          controls.className = 'camera-controls';
+          controls.appendChild(ttsButton);
+          descriptionContent.appendChild(controls);
         } catch (error) {
           console.error('Error getting image description:', error);
           descriptionLoading.classList.add('hidden');
@@ -4040,6 +4027,7 @@ async function initializeCamera() {
     }
   } catch (error) {
     console.error('Error accessing camera:', error);
+    cameraInitialized = false; // Reset flag on error
     video.parentElement.innerHTML = `
       <div class="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 p-4 rounded-cool">
         <p><i class="fa fa-exclamation-triangle mr-2"></i>Error accessing camera:</p>
@@ -4050,12 +4038,85 @@ async function initializeCamera() {
   }
 }
 
+// Text-to-speech function
+async function speakText(text) {
+  try {
+    // Stop any current speech
+    if (currentSpeech) {
+      currentSpeech.pause();
+      currentSpeech = null;
+    }
+
+    const speechVoiceSelect = document.getElementById('speech-voice-select');
+    const voice = speechVoiceSelect?.value || userSettings.speechVoice || 'en-US';
+
+    const audio = await puter.ai.txt2speech(text, voice);
+    
+    if (audio && audio instanceof HTMLAudioElement) {
+      currentSpeech = audio;
+      
+      // Hide controls for live TTS
+      if (liveTTSEnabled) {
+        audio.controls = false;
+      } else {
+        audio.controls = true;
+        audio.className = 'mt-4 w-full';
+        audio.style.maxWidth = '100%';
+        
+        const audioContainer = document.createElement('div');
+        audioContainer.className = 'mt-4';
+        audioContainer.appendChild(audio);
+        document.getElementById('description-content').appendChild(audioContainer);
+      }
+      
+      // Play the audio
+      audio.play().catch(console.error);
+
+      // Cleanup when done
+      audio.onended = () => {
+        currentSpeech = null;
+      };
+    }
+  } catch (error) {
+    console.error('TTS error:', error);
+    alert('Failed to generate speech: ' + error.message);
+  }
+}
+
+// Load settings
+document.addEventListener('DOMContentLoaded', function() {
+  // ... existing code ...
+
+  // Load live TTS setting
+  liveTTSEnabled = userSettings.liveTTSEnabled || false;
+});
+
 // Stop camera stream when popup is closed
 function stopCamera() {
   if (cameraStream) {
     cameraStream.getTracks().forEach(track => track.stop());
     cameraStream = null;
   }
+
+  // Stop any ongoing speech
+  if (currentSpeech) {
+    currentSpeech.pause();
+    currentSpeech = null;
+  }
+
+  // Reset preview size
+  const previewContainer = document.querySelector('.camera-preview-container');
+  if (previewContainer) {
+    previewContainer.classList.remove('small');
+  }
+
+  // Clear description
+  const descriptionContent = document.getElementById('description-content');
+  if (descriptionContent) {
+    descriptionContent.innerHTML = '';
+  }
+
+  cameraInitialized = false;
 }
 
 // Update document ready event listener to include camera button
@@ -4362,5 +4423,25 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   if (userSettings.multiModelMode) {
     toggleMultiModel(true);
+  }
+});
+
+// Initialize markdown support
+document.addEventListener('DOMContentLoaded', function() {
+  // Ensure marked is loaded
+  if (typeof marked === 'undefined') {
+    console.warn('Marked.js not loaded, markdown support disabled');
+  } else {
+    try {
+      // Configure marked options if not already configured
+      marked.setOptions({
+        gfm: true,
+        breaks: true,
+        mangle: false,
+        headerIds: false
+      });
+    } catch (e) {
+      console.warn('Error configuring marked:', e);
+    }
   }
 });
