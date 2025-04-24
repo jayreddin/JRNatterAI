@@ -82,7 +82,7 @@ window.toggleMultiModel = function(enabled) {
         const modelSelect = document.getElementById('model-select');
         selectedModels = modelSelect ? [modelSelect.value] : ["gpt-4o-mini"];
       }
-      updateMultiModelDisplay();
+            updateMultiModelDisplay();
     } else {
       // Keep only the first selected model when turning off multi-model mode
       const modelSelect = document.getElementById('model-select');
@@ -119,10 +119,10 @@ function updateMultiModelDisplay() {
   selectedModels.forEach((model, idx) => {
     const chip = document.createElement('div');
     chip.className = 'selected-model-chip';
-    
+
     // Format model name for display
     const displayName = model.length > 20 ? model.substring(0, 17) + '...' : model;
-    
+
     chip.innerHTML = `
       <span title="${model}">${displayName}</span>
       <span class="remove-model" onclick="removeSelectedModel(${idx})">×</span>
@@ -348,7 +348,7 @@ function toggleMultiModel(enabled) {
         const modelSelect = document.getElementById('model-select');
         selectedModels = modelSelect ? [modelSelect.value] : ["gpt-4o-mini"];
       }
-      updateMultiModelDisplay();
+            updateMultiModelDisplay();
     } else {
       // Keep only the first selected model when turning off multi-model mode
       const modelSelect = document.getElementById('model-select');
@@ -385,10 +385,10 @@ function updateMultiModelDisplay() {
   selectedModels.forEach((model, idx) => {
     const chip = document.createElement('div');
     chip.className = 'selected-model-chip';
-    
+
     // Format model name for display
     const displayName = model.length > 20 ? model.substring(0, 17) + '...' : model;
-    
+
     chip.innerHTML = `
       <span title="${model}">${displayName}</span>
       <span class="remove-model" onclick="removeSelectedModel(${idx})">×</span>
@@ -586,7 +586,7 @@ function renderChat() {
     });
   } else {
     // Reverse messages to show newest first
-    for (let i = currentChat.length - 1; i >= 0; i--) {
+  for (let i = currentChat.length - 1; i >= 0; i--) {
       const messageEl = createMessageElement(currentChat[i]);
       wrapper.appendChild(messageEl);
     }
@@ -597,18 +597,18 @@ function renderChat() {
 
 // Update createMessageElement with better thinking process handling
 function createMessageElement(m) {
-  const isUser = m.role === 'user';
+    const isUser = m.role === 'user';
   const isThinking = m.role === 'thinking';
-  const bubbleClr = isUser ? 
+    const bubbleClr = isUser ? 
     `border-black ${isDarkMode ? 'bg-gray-800' : 'bg-white'}` : 
     `border-black ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`;
-  const align = isUser ? 'user-message' : 'assistant-message';
-  const label = isUser ? `You: ${m.time}` : `${m.model || "Assistant"}: ${m.time}`;
+    const align = isUser ? 'user-message' : 'assistant-message';
+    const label = isUser ? `You: ${m.time}` : `${m.model || "Assistant"}: ${m.time}`;
 
-  const messageDiv = document.createElement('div');
+    const messageDiv = document.createElement('div');
   messageDiv.className = `chat-message ${align} ${m.streaming ? 'streaming' : ''}`;
 
-  let content = "";
+    let content = "";
   if (isThinking) {
     // Determine model-specific thinking class
     let thinkingClass = 'default';
@@ -629,30 +629,30 @@ function createMessageElement(m) {
       if (userSettings.markdownEnabled && typeof marked !== 'undefined') {
         content = `<div class="markdown-content">${marked.parse(m.content)}</div>`;
       } else {
-        content = `<div>${m.content}</div>`;
-      }
+          content = `<div>${m.content}</div>`;
+        }
     } catch (e) {
       console.warn("Markdown parsing failed:", e);
-      content = `<div>${m.content}</div>`;
+        content = `<div>${m.content}</div>`;
+      }
+    } else if (m.content?.type === "img") {
+      content = `<img src='${m.content.url}' alt='image' class='rounded-cool' loading="lazy">`;
     }
-  } else if (m.content?.type === "img") {
-    content = `<img src='${m.content.url}' alt='image' class='rounded-cool' loading="lazy">`;
-  }
 
-  messageDiv.innerHTML = `
+    messageDiv.innerHTML = `
     <div class="message-timestamp ${isUser ? 'text-right' : ''} mb-1 text-xs">${label}</div>
-    <div class="chat-bubble ${bubbleClr}">
-      ${content}
+      <div class="chat-bubble ${bubbleClr}">
+        ${content}
       ${m.streaming ? '<span class="typing-cursor"></span>' : ''}
-    </div>
-    <div class="message-actions mt-1 ${isUser ? 'text-right' : ''}">
+      </div>
+      <div class="message-actions mt-1 ${isUser ? 'text-right' : ''}">
       <button onclick="resendMsg(${currentChat.indexOf(m)})" class="action-button" title="Resend"><i class="fa fa-redo"></i></button>
       <button onclick="copyMsg(${currentChat.indexOf(m)})" class="action-button" title="Copy"><i class="fa fa-copy"></i></button>
       <button onclick="deleteMsg(${currentChat.indexOf(m)})" class="action-button delete" title="Delete"><i class="fa fa-trash"></i></button>
       <button onclick="speakMsg(${currentChat.indexOf(m)})" class="action-button speak" title="Speak"><i class="fa fa-volume-up"></i></button>
       <button class="action-button" title="Translate" data-message-idx="${currentChat.indexOf(m)}"><i class="fa fa-language"></i></button>
-    </div>
-  `;
+      </div>
+    `;
 
   return messageDiv;
 }
@@ -870,14 +870,14 @@ async function aiSend(txt, model, usetime) {
 
             // Now generate the actual response
             const finalPrompt = `Based on this analysis:\n${thinkingProcess}\n\nProvide a clear and concise response to: ${txt}`;
-            let fullResponse = '';
+          let fullResponse = '';
             const stream = await puter.ai.chat(finalPrompt, opts);
 
-            for await (const chunk of stream) {
+          for await (const chunk of stream) {
               if (chunk?.text) {
                 fullResponse += chunk.text;
-                currentChat[idx].content = fullResponse;
-                renderChat();
+            currentChat[idx].content = fullResponse;
+            renderChat();
                 scrollToBottom();
               }
             }
@@ -3872,7 +3872,7 @@ async function initializeCamera() {
         descriptionContent.innerHTML = `<span class="text-red-500">Error analyzing image: ${error.message}</span>`;
       }
     };
-  } catch (error) {
+    } catch (error) {
     console.error('Error accessing camera:', error);
     video.parentElement.innerHTML = `
       <div class="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 p-4 rounded-cool">
@@ -3924,5 +3924,5 @@ document.addEventListener('DOMContentLoaded', function() {
       stopCamera();
       if (originalOnClick) originalOnClick.call(this);
     };
-  }
+    }
 });

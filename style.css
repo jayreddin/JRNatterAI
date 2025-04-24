@@ -1501,253 +1501,506 @@ margin-bottom: 0.5rem;
   }
   
   #main-header {
-    padding: 0.5rem;
-    flex-direction: column;
-    gap: 0.5rem;
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    background: var(--bg-color);
+    padding: 0.25rem;
   }
   
   #model-select-container {
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    order: 1;
+    max-width: 200px;
   }
-
-  #model-select {
-    width: 100%;
-    font-size: 0.875rem;
-    padding: 0.35rem;
-    height: auto;
-  }
-
-  /* Switches container */
-  .switches-container {
-    width: 100%;
-    order: 2;
-    flex-direction: row;
-    justify-content: center;
-    gap: 1rem;
-    padding: 0.5rem;
-    margin-top: 0.25rem;
-  }
-
-  .switch-item {
-    min-width: auto;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .switch-item span {
-    font-size: 0.7rem;
-  }
-
-  .toggle-switch {
-    transform: scale(0.7);
-  }
-
-  /* User info and login */
-  .flex.flex-col.items-center {
-    order: 0;
-    width: 100%;
-    flex-direction: row !important;
-    justify-content: space-between;
-    padding: 0 0.5rem;
-  }
-
-  #user-info {
-    font-size: 0.7rem;
-    margin: 0;
-    padding: 0.25rem 0.5rem;
-  }
-
-  #puter-login-btn {
-    font-size: 0.7rem;
-    padding: 0.25rem 0.5rem;
-    margin: 0;
-  }
-
-  /* Model dropdown improvements */
-  .model-select-dropdown {
-    max-height: 50vh;
-  }
-
-  .model-select-option {
-    padding: 0.5rem;
-    font-size: 0.875rem;
-  }
-
-  /* Selected models display */
-  .selected-models-container {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding: 0.25rem;
-    margin-top: 0.25rem;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .selected-model-chip {
-    flex-shrink: 0;
-    font-size: 0.7rem;
-    padding: 0.15rem 0.4rem;
-  }
-
-  /* Footer adjustments */
-  .footer-container {
-    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
-  }
-
-  #chat-form {
-    padding: 0.5rem;
-  }
-
-  #chat-input {
-    font-size: 0.875rem;
-    padding: 0.5rem;
-    min-height: 36px;
-  }
-
+  
   .feature-btn {
-    width: 2rem;
-    height: 2rem;
-    font-size: 0.875rem;
-  }
-
-  /* Chat container adjustments */
-  #chat-container {
-    padding-top: 0.5rem;
-    padding-bottom: 120px;
-  }
-
-  .chat-message {
-    padding: 0.25rem;
-  }
-
-  .chat-bubble {
-    max-width: 85%;
-    font-size: 0.875rem;
-    padding: 0.5rem;
-  }
-
-  .message-timestamp {
-    font-size: 0.65rem;
-  }
-
-  .message-actions {
-    opacity: 1;
-    font-size: 0.7rem;
-  }
-
-  /* Model capability badges */
-  .model-capability {
-    font-size: 0.6rem;
-    padding: 0.1rem 0.25rem;
-  }
-
-  /* Vision/Code indicators */
-  .vision-indicator,
-  .code-indicator {
-    font-size: 0.7rem;
-    margin-left: 0.25rem;
+    width: 1.8em;
+    height: 1.8em;
+    font-size: 0.8rem;
   }
 }
 
-/* iPhone notch/dynamic island safety area */
-@supports (padding-top: env(safe-area-inset-top)) {
-  #main-header {
-    padding-top: calc(env(safe-area-inset-top) + 0.5rem);
-  }
+/* Chat bubble base styles */
+.chat-bubble {
+  border-width: 1px;
+  border-radius: 0.5rem;
+  border-style: solid;
+  transition: background-color 0.2s ease;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.2;
+  box-sizing: border-box;
+}
 
-  .footer-container {
-    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+/* Chat bubble size variations */
+.bubble-size-compact .chat-bubble {
+  padding: 0.15rem 0.35rem;
+  margin: 0.03rem 0;
+  font-size: 0.82rem;
+  line-height: 1.1;
+  min-height: 1.4em;
+}
+
+.bubble-size-compact .message-timestamp {
+  font-size: 0.68rem;
+  margin-bottom: 0.02em;
+}
+
+.bubble-size-compact .message-actions {
+  margin-top: 0.02em;
+}
+
+.bubble-size-compact .chat-message {
+  margin-bottom: 0.06em;
+}
+
+.bubble-size-normal .chat-bubble {
+  padding: 0.25rem 0.5rem;
+  margin: 0.1rem 0;
+  font-size: 0.88rem;
+  line-height: 1.15;
+  min-height: 1.6em;
+}
+
+.bubble-size-normal .message-timestamp {
+  font-size: 0.75rem;
+  margin-bottom: 0.06em;
+}
+
+.bubble-size-normal .message-actions {
+  margin-top: 0.06em;
+}
+
+.bubble-size-normal .chat-message {
+  margin-bottom: 0.11em;
+}
+
+.bubble-size-large .chat-bubble {
+  padding: 0.35rem 0.65rem;
+  margin: 0.15rem 0;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  min-height: 1.8em;
+}
+
+.bubble-size-large .message-timestamp {
+  font-size: 0.8rem;
+  margin-bottom: 0.09em;
+}
+
+.bubble-size-large .message-actions {
+  margin-top: 0.09em;
+}
+
+.bubble-size-large .chat-message {
+  margin-bottom: 0.16em;
+}
+
+/* Footer container adjustments */
+.footer-container {
+  background: var(--bg-color) !important;
+  border-top: 0px solid var(--border-color);
+  padding-top: 0.1rem;
+  padding-bottom: 0.25rem;
+  margin-top: auto;
+}
+
+/* Chat form adjustments */
+#chat-form {
+  padding: 0.2rem;
+  gap: 0.3rem;
+}
+
+#chat-input {
+  min-height: 30px;
+  max-height: 120px;
+  padding: 6px 10px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+#chat-form button {
+  padding: 0.3rem 0.6rem;
+  height: 30px;
+  font-size: 0.875rem;
+}
+
+/* Feature buttons in footer */
+.footer-content {
+  padding: 0.2rem;
+}
+
+.footer-content .feature-btn {
+  width: 1.8em;
+  height: 1.8em;
+  font-size: 0.8rem;
+  margin-right: 0.2rem;
+}
+
+/* Footer info text */
+.footer-content .text-xs {
+  font-size: 0.7rem;
+}
+
+/* Make user and assistant messages smaller */
+.user-message .chat-bubble,
+.assistant-message .chat-bubble {
+  font-size: 0.88rem !important;
+  padding: 0.06em 0.35em 0.06em 0.35em !important;
+  margin: 0.03em 0 !important;
+  border-radius: 0.25rem !important;
+  line-height: 1.15 !important;
+}
+
+.user-message,
+.assistant-message {
+  margin-bottom: 0.05em !important;
+}
+
+.user-message .message-timestamp,
+.assistant-message .message-timestamp {
+  font-size: 0.62rem !important;
+  margin-bottom: 0.01em !important;
+}
+
+.user-message .message-actions,
+.assistant-message .message-actions {
+  margin-top: 0.01em !important;
+}
+
+/* Header switches container */
+.switches-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.4rem;
+  border: 1px solid var(--border-color);
+  border-radius: 1rem;
+  background: var(--button-bg);
+}
+
+.switch-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 5.5rem;
+}
+
+.switch-item span {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+/* Multi-model add button */
+.add-model-button {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 0.5rem;
+}
+
+.add-model-button:hover {
+  background: var(--primary-hover);
+  transform: scale(1.05);
+}
+
+.multi-mode-active .add-model-button {
+  display: flex;
+}
+
+/* Model selection dropdown */
+.model-select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  max-height: 300px;
+  overflow-y: auto;
+  display: none;
+}
+
+.model-select-dropdown.visible {
+  display: block;
+}
+
+.model-select-option {
+  display: flex;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  border-radius: 0.3rem;
+  color: var(--text-color);
+}
+
+.model-select-option:hover {
+  background: var(--button-hover);
+}
+
+/* Thinking process display improvements */
+.thinking-process {
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: var(--text-color);
+  opacity: 0.85;
+  padding: 0.3rem 0.6rem;
+  margin: 0.15rem 0;
+  background: var(--button-bg);
+  border-radius: 0.4rem;
+  border: 1px dashed var(--primary-color);
+  animation: thinkingPulse 2s infinite;
+  white-space: pre-wrap;
+}
+
+/* Model-specific thinking styles */
+.thinking-process.deepseek-reasoner {
+  border-color: #4a90e2;
+  background: rgba(74, 144, 226, 0.1);
+}
+
+.thinking-process.deepseek-reasoner::before {
+  content: "🔍 Systematic Analysis: ";
+  color: #4a90e2;
+}
+
+.thinking-process.o1-mini {
+  border-color: #9c27b0;
+  background: rgba(156, 39, 176, 0.1);
+}
+
+.thinking-process.o1-mini::before {
+  content: "🧩 Logical Reasoning: ";
+  color: #9c27b0;
+}
+
+.thinking-process.o3-mini {
+  border-color: #2196f3;
+  background: rgba(33, 150, 243, 0.1);
+}
+
+.thinking-process.o3-mini::before {
+  content: "🔄 Comprehensive Analysis: ";
+  color: #2196f3;
+}
+
+/* Default thinking process style */
+.thinking-process.default::before {
+  content: "🤔 Thinking: ";
+  color: var(--primary-color);
+}
+
+@keyframes thinkingPulse {
+  0%, 100% { 
+    border-color: currentColor; 
+    opacity: 0.7; 
+  }
+  50% { 
+    border-color: var(--primary-color); 
+    opacity: 0.9; 
   }
 }
 
-/* Improved scrolling on mobile */
-.hide-scrollbar {
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
+/* Thinking process sections */
+.thinking-process h3 {
+  font-size: 0.9rem;
+  font-weight: bold;
+  margin: 0.8rem 0 0.4rem 0;
+  color: var(--text-color);
 }
 
-/* Dark mode adjustments for mobile */
-@media (max-width: 768px) {
-  .dark-mode #main-header {
-    background: var(--bg-color);
-  }
-
-  .dark-mode .switches-container {
-    background: rgba(255, 255, 255, 0.05);
-  }
+.thinking-process ul {
+  margin: 0.4rem 0;
+  padding-left: 1.2rem;
 }
 
-/* Mobile Styles */
-@media screen and (max-width: 768px) {
-    .header {
-        padding: 10px;
-        flex-direction: column;
-        gap: 10px;
-    }
+.thinking-process li {
+  margin: 0.2rem 0;
+}
 
-    .model-selection-container {
-        width: 100%;
-        flex-direction: column;
-        align-items: stretch;
-    }
+.thinking-process code {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.2rem;
+  font-size: 0.8rem;
+}
 
-    .switches-container {
-        width: 100%;
-        justify-content: space-between;
-        padding: 5px 0;
-    }
+/* Thinking process steps */
+.thinking-process .step {
+  margin: 0.6rem 0;
+  padding-left: 1rem;
+  border-left: 2px solid currentColor;
+}
 
-    .user-info {
-        width: 100%;
-        justify-content: center;
-    }
+.thinking-process .step-number {
+  font-weight: bold;
+  color: var(--primary-color);
+}
 
-    .chat-input-container {
-        padding: 10px;
-    }
+/* Thinking process conclusion */
+.thinking-process .conclusion {
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed currentColor;
+  font-style: italic;
+}
 
-    .chat-input {
-        font-size: 14px;
-        padding: 8px;
-    }
+/* Model capability badges improvements */
+.model-capability {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.3rem;
+  border-radius: 0.3rem;
+  font-size: 0.65rem;
+  margin-left: 0.3rem;
+  background: var(--primary-color);
+  color: white;
+  opacity: 0.9;
+  gap: 0.2rem;
+}
 
-    .send-button {
-        padding: 8px;
-    }
+.model-capability i {
+  font-size: 0.65rem;
+}
 
-    .chat-container {
-        padding: 10px;
-    }
+.model-capability.think {
+  background: #9333ea;
+}
 
-    .chat-bubble {
-        max-width: 90%;
-        padding: 8px 12px;
-        font-size: 14px;
-    }
+.model-capability.stream {
+  background: #0891b2;
+}
 
-    .model-dropdown {
-        width: 100%;
-    }
+.model-capability.vision {
+  background: #15803d;
+}
 
-    .add-model-button {
-        width: 100%;
-        margin-top: 5px;
-    }
+.model-capability.code {
+  background: #b91c1c;
+}
 
-    .switch-item {
-        font-size: 12px;
-    }
+.model-capability.context {
+  background: #c2410c;
+}
 
-    .thinking-process {
-        font-size: 12px;
-        padding: 8px;
-        margin: 5px 0;
-    }
+/* Bubble size variations - more compact */
+.bubble-size-compact .chat-bubble {
+  padding: 0.15rem 0.35rem;
+  margin: 0.03rem 0;
+  font-size: 0.82rem;
+  line-height: 1.1;
+  min-height: 1.4em;
+}
+
+.bubble-size-normal .chat-bubble {
+  padding: 0.25rem 0.5rem;
+  margin: 0.1rem 0;
+  font-size: 0.88rem;
+  line-height: 1.15;
+  min-height: 1.6em;
+}
+
+.bubble-size-large .chat-bubble {
+  padding: 0.35rem 0.65rem;
+  margin: 0.15rem 0;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  min-height: 1.8em;
+}
+
+/* Message actions improvements */
+.message-actions {
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+  margin: 0.1rem 0.2rem;
+}
+
+.chat-message:hover .message-actions {
+  opacity: 1;
+}
+
+.action-button {
+  padding: 0.12rem;
+  font-size: 0.7rem;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  color: var(--icon-color);
+}
+
+.action-button:hover {
+  color: var(--primary-color);
+  opacity: 1;
+}
+
+/* Camera interface styles */
+#camera-preview {
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  background: #000;
+  border-radius: var(--radius-lg);
+}
+
+#camera-canvas {
+  display: none;
+}
+
+#camera-description {
+  transition: all 0.3s ease;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+#description-loading {
+  color: var(--primary-color);
+}
+
+#describe-photo-btn {
+  transition: all 0.2s ease;
+}
+
+#describe-photo-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#describe-photo-btn:active {
+  transform: translateY(0);
+}
+
+/* Camera permissions error */
+.camera-error {
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  margin: 1rem 0;
+}
+
+.camera-error i {
+  color: var(--primary-color);
+  margin-right: 0.5rem;
+}
+
+/* Responsive camera interface */
+@media (max-width: 640px) {
+  #camera-preview {
+    max-height: 40vh;
+  }
+  
+  #camera-description {
+    max-height: 150px;
+  }
 }
