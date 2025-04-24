@@ -3574,41 +3574,363 @@ const TOKEN_LIMIT = 100000; // Example limit, adjust as needed
 
 async function updateTokenUsage() {
   try {
-    const stats = await puter.ai.getUsageStats();
-    totalTokens = stats.total_tokens || 0;
+    // Check if user is signed in
+    if (!puter.auth.isSignedIn()) {
+      // Show sign in prompt in the token usage popup
+      const detailsContainer = document.querySelector('.token-usage-details');
+      if (detailsContainer) {
+        detailsContainer.innerHTML = `
+          <div class="text-sm text-center">
+            <p class="mb-2">Please sign in to view storage usage</p>
+            <button onclick="handleTokenUsageAuth()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool text-xs">
+              Sign In
+            </button>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    // Get space usage from puter.fs.space()
+    const spaceData = await puter.fs.space();
+    if (!spaceData) {
+      throw new Error('Could not fetch usage data');
+    }
+
+    const usedBytes = spaceData.used || 0;
+    const totalBytes = spaceData.capacity || 100000;
+    const usagePercent = Math.min((usedBytes / totalBytes) * 100, 100);
     
-    const usagePercent = Math.min((totalTokens / TOKEN_LIMIT) * 100, 100);
-    document.getElementById('token-usage-percent').textContent = `${Math.round(usagePercent)}%`;
-    document.getElementById('token-usage-count').textContent = totalTokens.toLocaleString();
+    // Convert bytes to more readable format
+    const usedFormatted = formatBytes(usedBytes);
+    const totalFormatted = formatBytes(totalBytes);
+    const remainingFormatted = formatBytes(totalBytes - usedBytes);
     
+    // Update the UI elements
+    const percentElement = document.getElementById('token-usage-percent');
+    const countElement = document.getElementById('token-usage-count');
     const progressBar = document.getElementById('token-progress-bar');
-    progressBar.style.width = `${usagePercent}%`;
-    
-    // Add warning class if usage is high
-    if (usagePercent > 80) {
-      progressBar.classList.add('token-progress-warning');
-    } else {
-      progressBar.classList.remove('token-progress-warning');
+    const detailsContainer = document.querySelector('.token-usage-details');
+
+    if (percentElement) {
+      percentElement.textContent = `${Math.round(usagePercent)}%`;
     }
     
-    // Update additional details
-    const detailsContainer = document.querySelector('.token-usage-details');
-    detailsContainer.innerHTML = `
-      <div class="text-sm">
-        <div class="flex justify-between mb-1">
-          <span>Total Limit:</span>
-          <span>${TOKEN_LIMIT.toLocaleString()} tokens</span>
+    if (countElement) {
+      countElement.textContent = usedFormatted;
+    }
+    
+    if (progressBar) {
+      progressBar.style.width = `${usagePercent}%`;
+      
+      // Add warning class if usage is high
+      if (usagePercent > 80) {
+        progressBar.classList.add('token-progress-warning');
+      } else {
+        progressBar.classList.remove('token-progress-warning');
+      }
+    }
+    
+    if (detailsContainer) {
+      detailsContainer.innerHTML = `
+        <div class="text-sm">
+          <div class="flex justify-between mb-1">
+            <span>Total Storage:</span>
+            <span>${totalFormatted}</span>
+          </div>
+          <div class="flex justify-between mb-1">
+            <span>Used:</span>
+            <span>${usedFormatted}</span>
+          </div>
+          <div class="flex justify-between mb-1">
+            <span>Remaining:</span>
+            <span>${remainingFormatted}</span>
+          </div>
         </div>
-        <div class="flex justify-between mb-1">
-          <span>Remaining:</span>
-          <span>${(TOKEN_LIMIT - totalTokens).toLocaleString()} tokens</span>
-        </div>
-      </div>
-    `;
+      `;
+    }
   } catch (error) {
-    console.error('Error fetching token usage:', error);
+    console.error('Error fetching storage usage:', error);
+    
+    // Show error in the token usage popup
+    const detailsContainer = document.querySelector('.token-usage-details');
+    if (detailsContainer) {
+      detailsContainer.innerHTML = `
+        <div class="text-sm text-red-600 dark:text-red-400">
+          <p class="mb-2">Error fetching storage usage: ${error.message || 'Please try signing in again'}</p>
+          <button onclick="handleTokenUsageAuth()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool text-xs">
+            Sign In
+          </button>
+        </div>
+      `;
+    }
   }
 }
 
+// Helper function to format bytes into human readable format
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
 // Update token usage when the popup is opened
-document.getElementById('token-info-btn').addEventListener('click', updateTokenUsage);
+document.getElementById('token-info-btn')?.addEventListener('click', () => {
+  updateTokenUsage();
+  // Set up auto-refresh every 2 seconds while popup is open
+  const refreshInterval = setInterval(updateTokenUsage, 2000);
+  
+  // Clear interval when popup is closed
+  const tokenPopup = document.getElementById('popup-tokens');
+  if (tokenPopup) {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class' && tokenPopup.classList.contains('hidden')) {
+          clearInterval(refreshInterval);
+          observer.disconnect();
+        }
+      });
+    });
+    
+    observer.observe(tokenPopup, { attributes: true });
+  }
+});
+
+// Helper function to handle authentication for token usage
+async function handleTokenUsageAuth() {
+  try {
+    await puter.auth.signIn();
+    // After successful sign in, update the token usage display
+    updateTokenUsage();
+  } catch (error) {
+    console.error('Authentication error:', error);
+    const detailsContainer = document.querySelector('.token-usage-details');
+    if (detailsContainer) {
+      detailsContainer.innerHTML = `
+        <div class="text-sm text-red-600 dark:text-red-400">
+          <p class="mb-2">Authentication failed: ${error.message || 'Please try again'}</p>
+          <button onclick="handleTokenUsageAuth()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool text-xs">
+            Try Again
+          </button>
+        </div>
+      `;
+    }
+  }
+}
+
+// Global variable to store the update interval ID
+let tokenUsageUpdateInterval = null;
+
+// Function to start token usage updates
+async function startTokenUsageUpdates() {
+  try {
+    // Check authentication first
+    if (!puter.auth.isSignedIn()) {
+      // Show sign in prompt
+      const detailsContainer = document.querySelector('.token-usage-details');
+      if (detailsContainer) {
+        detailsContainer.innerHTML = `
+          <div class="text-sm text-center">
+            <p class="mb-2">Please sign in to view storage usage</p>
+            <button onclick="handleTokenUsageAuth()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool text-xs">
+              Sign In
+            </button>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    // Clear any existing interval
+    stopTokenUsageUpdates();
+
+    // Initial update
+    await updateTokenUsage();
+
+    // Set up new interval only if we're authenticated
+    tokenUsageUpdateInterval = setInterval(async () => {
+      if (!puter.auth.isSignedIn()) {
+        stopTokenUsageUpdates();
+        return;
+      }
+      try {
+        await updateTokenUsage();
+      } catch (error) {
+        console.error('Error in update interval:', error);
+        if (error?.status === 401) {
+          stopTokenUsageUpdates();
+        }
+      }
+    }, 2000);
+  } catch (error) {
+    console.error('Error starting token usage updates:', error);
+    stopTokenUsageUpdates();
+  }
+}
+
+// Update the token info button click handler
+document.addEventListener('DOMContentLoaded', function() {
+  const tokenInfoBtn = document.getElementById('token-info-btn');
+  if (tokenInfoBtn) {
+    tokenInfoBtn.addEventListener('click', async () => {
+      // Try to initialize updates
+      await startTokenUsageUpdates();
+      
+      // Set up popup close detection
+      const tokenPopup = document.getElementById('popup-tokens');
+      if (tokenPopup) {
+        const observer = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+            if (mutation.attributeName === 'class' && tokenPopup.classList.contains('hidden')) {
+              stopTokenUsageUpdates();
+              observer.disconnect();
+            }
+          });
+        });
+        
+        observer.observe(tokenPopup, { attributes: true });
+      }
+    });
+  }
+});
+
+// Update the auth handler
+async function handleTokenUsageAuth() {
+  try {
+    await puter.auth.signIn();
+    // Only start updates if authentication was successful
+    if (puter.auth.isSignedIn()) {
+      await startTokenUsageUpdates();
+    }
+  } catch (error) {
+    console.error('Authentication error:', error);
+    const detailsContainer = document.querySelector('.token-usage-details');
+    if (detailsContainer) {
+      detailsContainer.innerHTML = `
+        <div class="text-sm text-red-600 dark:text-red-400">
+          <p class="mb-2">Authentication failed: ${error.message || 'Please try again'}</p>
+          <button onclick="handleTokenUsageAuth()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool text-xs">
+            Try Again
+          </button>
+        </div>
+      `;
+    }
+    stopTokenUsageUpdates();
+  }
+}
+
+// Function to format bytes into human readable format
+function formatBytes(bytes) {
+    const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex++;
+    }
+    
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+// Function to update storage usage display
+async function updateTokenUsage() {
+    try {
+        // Get space usage from puter.fs.space()
+        const spaceData = await puter.fs.space();
+        if (!spaceData) {
+            throw new Error('Could not fetch usage data');
+        }
+
+        const used = spaceData.used || 0;
+        const capacity = spaceData.capacity || 100000;
+        let usagePercent = Math.min(((used / capacity) * 100), 100).toFixed(0);
+
+        // Update UI elements
+        const storageUsed = document.getElementById('storage-used');
+        const storageCapacity = document.getElementById('storage-capacity');
+        const storageUsedPercent = document.getElementById('storage-used-percent');
+        const storageBar = document.getElementById('storage-bar');
+        const storageBarHost = document.getElementById('storage-bar-host');
+
+        if (storageUsed) storageUsed.textContent = formatBytes(used);
+        if (storageCapacity) storageCapacity.textContent = formatBytes(capacity);
+        if (storageUsedPercent) storageUsedPercent.textContent = `${usagePercent}%`;
+        if (storageBar) {
+            storageBar.style.width = `${usagePercent}%`;
+            if (parseInt(usagePercent) >= 100) {
+                storageBar.style.borderTopRightRadius = '3px';
+                storageBar.style.borderBottomRightRadius = '3px';
+            }
+        }
+
+        // Update host usage if available
+        if (spaceData.host_used) {
+            const hostUsed = spaceData.host_used;
+            const hostUsagePercent = ((hostUsed - used) / capacity * 100).toFixed(0);
+            
+            const storagePuterUsed = document.getElementById('storage-puter-used');
+            const storagePuterUsedWrapper = document.getElementById('storage-puter-used-w');
+            
+            if (storagePuterUsed) storagePuterUsed.textContent = formatBytes(used);
+            if (storagePuterUsedWrapper) storagePuterUsedWrapper.style.display = 'inline';
+            if (storageBarHost) storageBar.style.width = `${hostUsagePercent}%`;
+        }
+
+    } catch (error) {
+        console.error('Error fetching storage usage:', error);
+        clearInterval(tokenUsageUpdateInterval);
+        tokenUsageUpdateInterval = null;
+    }
+}
+
+// Function to start token usage updates
+function startTokenUsageUpdates() {
+    // Clear any existing interval
+    if (tokenUsageUpdateInterval) {
+        clearInterval(tokenUsageUpdateInterval);
+    }
+
+    // Initial update
+    updateTokenUsage();
+
+    // Set up new interval
+    tokenUsageUpdateInterval = setInterval(updateTokenUsage, 2000);
+}
+
+// Function to stop token usage updates
+function stopTokenUsageUpdates() {
+    if (tokenUsageUpdateInterval) {
+        clearInterval(tokenUsageUpdateInterval);
+        tokenUsageUpdateInterval = null;
+    }
+}
+
+// Initialize token usage display when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+    const tokenInfoBtn = document.getElementById('token-info-btn');
+    if (tokenInfoBtn) {
+        tokenInfoBtn.addEventListener('click', () => {
+            startTokenUsageUpdates();
+            
+            // Set up popup close detection
+            const tokenPopup = document.getElementById('popup-tokens');
+            if (tokenPopup) {
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.attributeName === 'class' && tokenPopup.classList.contains('hidden')) {
+                            stopTokenUsageUpdates();
+                            observer.disconnect();
+                        }
+                    });
+                });
+                
+                observer.observe(tokenPopup, { attributes: true });
+            }
+        });
+    }
+});
