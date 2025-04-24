@@ -65,121 +65,72 @@ window.toggleMultiModel = function(enabled) {
 
     // Update UI
     const multiToggle = document.getElementById('multi-toggle');
+    const container = document.getElementById('model-select-container');
+    
     if (multiToggle) {
       multiToggle.checked = enabled;
     }
 
-    // Update UI for multi-model selection
-    const modelSelect = document.getElementById('model-select');
-    const container = document.getElementById('model-select-container');
-
-    if (!modelSelect || !container) return;
-
-    if (enabled) {
-      // Hide main model dropdown
-      modelSelect.style.display = 'none';
-
-      // Initialize selected models with the current selection if empty
-      if (selectedModels.length === 0) {
-        selectedModels = [modelSelect.value];
-      }
-
-      // Create multi-select container if it doesn't exist
-      if (!document.getElementById('multi-model-container')) {
-        const multiContainer = document.createElement('div');
-        multiContainer.id = 'multi-model-container';
-        multiContainer.className = 'multi-model-container';
-        container.appendChild(multiContainer);
-
-        // Add model selector with + button
-        const modelSelectorContainer = document.createElement('div');
-        modelSelectorContainer.id = 'model-selector-container';
-        modelSelectorContainer.className = 'model-selector-container';
-
-        // Create new dropdown for model selection
-        const newModelSelect = document.createElement('select');
-        newModelSelect.id = 'multi-model-select';
-        newModelSelect.className = 'bg-gray-50 border rounded-cool py-1 px-3 text-sm dark:bg-gray-800';
-
-        // Clone options from main model select
-        Array.from(modelSelect.options).forEach(opt => {
-          const option = document.createElement('option');
-          option.value = opt.value;
-          option.textContent = opt.textContent;
-          option.disabled = selectedModels.includes(opt.value);
-          newModelSelect.appendChild(option);
-        });
-
-        const addButton = document.createElement('button');
-        addButton.id = 'add-model-btn';
-        addButton.innerHTML = '<i class="fa fa-plus"></i>';
-        addButton.className = 'ml-2 px-2 py-1 bg-blue-600 text-white rounded-full hover:bg-blue-700';
-        addButton.onclick = (e) => {
-          e.preventDefault();
-          const selectedValue = newModelSelect.value;
-          if (selectedValue && !selectedModels.includes(selectedValue)) {
-            selectedModels.push(selectedValue);
-            updateMultiModelDisplay();
-
-            // Disable this option in the dropdown
-            const option = newModelSelect.querySelector(`option[value="${selectedValue}"]`);
-            if (option) option.disabled = true;
-
-            // Select first non-disabled option
-            const firstAvailableOption = newModelSelect.querySelector('option:not([disabled])');
-            if (firstAvailableOption) newModelSelect.value = firstAvailableOption.value;
-          }
-        };
-
-        modelSelectorContainer.appendChild(newModelSelect);
-        modelSelectorContainer.appendChild(addButton);
-        container.appendChild(modelSelectorContainer);
-      }
-    } else {
-      // Keep only the first selected model when turning off multi-model mode
-      selectedModels = selectedModels.length > 0 ? [selectedModels[0]] : [modelSelect.value];
-
-      // Restore visibility to the model select dropdown
-      modelSelect.style.display = '';
-
-      // Clean up the UI
-      const multiContainer = document.getElementById('multi-model-container');
-      if (multiContainer) multiContainer.remove();
-
-      const modelSelectorContainer = document.getElementById('model-selector-container');
-      if (modelSelectorContainer) modelSelectorContainer.remove();
+    if (container) {
+      container.classList.toggle('multi-mode-active', enabled);
     }
 
-    updateMultiModelDisplay();
+    // Update model selection display
+    if (enabled) {
+      if (selectedModels.length === 0) {
+        const modelSelect = document.getElementById('model-select');
+        selectedModels = modelSelect ? [modelSelect.value] : ["gpt-4o-mini"];
+      }
+      updateMultiModelDisplay();
+    } else {
+      // Keep only the first selected model when turning off multi-model mode
+      const modelSelect = document.getElementById('model-select');
+      if (modelSelect && selectedModels.length > 0) {
+        modelSelect.value = selectedModels[0];
+      }
+      selectedModels = [];
+    }
+
+    // Re-render chat to update layout
+    renderChat();
   } catch (error) {
     console.error('Error toggling multi-model mode:', error);
   }
 }
 
-// Update multi-model display with selected models
+// Update multi-model display
 function updateMultiModelDisplay() {
-  const container = document.getElementById('multi-model-container');
+  const container = document.getElementById('model-select-container');
   if (!container) return;
 
-  container.innerHTML = '';
+  // Remove existing display
+  const existingDisplay = container.querySelector('.selected-models-container');
+  if (existingDisplay) {
+    existingDisplay.remove();
+  }
 
-  // Create a chip for each selected model
+  if (!multiModelMode) return;
+
+  // Create new display container
+  const displayContainer = document.createElement('div');
+  displayContainer.className = 'selected-models-container';
+
   selectedModels.forEach((model, idx) => {
     const chip = document.createElement('div');
-    chip.className = 'inline-flex items-center bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded-full text-sm';
-
-    // Truncate long model names for display purposes
-    const displayName = model.length > 30 ? model.substring(0, 27) + '...' : model;
-
+    chip.className = 'selected-model-chip';
+    
+    // Format model name for display
+    const displayName = model.length > 20 ? model.substring(0, 17) + '...' : model;
+    
     chip.innerHTML = `
-      <span title="${model}" class="mr-1">${displayName}</span>
-      <button class="text-red-500 hover:text-red-700 focus:outline-none" 
-              onclick="removeSelectedModel(${idx})">
-        <i class="fa fa-times-circle"></i>
-      </button>
+      <span title="${model}">${displayName}</span>
+      <span class="remove-model" onclick="removeSelectedModel(${idx})">×</span>
     `;
-    container.appendChild(chip);
+    
+    displayContainer.appendChild(chip);
   });
+
+  container.appendChild(displayContainer);
 }
 
 // Global function for removing models from multi-model selection
@@ -330,22 +281,17 @@ function nowStr() {
 }
 // ---- UI MODES ----
 function setTheme(mode) {
+  // Remove existing theme
   document.body.classList.remove('dark-mode');
-  if (mode === 'dark') { document.body.classList.add('dark-mode'); }
-  if (mode === 'sunset') {
-    document.body.style.background = "linear-gradient(120deg,#ffecd2 0%,#fcb69f 100%)";
-    document.body.style.color = "#46251a";
-  } else if (mode === 'multicolored') {
-    document.body.style.background = "linear-gradient(120deg,#89f7fe 0%,#66a6ff 100%)";
-    document.body.style.color = "#163253";
-  } else if (mode === 'dark') {
-    document.body.style.background = "#181a1b";
-    document.body.style.color = "#e5e7eb";
-  } else {
-    // reset
-    document.body.style.background = "#fafafa";
-    document.body.style.color = "#24292f";
+  document.body.removeAttribute('data-theme');
+  
+  if (mode === 'dark') {
+    document.body.classList.add('dark-mode');
+    document.body.setAttribute('data-theme', 'dark');
+  } else if (mode === 'sunset' || mode === 'multicolored') {
+    document.body.setAttribute('data-theme', mode);
   }
+  
   userSettings.theme = mode;
   saveSettings();
 }
@@ -385,85 +331,34 @@ function toggleMultiModel(enabled) {
 
     // Update UI
     const multiToggle = document.getElementById('multi-toggle');
+    const container = document.getElementById('model-select-container');
+    
     if (multiToggle) {
       multiToggle.checked = enabled;
     }
 
-    // Update UI for multi-model selection
-    const modelSelect = document.getElementById('model-select');
-    const container = document.getElementById('model-select-container');
-
-    if (!modelSelect || !container) return;
-
-    if (enabled) {
-      // Initialize selected models with the current selection if empty
-      if (selectedModels.length === 0) {
-        selectedModels = [modelSelect.value];
-      }
-
-      // Create multi-select container if it doesn't exist
-      if (!document.getElementById('multi-model-container')) {
-        const multiContainer = document.createElement('div');
-        multiContainer.id = 'multi-model-container';
-        multiContainer.className = 'flex flex-wrap gap-2 mt-4 pb-2 overflow-y-auto max-h-32';
-        container.appendChild(multiContainer);
-
-        // Add model selector with + button
-        const modelSelectorContainer = document.createElement('div');
-        modelSelectorContainer.id = 'model-selector-container';
-        modelSelectorContainer.className = 'flex items-center mt-2';
-
-        const newModelSelect = document.createElement('select');
-        newModelSelect.id = 'multi-model-select';
-        newModelSelect.className = 'bg-gray-50 border rounded-cool py-1 px-3 text-sm dark:bg-gray-800';
-
-        // Clone options from main model select
-        Array.from(modelSelect.options).forEach(opt => {
-          const option = document.createElement('option');
-          option.value = opt.value;
-          option.textContent = opt.textContent;
-          // Disable options that are already selected
-          option.disabled = selectedModels.includes(opt.value);
-          newModelSelect.appendChild(option);
-        });
-
-        const addButton = document.createElement('button');
-        addButton.innerHTML = '<i class="fa fa-plus"></i>';
-        addButton.className = 'ml-2 px-2 py-1 bg-blue-600 text-white rounded-full hover:bg-blue-700';
-        addButton.onclick = (e) => {
-          e.preventDefault();
-          const selectedValue = newModelSelect.value;
-          if (selectedValue && !selectedModels.includes(selectedValue)) {
-            selectedModels.push(selectedValue);
-            updateMultiModelDisplay();
-
-            // Disable this option in the multi-model select dropdown
-            const option = newModelSelect.querySelector(`option[value="${selectedValue}"]`);
-            if (option) option.disabled = true;
-
-            // Select first non-disabled option
-            const firstAvailableOption = newModelSelect.querySelector('option:not([disabled])');
-            if (firstAvailableOption) newModelSelect.value = firstAvailableOption.value;
-          }
-        };
-
-        modelSelectorContainer.appendChild(newModelSelect);
-        modelSelectorContainer.appendChild(addButton);
-        container.appendChild(modelSelectorContainer);
-      }
-    } else {
-      // Keep only the first selected model when turning off multi-model mode
-      selectedModels = selectedModels.length > 0 ? [selectedModels[0]] : [modelSelect.value];
-
-      // Clean up the UI
-      const multiContainer = document.getElementById('multi-model-container');
-      if (multiContainer) multiContainer.remove();
-
-      const modelSelectorContainer = document.getElementById('model-selector-container');
-      if (modelSelectorContainer) modelSelectorContainer.remove();
+    if (container) {
+      container.classList.toggle('multi-mode-active', enabled);
     }
 
-    updateMultiModelDisplay();
+    // Update model selection display
+    if (enabled) {
+      if (selectedModels.length === 0) {
+        const modelSelect = document.getElementById('model-select');
+        selectedModels = modelSelect ? [modelSelect.value] : ["gpt-4o-mini"];
+      }
+      updateMultiModelDisplay();
+    } else {
+      // Keep only the first selected model when turning off multi-model mode
+      const modelSelect = document.getElementById('model-select');
+      if (modelSelect && selectedModels.length > 0) {
+        modelSelect.value = selectedModels[0];
+      }
+      selectedModels = [];
+    }
+
+    // Re-render chat to update layout
+    renderChat();
   } catch (error) {
     console.error('Error toggling multi-model mode:', error);
   }
@@ -471,28 +366,37 @@ function toggleMultiModel(enabled) {
 
 // Update multi-model display with selected models
 function updateMultiModelDisplay() {
-  const container = document.getElementById('multi-model-container');
+  const container = document.getElementById('model-select-container');
   if (!container) return;
 
-  container.innerHTML = '';
+  // Remove existing display
+  const existingDisplay = container.querySelector('.selected-models-container');
+  if (existingDisplay) {
+    existingDisplay.remove();
+  }
 
-  // Create a chip for each selected model
+  if (!multiModelMode) return;
+
+  // Create new display container
+  const displayContainer = document.createElement('div');
+  displayContainer.className = 'selected-models-container';
+
   selectedModels.forEach((model, idx) => {
     const chip = document.createElement('div');
-    chip.className = 'inline-flex items-center bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded-full text-sm';
-
-    // Truncate long model names for display purposes
-    const displayName = model.length > 30 ? model.substring(0, 27) + '...' : model;
-
+    chip.className = 'selected-model-chip';
+    
+    // Format model name for display
+    const displayName = model.length > 20 ? model.substring(0, 17) + '...' : model;
+    
     chip.innerHTML = `
-      <span title="${model}" class="mr-1">${displayName}</span>
-      <button class="text-red-500 hover:text-red-700 focus:outline-none" 
-              onclick="removeSelectedModel(${idx})">
-        <i class="fa fa-times-circle"></i>
-      </button>
+      <span title="${model}">${displayName}</span>
+      <span class="remove-model" onclick="removeSelectedModel(${idx})">×</span>
     `;
-    container.appendChild(chip);
+    
+    displayContainer.appendChild(chip);
   });
+
+  container.appendChild(displayContainer);
 }
 
 // Remove a model from the selected models list
@@ -520,19 +424,37 @@ window.removeSelectedModel = function(idx) {
 
 // Update multi-model display
 function updateMultiModelDisplay() {
-  const container = document.getElementById('multi-model-container');
+  const container = document.getElementById('model-select-container');
   if (!container) return;
 
-  container.innerHTML = '';
+  // Remove existing display
+  const existingDisplay = container.querySelector('.selected-models-container');
+  if (existingDisplay) {
+    existingDisplay.remove();
+  }
+
+  if (!multiModelMode) return;
+
+  // Create new display container
+  const displayContainer = document.createElement('div');
+  displayContainer.className = 'selected-models-container';
+
   selectedModels.forEach((model, idx) => {
     const chip = document.createElement('div');
-    chip.className = 'bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded-full text-sm flex items-center';
+    chip.className = 'selected-model-chip';
+    
+    // Format model name for display
+    const displayName = model.length > 20 ? model.substring(0, 17) + '...' : model;
+    
     chip.innerHTML = `
-      ${model}
-      <button class="ml-2 text-red-500 hover:text-red-700" onclick="removeModel(${idx})">×</button>
+      <span title="${model}">${displayName}</span>
+      <span class="remove-model" onclick="removeSelectedModel(${idx})">×</span>
     `;
-    container.appendChild(chip);
+    
+    displayContainer.appendChild(chip);
   });
+
+  container.appendChild(displayContainer);
 }
 
 // Remove model from selection
@@ -627,15 +549,11 @@ function renderChat() {
   const container = document.getElementById('chat-container');
   if (!container) return;
 
-  // Clear container
   container.innerHTML = '';
-
-  // Create wrapper based on mode
   const wrapper = document.createElement('div');
   wrapper.className = multiModelMode ? 'multi-model-chat' : '';
   container.appendChild(wrapper);
 
-  // Group messages by model in multi-model mode
   if (multiModelMode) {
     const messagesByModel = {};
     currentChat.forEach(m => {
@@ -647,10 +565,10 @@ function renderChat() {
       }
     });
 
-    // Create a box for each model
     Object.entries(messagesByModel).forEach(([model, messages]) => {
       const modelBox = document.createElement('div');
-      modelBox.className = 'model-box p-2 border rounded-cool';
+      modelBox.className = 'model-box p-2';
+      modelBox.addEventListener('click', handleModelBoxClick);
       
       const modelHeader = document.createElement('div');
       modelHeader.className = 'font-medium text-sm mb-2 text-center';
@@ -665,14 +583,12 @@ function renderChat() {
       wrapper.appendChild(modelBox);
     });
   } else {
-    // Regular chat display
     for (let i = currentChat.length - 1; i >= 0; i--) {
       const messageEl = createMessageElement(currentChat[i]);
       wrapper.appendChild(messageEl);
     }
   }
 
-  // Scroll to bottom if streaming
   if (currentChat.length > 0 && currentChat[currentChat.length - 1].streaming) {
     container.scrollTop = container.scrollHeight;
   }
@@ -4032,4 +3948,34 @@ function updateBubbleSize(size) {
 
   userSettings.bubbleSize = parseInt(size);
   saveSettings();
+}
+
+// Handle model box expansion
+function handleModelBoxClick(event) {
+  const modelBox = event.currentTarget;
+  const overlay = document.querySelector('.model-box-overlay') || createOverlay();
+  
+  if (!modelBox.classList.contains('expanded')) {
+    // Expand
+    modelBox.classList.add('expanded');
+    overlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function createOverlay() {
+  const overlay = document.createElement('div');
+  overlay.className = 'model-box-overlay';
+  document.body.appendChild(overlay);
+  
+  overlay.addEventListener('click', () => {
+    const expandedBox = document.querySelector('.model-box.expanded');
+    if (expandedBox) {
+      expandedBox.classList.remove('expanded');
+      overlay.classList.remove('visible');
+      document.body.style.overflow = '';
+    }
+  });
+  
+  return overlay;
 }

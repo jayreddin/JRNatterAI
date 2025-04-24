@@ -163,12 +163,12 @@
   <!-- FOOTER -->
   <footer class="footer-container w-full max-w-3xl mx-auto fixed bottom-0 left-0 right-0 px-1 sm:px-0 z-40 bg-white dark:bg-gray-900">
     <form id="chat-form" class="flex items-end py-1 space-x-2" autocomplete="off">
-      <button type="button" id="voice-input-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-base px-3 py-2 rounded-cool font-semibold focus:outline-none transition ease-in-out duration-150 flat" aria-label="Voice input">
-        <img src="https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/solid/microphone.svg" class="w-4 h-4 inline-block" alt="Microphone icon">
+      <button type="button" id="voice-input-btn" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full focus:outline-none transition ease-in-out duration-150 flat" aria-label="Voice input">
+        <i class="fa fa-microphone"></i>
       </button>
-      <textarea id="chat-input" required class="flex-1 resize-none border flat rounded-cool py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[44px] max-h-32 dark:bg-gray-800 dark:text-base" placeholder="Type your message..." rows="1" aria-label="Chat input"></textarea>
-      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white text-base px-4 py-2 rounded-cool font-semibold focus:outline-none transition ease-in-out duration-150 flat" aria-label="Send message">
-        <img src="https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/solid/paper-plane.svg" class="w-4 h-4 inline-block" alt="Send icon">
+      <textarea id="chat-input" required class="flex-1 resize-none border flat rounded-cool py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[30px] max-h-32 dark:bg-gray-800 dark:text-base" placeholder="Type your message..." rows="1" aria-label="Chat input"></textarea>
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full focus:outline-none transition ease-in-out duration-150 flat" aria-label="Send message">
+        <i class="fa fa-paper-plane"></i>
       </button>
     </form>
 
@@ -332,34 +332,21 @@
 
         <!-- Models Tab Content -->
         <div id="models-tab-content" class="tab-content hidden">
-          <div class="mb-4">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
-                <label class="toggle-switch mr-2">
-                  <input type="checkbox" id="openrouter-toggle" role="switch" aria-label="Enable OpenRouter">
-                  <span class="toggle-slider"></span>
-                </label>
-                <span class="text-sm font-medium">Enable OpenRouter</span>
-              </div>
-              <button id="show-enabled-only" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool text-sm">Show All</button>
-            </div>
-            <p class="text-xs text-gray-500 mt-1">OpenRouter provides access to additional AI models</p>
-          </div>
-
           <div class="mb-4 flex space-x-2">
-            <button id="select-all-models" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-3 py-1 rounded-cool text-sm flex items-center">
-              <i class="fa fa-check-square mr-1"></i> Select All
+            <button id="select-all-models" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-2 py-1 rounded-cool text-sm">
+              <i class="fa fa-check-square mr-1"></i> All
             </button>
-            <button id="deselect-all-models" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-3 py-1 rounded-cool text-sm flex items-center">
-              <i class="fa fa-square-o mr-1"></i> Deselect All
+            <button id="deselect-all-models" class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-2 py-1 rounded-cool text-sm">
+              <i class="fa fa-square-o mr-1"></i> None
             </button>
+            <button id="show-enabled-only" class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded-cool text-sm">Show All</button>
           </div>
 
-          <div class="mb-4">
-            <input type="text" id="model-search" placeholder="Search models..." class="w-full border flat rounded-cool py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-800">
+          <div class="mb-3">
+            <input type="text" id="model-search" placeholder="Search models..." class="w-full border flat rounded-cool py-1 px-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-800 text-sm">
           </div>
 
-          <div id="models-list" class="space-y-2">
+          <div id="models-list" class="space-y-1">
             <!-- Models will be listed here dynamically -->
           </div>
         </div>
