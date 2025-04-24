@@ -630,64 +630,59 @@ function renderChat() {
   scrollToBottom();
 }
 
-// Update createMessageElement with better thinking process handling
+// Safe markdown parsing function
+function parseMarkdown(text) {
+  if (typeof text !== 'string') return text;
+  try {
+    if (window.marked && typeof window.marked === 'function') {
+      return window.marked(text);
+    } else if (window.marked && typeof window.marked.parse === 'function') {
+      return window.marked.parse(text);
+    }
+    return text;
+  } catch (error) {
+    console.warn('Markdown parsing failed:', error);
+    return text;
+  }
+}
+
+// Update createMessageElement function
 function createMessageElement(m) {
-    const isUser = m.role === 'user';
+  const isUser = m.role === 'user';
   const isThinking = m.role === 'thinking';
-    const bubbleClr = isUser ? 
+  const bubbleClr = isUser ? 
     `border-black ${isDarkMode ? 'bg-gray-800' : 'bg-white'}` : 
     `border-black ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`;
-    const align = isUser ? 'user-message' : 'assistant-message';
-    const label = isUser ? `You: ${m.time}` : `${m.model || "Assistant"}: ${m.time}`;
+  const align = isUser ? 'user-message' : 'assistant-message';
+  const label = isUser ? `You: ${m.time}` : `${m.model || "Assistant"}: ${m.time}`;
 
-    const messageDiv = document.createElement('div');
+  const messageDiv = document.createElement('div');
   messageDiv.className = `chat-message ${align} ${m.streaming ? 'streaming' : ''}`;
 
-    let content = "";
+  let content = "";
   if (isThinking) {
-    // Determine model-specific thinking class
-    let thinkingClass = 'default';
-    if (m.model) {
-      const modelLower = m.model.toLowerCase();
-      if (modelLower.includes('deepseek-reasoner')) {
-        thinkingClass = 'deepseek-reasoner';
-      } else if (modelLower.includes('o1-mini')) {
-        thinkingClass = 'o1-mini';
-      } else if (modelLower.includes('o3-mini')) {
-        thinkingClass = 'o3-mini';
-      }
-    }
-    
+    const thinkingClass = getThinkingClass(m.model);
     content = `<div class="thinking-process ${thinkingClass}">${m.content || ''}</div>`;
   } else if (typeof m.content === 'string') {
-    try {
-      if (userSettings.markdownEnabled && typeof marked !== 'undefined') {
-        content = `<div class="markdown-content">${marked.parse(m.content)}</div>`;
-      } else {
-          content = `<div>${m.content}</div>`;
-        }
-    } catch (e) {
-      console.warn("Markdown parsing failed:", e);
-        content = `<div>${m.content}</div>`;
-      }
-    } else if (m.content?.type === "img") {
-      content = `<img src='${m.content.url}' alt='image' class='rounded-cool' loading="lazy">`;
-    }
+    content = `<div class="markdown-content">${parseMarkdown(m.content)}</div>`;
+  } else if (m.content?.type === "img") {
+    content = `<img src='${m.content.url}' alt='image' class='rounded-cool' loading="lazy">`;
+  }
 
-    messageDiv.innerHTML = `
+  messageDiv.innerHTML = `
     <div class="message-timestamp ${isUser ? 'text-right' : ''} mb-1 text-xs">${label}</div>
-      <div class="chat-bubble ${bubbleClr}">
-        ${content}
+    <div class="chat-bubble ${bubbleClr}">
+      ${content}
       ${m.streaming ? '<span class="typing-cursor"></span>' : ''}
-      </div>
-      <div class="message-actions mt-1 ${isUser ? 'text-right' : ''}">
+    </div>
+    <div class="message-actions mt-1 ${isUser ? 'text-right' : ''}">
       <button onclick="resendMsg(${currentChat.indexOf(m)})" class="action-button" title="Resend"><i class="fa fa-redo"></i></button>
       <button onclick="copyMsg(${currentChat.indexOf(m)})" class="action-button" title="Copy"><i class="fa fa-copy"></i></button>
       <button onclick="deleteMsg(${currentChat.indexOf(m)})" class="action-button delete" title="Delete"><i class="fa fa-trash"></i></button>
       <button onclick="speakMsg(${currentChat.indexOf(m)})" class="action-button speak" title="Speak"><i class="fa fa-volume-up"></i></button>
       <button class="action-button" title="Translate" data-message-idx="${currentChat.indexOf(m)}"><i class="fa fa-language"></i></button>
-      </div>
-    `;
+    </div>
+  `;
 
   return messageDiv;
 }
@@ -858,7 +853,7 @@ function isModelThinkCapable(model) {
   );
 }
 
-// Update aiSend function to pass model to formatThinkingPrompt
+// Update aiSend function to use parseMarkdown
 async function aiSend(txt, model, usetime) {
   if (multiModelMode) {
     // Add user message once for multi-model mode
@@ -903,14 +898,14 @@ async function aiSend(txt, model, usetime) {
             for await (const chunk of stream) {
               if (chunk?.text) {
                 fullResponse += chunk.text;
-                currentChat[responseIndex].content = marked.parse(fullResponse);
+                currentChat[responseIndex].content = parseMarkdown(fullResponse);
                 renderChat();
               }
             }
           } else {
             const resp = await puter.ai.chat(txt, opts);
             const content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
-            currentChat[responseIndex].content = marked.parse(content);
+            currentChat[responseIndex].content = parseMarkdown(content);
             renderChat();
           }
 
@@ -959,14 +954,14 @@ async function aiSend(txt, model, usetime) {
         for await (const chunk of stream) {
           if (chunk?.text) {
             fullResponse += chunk.text;
-            modelMsg.content = marked.parse(fullResponse);
+            modelMsg.content = parseMarkdown(fullResponse);
             renderChat();
           }
         }
       } else {
         const resp = await puter.ai.chat(txt, opts);
         const content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
-        modelMsg.content = marked.parse(content);
+        modelMsg.content = parseMarkdown(content);
         renderChat();
       }
 
@@ -3962,46 +3957,80 @@ async function initializeCamera() {
           
           // Display description with markdown
           descriptionLoading.classList.add('hidden');
-          descriptionContent.innerHTML = marked.parse(description);
+          descriptionContent.innerHTML = parseMarkdown(description);
+
+          // Add TTS controls
+          const ttsControls = document.createElement('div');
+          ttsControls.className = 'camera-controls';
 
           // Add TTS button
           const ttsButton = document.createElement('button');
-          ttsButton.className = 'camera-button mt-4';
+          ttsButton.className = 'camera-button';
           ttsButton.innerHTML = '<i class="fa fa-volume-up"></i>Read Description';
-          ttsButton.onclick = async function() {
-            try {
-              // Show loading state
-              this.innerHTML = '<i class="fa fa-spinner fa-spin"></i>Generating audio...';
-              this.disabled = true;
+          
+          // Add auto-speak toggle
+          const autoSpeakLabel = document.createElement('label');
+          autoSpeakLabel.className = 'flex items-center gap-2 text-sm';
+          autoSpeakLabel.innerHTML = `
+            <input type="checkbox" class="form-checkbox" id="auto-speak-toggle">
+            <span>Auto-speak</span>
+          `;
 
-              // Get voice setting
+          ttsControls.appendChild(ttsButton);
+          ttsControls.appendChild(autoSpeakLabel);
+          descriptionContent.appendChild(ttsControls);
+
+          // Setup TTS functionality
+          const speakDescription = async () => {
+            try {
+              ttsButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i>Generating audio...';
+              ttsButton.disabled = true;
+
               const speechVoiceSelect = document.getElementById('speech-voice-select');
               const voice = speechVoiceSelect?.value || userSettings.speechVoice || 'en-US';
 
-              // Generate speech
               const audio = await puter.ai.txt2speech(description, voice);
               
               if (audio && audio instanceof HTMLAudioElement) {
-                // Add audio controls
                 audio.controls = true;
                 audio.className = 'mt-4 w-full';
                 audio.style.maxWidth = '100%';
                 
-                // Replace button with audio element
-                this.replaceWith(audio);
+                const audioContainer = document.createElement('div');
+                audioContainer.className = 'mt-4';
+                audioContainer.appendChild(audio);
+                descriptionContent.appendChild(audioContainer);
                 
-                // Auto-play
                 audio.play().catch(console.error);
+                
+                // Reset button
+                ttsButton.innerHTML = '<i class="fa fa-volume-up"></i>Read Description';
+                ttsButton.disabled = false;
               }
             } catch (error) {
               console.error('TTS error:', error);
-              this.innerHTML = '<i class="fa fa-volume-up"></i>Read Description';
-              this.disabled = false;
+              ttsButton.innerHTML = '<i class="fa fa-volume-up"></i>Read Description';
+              ttsButton.disabled = false;
               alert('Failed to generate speech: ' + error.message);
             }
           };
+
+          // Setup event handlers
+          ttsButton.onclick = speakDescription;
           
-          descriptionContent.appendChild(ttsButton);
+          // Auto-speak if enabled
+          const autoSpeakToggle = document.getElementById('auto-speak-toggle');
+          if (autoSpeakToggle) {
+            autoSpeakToggle.checked = userSettings.autoSpeak || false;
+            autoSpeakToggle.onchange = function() {
+              userSettings.autoSpeak = this.checked;
+              saveSettings();
+            };
+            
+            if (userSettings.autoSpeak) {
+              speakDescription();
+            }
+          }
         } catch (error) {
           console.error('Error getting image description:', error);
           descriptionLoading.classList.add('hidden');
@@ -4154,14 +4183,14 @@ async function aiSend(txt, model, usetime) {
             for await (const chunk of stream) {
               if (chunk?.text) {
                 fullResponse += chunk.text;
-                currentChat[responseIndex].content = marked.parse(fullResponse);
+                currentChat[responseIndex].content = parseMarkdown(fullResponse);
                 renderChat();
               }
             }
           } else {
             const resp = await puter.ai.chat(txt, opts);
             const content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
-            currentChat[responseIndex].content = marked.parse(content);
+            currentChat[responseIndex].content = parseMarkdown(content);
             renderChat();
           }
 
@@ -4210,14 +4239,14 @@ async function aiSend(txt, model, usetime) {
         for await (const chunk of stream) {
           if (chunk?.text) {
             fullResponse += chunk.text;
-            modelMsg.content = marked.parse(fullResponse);
+            modelMsg.content = parseMarkdown(fullResponse);
             renderChat();
           }
         }
       } else {
         const resp = await puter.ai.chat(txt, opts);
         const content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
-        modelMsg.content = marked.parse(content);
+        modelMsg.content = parseMarkdown(content);
         renderChat();
       }
 
