@@ -3567,3 +3567,48 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+// Token usage tracking
+let totalTokens = 0;
+const TOKEN_LIMIT = 100000; // Example limit, adjust as needed
+
+async function updateTokenUsage() {
+  try {
+    const stats = await puter.ai.getUsageStats();
+    totalTokens = stats.total_tokens || 0;
+    
+    const usagePercent = Math.min((totalTokens / TOKEN_LIMIT) * 100, 100);
+    document.getElementById('token-usage-percent').textContent = `${Math.round(usagePercent)}%`;
+    document.getElementById('token-usage-count').textContent = totalTokens.toLocaleString();
+    
+    const progressBar = document.getElementById('token-progress-bar');
+    progressBar.style.width = `${usagePercent}%`;
+    
+    // Add warning class if usage is high
+    if (usagePercent > 80) {
+      progressBar.classList.add('token-progress-warning');
+    } else {
+      progressBar.classList.remove('token-progress-warning');
+    }
+    
+    // Update additional details
+    const detailsContainer = document.querySelector('.token-usage-details');
+    detailsContainer.innerHTML = `
+      <div class="text-sm">
+        <div class="flex justify-between mb-1">
+          <span>Total Limit:</span>
+          <span>${TOKEN_LIMIT.toLocaleString()} tokens</span>
+        </div>
+        <div class="flex justify-between mb-1">
+          <span>Remaining:</span>
+          <span>${(TOKEN_LIMIT - totalTokens).toLocaleString()} tokens</span>
+        </div>
+      </div>
+    `;
+  } catch (error) {
+    console.error('Error fetching token usage:', error);
+  }
+}
+
+// Update token usage when the popup is opened
+document.getElementById('token-info-btn').addEventListener('click', updateTokenUsage);

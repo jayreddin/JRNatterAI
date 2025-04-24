@@ -54,68 +54,81 @@
           style="height: 32px; cursor: pointer;">
           <!-- OpenAI Models -->
           <optgroup label="📊 OpenAI">
-            <option value="openrouter:openai/gpt-4o-mini" selected>GPT-4o mini</option>
-            <option value="openrouter:openai/gpt-4o">GPT-4o</option>
-            <option value="openrouter:openai/gpt-4.1">GPT-4.1</option>
-            <option value="openrouter:openai/gpt-4.1-mini">GPT-4.1 mini</option>
-            <option value="openrouter:openai/gpt-4.1-nano">GPT-4.1 nano</option>
-            <option value="openrouter:openai/gpt-4.5-preview">GPT-4.5 preview</option>
-            <option value="openrouter:openai/o1">O1</option>
-            <option value="openrouter:openai/o1-mini">O1-mini</option>
-            <option value="openrouter:openai/o1-pro">O1-pro</option>
-            <option value="openrouter:openai/o3">O3</option>
-            <option value="openrouter:openai/o3-mini">O3-mini</option>
-            <option value="openrouter:openai/o4-mini">O4-mini</option>
+            <option value="gpt-4o-mini" selected>GPT-4o mini</option>
+            <option value="gpt-4o">GPT-4o</option>
+            <option value="o1">O1</option>
+            <option value="o1-mini">O1-mini</option>
+            <option value="o1-pro">O1-pro</option>
+            <option value="o3">O3</option>
+            <option value="o3-mini">O3-mini</option>
+            <option value="o4-mini">O4-mini</option>
+            <option value="gpt-4.1">GPT-4.1</option>
+            <option value="gpt-4.1-mini">GPT-4.1 mini</option>
+            <option value="gpt-4.1-nano">GPT-4.1 nano</option>
+            <option value="gpt-4.5-preview">GPT-4.5 preview</option>
           </optgroup>
 
           <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
 
           <!-- Anthropic Models -->
           <optgroup label="💬 Anthropic">
-            <option value="openrouter:anthropic/claude-3.7-sonnet">Claude-3.7 Sonnet</option>
-            <option value="openrouter:anthropic/claude-3.5-sonnet">Claude-3.5 Sonnet</option>
+            <option value="claude-3-7-sonnet">Claude-3.7 Sonnet</option>
+            <option value="claude-3-5-sonnet">Claude-3.5 Sonnet</option>
           </optgroup>
 
           <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
 
           <!-- DeepSeek Models -->
           <optgroup label="🔍 DeepSeek">
-            <option value="openrouter:deepseek/deepseek-chat">DeepSeek Chat</option>
-            <option value="openrouter:deepseek/deepseek-reasoner">DeepSeek Reasoner</option>
+            <option value="deepseek-chat">DeepSeek Chat</option>
+            <option value="deepseek-reasoner">DeepSeek Reasoner</option>
           </optgroup>
 
           <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
 
           <!-- Google Models -->
           <optgroup label="🔰 Google">
-            <option value="openrouter:google/gemini-2.0-flash">Gemini 2.0 Flash</option>
-            <option value="openrouter:google/gemini-1.5-flash">Gemini 1.5 Flash</option>
-            <option value="openrouter:google/gemma-2-27b-it">Gemma 2 27B IT</option>
+            <option value="google/gemini-2.5-flash-preview">Gemini 2.5 Flash Preview</option>
+            <option value="google/gemini-2.5-flash-preview:thinking">Gemini 2.5 Flash Preview Thinking</option>
+            <option value="google/gemini-2.5-pro-exp-03-25:free">Gemini 2.5 Pro Exp</option>
+            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+            <option value="google/gemini-2.0-flash-lite-001">Gemini 2.0 Flash Lite</option>
+            <option value="google/gemini-2.0-pro-exp-02-05:free">Gemini 2.0 Pro Exp</option>
+            <option value="google/gemini-2.0-flash-thinking-exp:free">Gemini 2.0 Flash Thinking</option>
+            <option value="google/gemini-pro-1.5">Gemini Pro 1.5</option>
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+            <option value="google/gemma-2-27b-it">Gemma 2 27B IT</option>
           </optgroup>
 
           <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
 
           <!-- Meta Models -->
           <optgroup label="📘 Meta">
-            <option value="openrouter:meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo">Llama 3.1 8B Turbo</option>
-            <option value="openrouter:meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo">Llama 3.1 70B Turbo</option>
-            <option value="openrouter:meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo">Llama 3.1 405B Turbo</option>
+            <option value="meta-llama/llama-4-maverick">Llama 4 Maverick</option>
+            <option value="meta-llama/llama-4-scout">Llama 4 Scout</option>
+            <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B Instruct</option>
+            <option value="meta-llama/llama-guard-3-8b">Llama Guard 3 8B</option>
+            <option value="meta-llama/llama-guard-2-8b">Llama Guard 2 8B</option>
+            <option value="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo">Llama 3.1 8B Turbo</option>
+            <option value="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo">Llama 3.1 70B Turbo</option>
+            <option value="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo">Llama 3.1 405B Turbo</option>
           </optgroup>
 
           <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
 
           <!-- Mistral Models -->
           <optgroup label="💨 Mistral">
-            <option value="openrouter:mistralai/mistral-large">Mistral Large</option>
-            <option value="openrouter:mistralai/pixtral-large">Pixtral Large</option>
-            <option value="openrouter:mistralai/codestral">Codestral</option>
+            <option value="mistral-large-latest">Mistral Large</option>
+            <option value="pixtral-large-latest">Pixtral Large</option>
+            <option value="codestral-latest">Codestral</option>
           </optgroup>
 
           <optgroup label="" class="border-t border-gray-300 dark:border-gray-700 h-2"></optgroup>
 
           <!-- Other Models -->
           <optgroup label="❇️ Other">
-            <option value="openrouter:x-ai/grok-beta">Grok Beta</option>
+            <option value="grok-beta">Grok Beta</option>
+            <option value="x-ai/grok-3-beta">Grok 3 Beta</option>
           </optgroup>
         </select>
       </div>
@@ -278,7 +291,7 @@
         </ul>
       </div>
 
-      <div id="settings-content" class="scroll-inside hide-scrollbar pr-1">
+      <div id="settings-content" class="scroll-inside hide-scrollbar">
         <!-- UI Tab Content -->
         <div id="ui-tab-content" class="tab-content">
           <label class="block font-semibold mb-1 mt-2" for="text-size-range">Text Size</label>
@@ -339,13 +352,13 @@
             <input type="text" id="model-search" placeholder="Search models..." class="w-full border flat rounded-cool py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-800">
           </div>
 
-          <div id="models-list" class="space-y-2 max-h-60 overflow-y-auto">
+          <div id="models-list" class="space-y-2">
             <!-- Models will be listed here dynamically -->
           </div>
         </div>
       </div>
 
-      <button id="settings-save-btn" class="bg-blue-700 hover:bg-blue-900 text-white text-base rounded-cool px-4 py-2 mt-3 flat focus:outline-none transition w-full">
+      <button id="settings-save-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-base rounded-cool px-4 py-2 mt-4 flat focus:outline-none transition w-full">
         Save & Apply
       </button>
     </div>
