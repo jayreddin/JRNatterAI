@@ -72,11 +72,10 @@
     </div>
 
     <div class="flex flex-1 items-center justify-center mx-2">
-      <div id="model-select-container" class="relative w-full max-w-xs mx-auto text-center model-select-wrapper">
-        <select id="model-select" class="multi-model-select flat" style="height: 32px; cursor: pointer;"></select>
-        <div id="multi-model-row" style="display: none; flex-direction: row; align-items: center; gap: 0.5rem;">
-          <select id="multi-model-select" class="multi-model-select flat" style="flex:1; min-width:0;"></select>
-          <button type="button" id="add-model-btn" class="add-model-button" title="Add model">
+      <div id="model-select-container" class="relative w-full max-w-xs mx-auto text-center model-select-wrapper flex flex-col items-center">
+        <div class="w-full flex flex-row items-center gap-2">
+          <select id="model-select" class="multi-model-select flat" style="height: 32px; cursor: pointer;"></select>
+          <button type="button" id="add-model-btn" class="add-model-button" title="Add model" style="display: none;">
             <i class="fa fa-plus"></i>
           </button>
         </div>

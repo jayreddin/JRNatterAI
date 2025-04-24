@@ -117,23 +117,19 @@ function updateMultiModelDisplay() {
   const container = document.getElementById('model-select-container');
   if (!container) return;
 
-  // Elements
   const mainSelect = document.getElementById('model-select');
-  const multiRow = document.getElementById('multi-model-row');
-  const multiSelect = document.getElementById('multi-model-select');
   const addBtn = document.getElementById('add-model-btn');
   const chipsContainer = container.querySelector('.selected-models-container');
+  const multiRow = document.getElementById('multi-model-row');
 
   // Get all models (with optgroups if needed)
   let allModels = [];
   let modelOptions = [];
   if (mainSelect) {
-    // If mainSelect has options, use them
     if (mainSelect.options.length > 0) {
       allModels = Array.from(mainSelect.options).map(o => o.value);
       modelOptions = Array.from(mainSelect.options).map(o => ({ value: o.value, text: o.textContent, group: o.parentElement && o.parentElement.label }));
     } else {
-      // If not, populate with default models (fallback)
       allModels = [
         'gpt-4o-mini','gpt-4o','o1','o1-mini','o1-pro','o3','o3-mini','o4-mini','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview',
         'claude-3-7-sonnet','claude-3-5-sonnet',
@@ -147,46 +143,97 @@ function updateMultiModelDisplay() {
     }
   }
 
+  // Always ensure selectedModels is initialized
+  if (!Array.isArray(window.selectedModels) || !window.selectedModels.length) {
+    window.selectedModels = [mainSelect && mainSelect.value ? mainSelect.value : 'gpt-4o-mini'];
+  }
+
   // Multi mode UI
-  if (multiModelMode) {
-    if (mainSelect) mainSelect.style.display = 'none';
+  if (window.multiModelMode) {
+    if (mainSelect) mainSelect.style.display = '';
+    if (addBtn) addBtn.style.display = 'flex';
     if (multiRow) multiRow.style.display = 'flex';
     if (chipsContainer) chipsContainer.style.display = 'flex';
 
-    // Populate multi-model-select with unselected models
-    if (multiSelect) {
-      multiSelect.innerHTML = '<option value="" disabled selected>Select a model...</option>';
+    // Only show models not already selected
+    if (mainSelect) {
+      mainSelect.innerHTML = '';
       allModels.forEach(model => {
-        if (!selectedModels.includes(model)) {
-          const opt = document.createElement('option');
+        if (!window.selectedModels.includes(model)) {
+      const opt = document.createElement('option');
           opt.value = model;
           opt.textContent = formatModelName(model);
-          multiSelect.appendChild(opt);
+          mainSelect.appendChild(opt);
         }
       });
-      multiSelect.value = '';
+      // If all models are selected, disable dropdown
+      mainSelect.disabled = mainSelect.options.length === 0;
     }
 
-    // Enable/disable + button
+    // Add button logic
     if (addBtn) {
-      addBtn.disabled = !multiSelect || multiSelect.options.length <= 1;
+      addBtn.disabled = !mainSelect || mainSelect.options.length === 0;
+      addBtn.onclick = function() {
+        const selectedModel = mainSelect.value;
+        if (selectedModel && !window.selectedModels.includes(selectedModel)) {
+          window.selectedModels.push(selectedModel);
+      updateMultiModelDisplay();
+      renderChat();
+        }
+      };
     }
 
     // Render chips for selected models
     if (chipsContainer) {
       chipsContainer.innerHTML = '';
-      selectedModels.forEach((model, idx) => {
+      window.selectedModels.forEach((model, idx) => {
         const chip = document.createElement('div');
         chip.className = 'selected-model-chip';
+        chip.setAttribute('draggable', 'true');
+        chip.setAttribute('data-idx', idx);
         chip.innerHTML = `
           <span title="${model}">${formatModelName(model)}</span>
           <span class="remove-model" style="cursor:pointer;" title="Remove" data-idx="${idx}">×</span>
         `;
-        chip.querySelector('.remove-model').onclick = function() {
-          selectedModels.splice(idx, 1);
+        chip.querySelector('.remove-model').onclick = function(e) {
+          e.stopPropagation();
+          window.selectedModels.splice(idx, 1);
+        updateMultiModelDisplay();
+        renderChat();
+        };
+        // Drag-and-drop handlers (unchanged)
+        chip.addEventListener('dragstart', function(e) {
+          chip.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', idx);
+        });
+        chip.addEventListener('dragend', function(e) {
+          chip.classList.remove('dragging');
+        });
+        chip.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+          if (fromIdx !== idx) {
+            chip.classList.add('drag-over');
+          }
+        });
+        chip.addEventListener('dragleave', function(e) {
+          chip.classList.remove('drag-over');
+        });
+        chip.addEventListener('drop', function(e) {
+          e.preventDefault();
+          chip.classList.remove('drag-over');
+          const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+          const toIdx = idx;
+          if (fromIdx !== toIdx) {
+            const moved = window.selectedModels.splice(fromIdx, 1)[0];
+            window.selectedModels.splice(toIdx, 0, moved);
           updateMultiModelDisplay();
           renderChat();
-        };
+    } else {
+            shakeElement(chip);
+          }
+        });
         chipsContainer.appendChild(chip);
       });
     }
@@ -195,32 +242,22 @@ function updateMultiModelDisplay() {
     if (mainSelect) {
       mainSelect.style.display = '';
       mainSelect.className = 'multi-model-select flat';
-      // Populate mainSelect with all models and optgroups if needed
-      if (mainSelect.options.length === 0) {
-        // Example: add optgroups for providers
-        const groups = {
-          '📊 OpenAI': ['gpt-4o-mini','gpt-4o','o1','o1-mini','o1-pro','o3','o3-mini','o4-mini','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview'],
-          '💬 Anthropic': ['claude-3-7-sonnet','claude-3-5-sonnet'],
-          '🔍 DeepSeek': ['deepseek-chat','deepseek-reasoner'],
-          '🔰 Google': ['google/gemini-2.5-flash-preview','google/gemini-2.5-flash-preview:thinking','google/gemini-2.5-pro-exp-03-25:free','gemini-2.0-flash','google/gemini-2.0-flash-lite-001','google/gemini-2.0-pro-exp-02-05:free','google/gemini-2.0-flash-thinking-exp:free','google/gemini-pro-1.5','gemini-1.5-flash','google/gemma-2-27b-it'],
-          '📘 Meta': ['meta-llama/llama-4-maverick','meta-llama/llama-4-scout','meta-llama/llama-3.3-70b-instruct','meta-llama/llama-guard-3-8b','meta-llama/llama-guard-2-8b','meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo'],
-          '💨 Mistral': ['mistral-large-latest','pixtral-large-latest','codestral-latest'],
-          '❇️ Other': ['grok-beta','x-ai/grok-3-beta']
-        };
-        mainSelect.innerHTML = '';
-        for (const [label, models] of Object.entries(groups)) {
-          const optgroup = document.createElement('optgroup');
-          optgroup.label = label;
-          models.forEach(model => {
-            const opt = document.createElement('option');
-            opt.value = model;
-            opt.textContent = formatModelName(model);
-            optgroup.appendChild(opt);
-          });
-          mainSelect.appendChild(optgroup);
-        }
-      }
+      mainSelect.innerHTML = '';
+      allModels.forEach(model => {
+        const opt = document.createElement('option');
+        opt.value = model;
+        opt.textContent = formatModelName(model);
+        mainSelect.appendChild(opt);
+      });
+      mainSelect.value = window.selectedModels[0] || 'gpt-4o-mini';
+      mainSelect.disabled = false;
+      mainSelect.onchange = function() {
+        window.selectedModels = [this.value];
+        updateMultiModelDisplay();
+        renderChat();
+      };
     }
+    if (addBtn) addBtn.style.display = 'none';
     if (multiRow) multiRow.style.display = 'none';
     if (chipsContainer) chipsContainer.style.display = 'none';
   }
@@ -503,23 +540,19 @@ function updateMultiModelDisplay() {
   const container = document.getElementById('model-select-container');
   if (!container) return;
 
-  // Elements
   const mainSelect = document.getElementById('model-select');
-  const multiRow = document.getElementById('multi-model-row');
-  const multiSelect = document.getElementById('multi-model-select');
   const addBtn = document.getElementById('add-model-btn');
   const chipsContainer = container.querySelector('.selected-models-container');
+  const multiRow = document.getElementById('multi-model-row');
 
   // Get all models (with optgroups if needed)
   let allModels = [];
   let modelOptions = [];
   if (mainSelect) {
-    // If mainSelect has options, use them
     if (mainSelect.options.length > 0) {
       allModels = Array.from(mainSelect.options).map(o => o.value);
       modelOptions = Array.from(mainSelect.options).map(o => ({ value: o.value, text: o.textContent, group: o.parentElement && o.parentElement.label }));
     } else {
-      // If not, populate with default models (fallback)
       allModels = [
         'gpt-4o-mini','gpt-4o','o1','o1-mini','o1-pro','o3','o3-mini','o4-mini','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview',
         'claude-3-7-sonnet','claude-3-5-sonnet',
@@ -533,46 +566,97 @@ function updateMultiModelDisplay() {
     }
   }
 
+  // Always ensure selectedModels is initialized
+  if (!Array.isArray(window.selectedModels) || !window.selectedModels.length) {
+    window.selectedModels = [mainSelect && mainSelect.value ? mainSelect.value : 'gpt-4o-mini'];
+  }
+
   // Multi mode UI
-  if (multiModelMode) {
-    if (mainSelect) mainSelect.style.display = 'none';
+  if (window.multiModelMode) {
+    if (mainSelect) mainSelect.style.display = '';
+    if (addBtn) addBtn.style.display = 'flex';
     if (multiRow) multiRow.style.display = 'flex';
     if (chipsContainer) chipsContainer.style.display = 'flex';
 
-    // Populate multi-model-select with unselected models
-    if (multiSelect) {
-      multiSelect.innerHTML = '<option value="" disabled selected>Select a model...</option>';
+    // Only show models not already selected
+    if (mainSelect) {
+      mainSelect.innerHTML = '';
       allModels.forEach(model => {
-        if (!selectedModels.includes(model)) {
+        if (!window.selectedModels.includes(model)) {
           const opt = document.createElement('option');
           opt.value = model;
           opt.textContent = formatModelName(model);
-          multiSelect.appendChild(opt);
+          mainSelect.appendChild(opt);
         }
       });
-      multiSelect.value = '';
+      // If all models are selected, disable dropdown
+      mainSelect.disabled = mainSelect.options.length === 0;
     }
 
-    // Enable/disable + button
+    // Add button logic
     if (addBtn) {
-      addBtn.disabled = !multiSelect || multiSelect.options.length <= 1;
+      addBtn.disabled = !mainSelect || mainSelect.options.length === 0;
+      addBtn.onclick = function() {
+        const selectedModel = mainSelect.value;
+        if (selectedModel && !window.selectedModels.includes(selectedModel)) {
+          window.selectedModels.push(selectedModel);
+          updateMultiModelDisplay();
+          renderChat();
+        }
+      };
     }
 
     // Render chips for selected models
     if (chipsContainer) {
       chipsContainer.innerHTML = '';
-      selectedModels.forEach((model, idx) => {
+      window.selectedModels.forEach((model, idx) => {
         const chip = document.createElement('div');
         chip.className = 'selected-model-chip';
-        chip.innerHTML = `
+        chip.setAttribute('draggable', 'true');
+        chip.setAttribute('data-idx', idx);
+    chip.innerHTML = `
           <span title="${model}">${formatModelName(model)}</span>
           <span class="remove-model" style="cursor:pointer;" title="Remove" data-idx="${idx}">×</span>
         `;
-        chip.querySelector('.remove-model').onclick = function() {
-          selectedModels.splice(idx, 1);
+        chip.querySelector('.remove-model').onclick = function(e) {
+          e.stopPropagation();
+          window.selectedModels.splice(idx, 1);
           updateMultiModelDisplay();
           renderChat();
         };
+        // Drag-and-drop handlers (unchanged)
+        chip.addEventListener('dragstart', function(e) {
+          chip.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', idx);
+        });
+        chip.addEventListener('dragend', function(e) {
+          chip.classList.remove('dragging');
+        });
+        chip.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+          if (fromIdx !== idx) {
+            chip.classList.add('drag-over');
+          }
+        });
+        chip.addEventListener('dragleave', function(e) {
+          chip.classList.remove('drag-over');
+        });
+        chip.addEventListener('drop', function(e) {
+          e.preventDefault();
+          chip.classList.remove('drag-over');
+          const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+          const toIdx = idx;
+          if (fromIdx !== toIdx) {
+            const moved = window.selectedModels.splice(fromIdx, 1)[0];
+            window.selectedModels.splice(toIdx, 0, moved);
+            updateMultiModelDisplay();
+            renderChat();
+          } else {
+            shakeElement(chip);
+          }
+        });
         chipsContainer.appendChild(chip);
       });
     }
@@ -581,32 +665,22 @@ function updateMultiModelDisplay() {
     if (mainSelect) {
       mainSelect.style.display = '';
       mainSelect.className = 'multi-model-select flat';
-      // Populate mainSelect with all models and optgroups if needed
-      if (mainSelect.options.length === 0) {
-        // Example: add optgroups for providers
-        const groups = {
-          '📊 OpenAI': ['gpt-4o-mini','gpt-4o','o1','o1-mini','o1-pro','o3','o3-mini','o4-mini','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview'],
-          '💬 Anthropic': ['claude-3-7-sonnet','claude-3-5-sonnet'],
-          '🔍 DeepSeek': ['deepseek-chat','deepseek-reasoner'],
-          '🔰 Google': ['google/gemini-2.5-flash-preview','google/gemini-2.5-flash-preview:thinking','google/gemini-2.5-pro-exp-03-25:free','gemini-2.0-flash','google/gemini-2.0-flash-lite-001','google/gemini-2.0-pro-exp-02-05:free','google/gemini-2.0-flash-thinking-exp:free','google/gemini-pro-1.5','gemini-1.5-flash','google/gemma-2-27b-it'],
-          '📘 Meta': ['meta-llama/llama-4-maverick','meta-llama/llama-4-scout','meta-llama/llama-3.3-70b-instruct','meta-llama/llama-guard-3-8b','meta-llama/llama-guard-2-8b','meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo'],
-          '💨 Mistral': ['mistral-large-latest','pixtral-large-latest','codestral-latest'],
-          '❇️ Other': ['grok-beta','x-ai/grok-3-beta']
-        };
-        mainSelect.innerHTML = '';
-        for (const [label, models] of Object.entries(groups)) {
-          const optgroup = document.createElement('optgroup');
-          optgroup.label = label;
-          models.forEach(model => {
-            const opt = document.createElement('option');
-            opt.value = model;
-            opt.textContent = formatModelName(model);
-            optgroup.appendChild(opt);
-          });
-          mainSelect.appendChild(optgroup);
-        }
-      }
+      mainSelect.innerHTML = '';
+      allModels.forEach(model => {
+        const opt = document.createElement('option');
+        opt.value = model;
+        opt.textContent = formatModelName(model);
+        mainSelect.appendChild(opt);
+      });
+      mainSelect.value = window.selectedModels[0] || 'gpt-4o-mini';
+      mainSelect.disabled = false;
+      mainSelect.onchange = function() {
+        window.selectedModels = [this.value];
+        updateMultiModelDisplay();
+        renderChat();
+      };
     }
+    if (addBtn) addBtn.style.display = 'none';
     if (multiRow) multiRow.style.display = 'none';
     if (chipsContainer) chipsContainer.style.display = 'none';
   }
@@ -646,23 +720,19 @@ function updateMultiModelDisplay() {
   const container = document.getElementById('model-select-container');
   if (!container) return;
 
-  // Elements
   const mainSelect = document.getElementById('model-select');
-  const multiRow = document.getElementById('multi-model-row');
-  const multiSelect = document.getElementById('multi-model-select');
   const addBtn = document.getElementById('add-model-btn');
   const chipsContainer = container.querySelector('.selected-models-container');
+  const multiRow = document.getElementById('multi-model-row');
 
   // Get all models (with optgroups if needed)
   let allModels = [];
   let modelOptions = [];
   if (mainSelect) {
-    // If mainSelect has options, use them
     if (mainSelect.options.length > 0) {
       allModels = Array.from(mainSelect.options).map(o => o.value);
       modelOptions = Array.from(mainSelect.options).map(o => ({ value: o.value, text: o.textContent, group: o.parentElement && o.parentElement.label }));
     } else {
-      // If not, populate with default models (fallback)
       allModels = [
         'gpt-4o-mini','gpt-4o','o1','o1-mini','o1-pro','o3','o3-mini','o4-mini','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview',
         'claude-3-7-sonnet','claude-3-5-sonnet',
@@ -676,46 +746,97 @@ function updateMultiModelDisplay() {
     }
   }
 
+  // Always ensure selectedModels is initialized
+  if (!Array.isArray(window.selectedModels) || !window.selectedModels.length) {
+    window.selectedModels = [mainSelect && mainSelect.value ? mainSelect.value : 'gpt-4o-mini'];
+  }
+
   // Multi mode UI
-  if (multiModelMode) {
-    if (mainSelect) mainSelect.style.display = 'none';
+  if (window.multiModelMode) {
+    if (mainSelect) mainSelect.style.display = '';
+    if (addBtn) addBtn.style.display = 'flex';
     if (multiRow) multiRow.style.display = 'flex';
     if (chipsContainer) chipsContainer.style.display = 'flex';
 
-    // Populate multi-model-select with unselected models
-    if (multiSelect) {
-      multiSelect.innerHTML = '<option value="" disabled selected>Select a model...</option>';
+    // Only show models not already selected
+    if (mainSelect) {
+      mainSelect.innerHTML = '';
       allModels.forEach(model => {
-        if (!selectedModels.includes(model)) {
+        if (!window.selectedModels.includes(model)) {
           const opt = document.createElement('option');
           opt.value = model;
           opt.textContent = formatModelName(model);
-          multiSelect.appendChild(opt);
+          mainSelect.appendChild(opt);
         }
       });
-      multiSelect.value = '';
+      // If all models are selected, disable dropdown
+      mainSelect.disabled = mainSelect.options.length === 0;
     }
 
-    // Enable/disable + button
+    // Add button logic
     if (addBtn) {
-      addBtn.disabled = !multiSelect || multiSelect.options.length <= 1;
+      addBtn.disabled = !mainSelect || mainSelect.options.length === 0;
+      addBtn.onclick = function() {
+        const selectedModel = mainSelect.value;
+        if (selectedModel && !window.selectedModels.includes(selectedModel)) {
+          window.selectedModels.push(selectedModel);
+          updateMultiModelDisplay();
+          renderChat();
+        }
+      };
     }
 
     // Render chips for selected models
     if (chipsContainer) {
       chipsContainer.innerHTML = '';
-      selectedModels.forEach((model, idx) => {
+      window.selectedModels.forEach((model, idx) => {
         const chip = document.createElement('div');
         chip.className = 'selected-model-chip';
-        chip.innerHTML = `
+        chip.setAttribute('draggable', 'true');
+        chip.setAttribute('data-idx', idx);
+    chip.innerHTML = `
           <span title="${model}">${formatModelName(model)}</span>
           <span class="remove-model" style="cursor:pointer;" title="Remove" data-idx="${idx}">×</span>
         `;
-        chip.querySelector('.remove-model').onclick = function() {
-          selectedModels.splice(idx, 1);
+        chip.querySelector('.remove-model').onclick = function(e) {
+          e.stopPropagation();
+          window.selectedModels.splice(idx, 1);
           updateMultiModelDisplay();
           renderChat();
         };
+        // Drag-and-drop handlers (unchanged)
+        chip.addEventListener('dragstart', function(e) {
+          chip.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', idx);
+        });
+        chip.addEventListener('dragend', function(e) {
+          chip.classList.remove('dragging');
+        });
+        chip.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+          if (fromIdx !== idx) {
+            chip.classList.add('drag-over');
+          }
+        });
+        chip.addEventListener('dragleave', function(e) {
+          chip.classList.remove('drag-over');
+        });
+        chip.addEventListener('drop', function(e) {
+          e.preventDefault();
+          chip.classList.remove('drag-over');
+          const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+          const toIdx = idx;
+          if (fromIdx !== toIdx) {
+            const moved = window.selectedModels.splice(fromIdx, 1)[0];
+            window.selectedModels.splice(toIdx, 0, moved);
+            updateMultiModelDisplay();
+            renderChat();
+          } else {
+            shakeElement(chip);
+          }
+        });
         chipsContainer.appendChild(chip);
       });
     }
@@ -724,32 +845,22 @@ function updateMultiModelDisplay() {
     if (mainSelect) {
       mainSelect.style.display = '';
       mainSelect.className = 'multi-model-select flat';
-      // Populate mainSelect with all models and optgroups if needed
-      if (mainSelect.options.length === 0) {
-        // Example: add optgroups for providers
-        const groups = {
-          '📊 OpenAI': ['gpt-4o-mini','gpt-4o','o1','o1-mini','o1-pro','o3','o3-mini','o4-mini','gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.5-preview'],
-          '💬 Anthropic': ['claude-3-7-sonnet','claude-3-5-sonnet'],
-          '🔍 DeepSeek': ['deepseek-chat','deepseek-reasoner'],
-          '🔰 Google': ['google/gemini-2.5-flash-preview','google/gemini-2.5-flash-preview:thinking','google/gemini-2.5-pro-exp-03-25:free','gemini-2.0-flash','google/gemini-2.0-flash-lite-001','google/gemini-2.0-pro-exp-02-05:free','google/gemini-2.0-flash-thinking-exp:free','google/gemini-pro-1.5','gemini-1.5-flash','google/gemma-2-27b-it'],
-          '📘 Meta': ['meta-llama/llama-4-maverick','meta-llama/llama-4-scout','meta-llama/llama-3.3-70b-instruct','meta-llama/llama-guard-3-8b','meta-llama/llama-guard-2-8b','meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo','meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo'],
-          '💨 Mistral': ['mistral-large-latest','pixtral-large-latest','codestral-latest'],
-          '❇️ Other': ['grok-beta','x-ai/grok-3-beta']
-        };
-        mainSelect.innerHTML = '';
-        for (const [label, models] of Object.entries(groups)) {
-          const optgroup = document.createElement('optgroup');
-          optgroup.label = label;
-          models.forEach(model => {
-            const opt = document.createElement('option');
-            opt.value = model;
-            opt.textContent = formatModelName(model);
-            optgroup.appendChild(opt);
-          });
-          mainSelect.appendChild(optgroup);
-        }
-      }
+      mainSelect.innerHTML = '';
+      allModels.forEach(model => {
+        const opt = document.createElement('option');
+        opt.value = model;
+        opt.textContent = formatModelName(model);
+        mainSelect.appendChild(opt);
+      });
+      mainSelect.value = window.selectedModels[0] || 'gpt-4o-mini';
+      mainSelect.disabled = false;
+      mainSelect.onchange = function() {
+        window.selectedModels = [this.value];
+        updateMultiModelDisplay();
+        renderChat();
+      };
     }
+    if (addBtn) addBtn.style.display = 'none';
     if (multiRow) multiRow.style.display = 'none';
     if (chipsContainer) chipsContainer.style.display = 'none';
   }
@@ -870,7 +981,7 @@ function renderChat() {
 
 // Safe markdown parsing function
 function parseMarkdown(text) {
-  return text;
+      return text;
 }
 
 // Update createMessageElement function
@@ -1349,7 +1460,8 @@ document.addEventListener('DOMContentLoaded', function() {
         chatHistory.unshift({
           title: autoTitle(currentChat),
           when: new Date(),
-          messages: [...currentChat]
+          messages: [...currentChat],
+          models: [...selectedModels],
         });
         // limit history
         if (chatHistory.length > 50) chatHistory.length = 50;
@@ -1751,7 +1863,19 @@ function updateHistoryUI() {
 }
 
 window.selectHistory = function(idx) {
-  currentChat = chatHistory[idx].messages.slice();
+  const hist = chatHistory[idx];
+  currentChat = hist.messages.slice();
+  if (hist.models && Array.isArray(hist.models)) {
+    // Only restore models that are still available
+    const modelSelect = document.getElementById('model-select');
+    const availableModels = modelSelect ? Array.from(modelSelect.options).map(o => o.value) : [];
+    const restoredModels = hist.models.filter(m => availableModels.includes(m));
+    if (restoredModels.length < hist.models.length) {
+      alert('Some models from this session are no longer available and were not restored.');
+    }
+    selectedModels = restoredModels.length > 0 ? restoredModels : [modelSelect ? modelSelect.value : 'gpt-4o-mini'];
+    updateMultiModelDisplay();
+  }
   renderChat();
   togglePopup('history', false);
 };
@@ -3808,181 +3932,6 @@ document.addEventListener('DOMContentLoaded', function() {
     console.error('Initialization error:', error);
   }
 });
-// Voice input functionality
-function setupVoiceInput() {
-  const voiceButton = document.getElementById('voice-input-btn');
-  const chatInput = document.getElementById('chat-input');
-  
-  if (!voiceButton || !chatInput) return;
-  
-  let isRecording = false;
-  let recognition;
-  
-  // Check if browser supports SpeechRecognition
-  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    
-    // Set language to English - could make this configurable
-    recognition.lang = 'en-US';
-    
-    // Handle recognition results
-    recognition.onresult = function(event) {
-      const transcript = Array.from(event.results)
-        .map(result => result[0])
-        .map(result => result.transcript)
-        .join('');
-      
-      // Update the textarea with the transcript
-      chatInput.value = transcript;
-      
-      // Auto-resize the textarea
-      chatInput.style.height = 'auto';
-      chatInput.style.height = chatInput.scrollHeight + 'px';
-    };
-    
-    // When recognition ends
-    recognition.onend = function() {
-      voiceButton.innerHTML = '<i class="fa fa-microphone"></i>';
-      voiceButton.classList.remove('bg-red-500', 'hover:bg-red-600');
-      voiceButton.classList.add('bg-gray-200', 'hover:bg-gray-300', 'dark:bg-gray-700', 'dark:hover:bg-gray-600');
-      isRecording = false;
-    };
-    
-    // Error handling
-    recognition.onerror = function(event) {
-      console.error('Speech recognition error:', event.error);
-      voiceButton.innerHTML = '<i class="fa fa-microphone"></i>';
-      voiceButton.classList.remove('bg-red-500', 'hover:bg-red-600');
-      voiceButton.classList.add('bg-gray-200', 'hover:bg-gray-300', 'dark:bg-gray-700', 'dark:hover:bg-gray-600');
-      isRecording = false;
-      
-      // Show error message
-      const errorMessage = document.createElement('div');
-      errorMessage.className = 'absolute top-0 left-0 right-0 bg-red-500 text-white text-center py-1 text-sm';
-      errorMessage.textContent = 'Speech recognition error: ' + event.error;
-      errorMessage.style.zIndex = '999';
-      document.body.appendChild(errorMessage);
-      
-      // Remove error message after 3 seconds
-      setTimeout(() => {
-        errorMessage.remove();
-      }, 3000);
-    };
-    
-    // Toggle voice input
-    voiceButton.addEventListener('click', function() {
-      if (isRecording) {
-        recognition.stop();
-      } else {
-        // Clear previous input
-        chatInput.value = '';
-        recognition.start();
-        voiceButton.innerHTML = '<i class="fa fa-stop"></i>';
-        voiceButton.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'dark:bg-gray-700', 'dark:hover:bg-gray-600');
-        voiceButton.classList.add('bg-red-500', 'hover:bg-red-600');
-        isRecording = true;
-      }
-    });
-  } else {
-    // Browser doesn't support speech recognition
-    voiceButton.addEventListener('click', function() {
-      alert('Speech recognition is not supported in your browser. Try using Chrome or Edge.');
-    });
-  }
-}
-
-// Initialize voice input on document load
-document.addEventListener('DOMContentLoaded', function() {
-  setupVoiceInput();
-  // Rest of initialization code...
-});
-
-// Load marked.js before using it
-function loadMarked() {
-  return new Promise((resolve, reject) => {
-    if (window.marked) {
-      resolve(window.marked);
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/marked@4.0.2/marked.min.js';
-    script.onload = () => resolve(window.marked);
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-}
-
-// Initialize marked when the page loads
-document.addEventListener('DOMContentLoaded', async function() {
-  try {
-    await loadMarked();
-  } catch (error) {
-    console.error('Failed to load marked.js:', error);
-  }
-});
-
-// Add token info functionality
-document.addEventListener('DOMContentLoaded', function() {
-  const tokenInfoBtn = document.getElementById('token-info-btn');
-  const tokenUsage = document.getElementById('token-usage');
-
-  if (tokenInfoBtn && tokenUsage) {
-    tokenInfoBtn.addEventListener('click', function() {
-      const tokenStats = document.createElement('div');
-      tokenStats.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
-      
-      const currentTokens = userSettings.tokenUsage?.current || 0;
-      const tokenLimit = userSettings.tokenUsage?.limit || 4000;
-      const percentage = Math.round((currentTokens / tokenLimit) * 100);
-      
-      tokenStats.innerHTML = `
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-cool max-w-md w-full mx-4">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold">Token Usage Statistics</h3>
-            <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" onclick="this.parentElement.parentElement.remove()">
-              <i class="fa fa-times"></i>
-            </button>
-          </div>
-          <div class="space-y-4">
-            <div>
-              <div class="flex justify-between mb-1">
-                <span>Current Usage</span>
-                <span>${currentTokens} tokens</span>
-              </div>
-              <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div class="bg-blue-600 h-2 rounded-full" style="width: ${percentage}%"></div>
-              </div>
-            </div>
-            <div class="flex justify-between">
-              <span>Token Limit</span>
-              <span>${tokenLimit} tokens</span>
-            </div>
-            <div class="flex justify-between">
-              <span>Remaining</span>
-              <span>${tokenLimit - currentTokens} tokens</span>
-            </div>
-            <div class="flex justify-between">
-              <span>Usage Percentage</span>
-              <span>${percentage}%</span>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      document.body.appendChild(tokenStats);
-      
-      // Close on click outside
-      tokenStats.addEventListener('click', function(e) {
-        if (e.target === tokenStats) {
-          tokenStats.remove();
-        }
-      });
-    });
-  }
-});
 
 // Add bubble size handling function
 function updateBubbleSize(size) {
@@ -4402,86 +4351,66 @@ let expandedModel = null;
 
 // Update renderMultiModelChat function
 function renderMultiModelChat() {
-  const container = document.getElementById('chat-container');
-  if (!container) return;
+  const chatContainer = document.getElementById('chat-container');
+  if (!chatContainer) return;
+  chatContainer.innerHTML = '';
 
-  container.innerHTML = '';
+  // Create the grid container
+  const grid = document.createElement('div');
+  grid.className = 'multi-model-chat';
 
-  // Overlay for expanded view
-  let overlay = document.createElement('div');
+  // Overlay for popups
+  let overlay = document.getElementById('model-box-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
   overlay.className = 'model-box-overlay';
-  container.appendChild(overlay);
+    overlay.id = 'model-box-overlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.classList.remove('visible');
+  overlay.onclick = function() {
+    overlay.classList.remove('visible');
+    const expanded = document.querySelector('.model-box.expanded');
+    if (expanded) expanded.classList.remove('expanded');
+  };
 
-  // Create grid container
-  const gridContainer = document.createElement('div');
-  gridContainer.className = `multi-model-chat multi-model-chat-cols-${Math.min(selectedModels.length, 3)}`;
-  container.appendChild(gridContainer);
-
-  // Group messages by model
-  const messagesByModel = {};
-  currentChat.forEach(msg => {
-    if (msg.role === 'model') {
-      if (!messagesByModel[msg.model]) {
-        messagesByModel[msg.model] = [];
-      }
-      messagesByModel[msg.model].push(msg);
-    }
-  });
-
-  // Create response boxes for each model
-  selectedModels.forEach(model => {
-    const responseBox = document.createElement('div');
-    responseBox.className = 'model-box model-response-box';
-    if (expandedModel === model) {
-      responseBox.classList.add('expanded');
-      overlay.classList.add('visible');
-    }
-
-    // Add model header
+  // For each selected model, create a box
+  selectedModels.forEach((model, idx) => {
+    const box = document.createElement('div');
+    box.className = 'model-box';
+    // Model header
     const header = document.createElement('div');
     header.className = 'model-response-header';
     header.textContent = formatModelName(model);
-
-    // Add close button in expanded mode
-    if (expandedModel === model) {
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'feature-btn';
-      closeBtn.style.marginLeft = '1rem';
-      closeBtn.title = 'Close';
-      closeBtn.innerHTML = '<i class="fa fa-times"></i>';
-      closeBtn.onclick = function(e) {
+    box.appendChild(header);
+    // Model chat content (placeholder)
+    const content = document.createElement('div');
+    content.className = 'chat-bubble';
+    content.textContent = 'Chat for ' + formatModelName(model); // Replace with actual chat content
+    box.appendChild(content);
+    // Click to expand
+    box.onclick = function(e) {
         e.stopPropagation();
-        expandedModel = null;
-        renderMultiModelChat();
-      };
-      header.appendChild(closeBtn);
-    }
-
-    responseBox.appendChild(header);
-
-    // Add messages for this model
-    const messages = messagesByModel[model] || [];
-    messages.forEach(msg => {
-      const messageEl = createMessageElement(msg);
-      responseBox.appendChild(messageEl);
-    });
-
-    // Expand/collapse logic
-    responseBox.onclick = function(e) {
-      if (expandedModel !== model) {
-        expandedModel = model;
-        renderMultiModelChat();
-      }
+      document.querySelectorAll('.model-box.expanded').forEach(b => b.classList.remove('expanded'));
+      box.classList.add('expanded');
+      overlay.classList.add('visible');
     };
-
-    gridContainer.appendChild(responseBox);
+    grid.appendChild(box);
   });
 
-  // Overlay click closes expanded view
-  overlay.onclick = function() {
-    expandedModel = null;
-    renderMultiModelChat();
-  };
+  chatContainer.appendChild(grid);
+
+  // After creating the grid container:
+  // Center the last row if not full (3-column grid)
+  // This is handled by CSS grid, but we can add a helper class for centering if needed
+  // Add a helper class if the last row is not full
+  const cols = 3;
+  const remainder = selectedModels.length % cols;
+  if (remainder !== 0 && selectedModels.length > 0) {
+    grid.classList.add('center-last-row');
+  } else {
+    grid.classList.remove('center-last-row');
+  }
 }
 
 // Update aiSend function to handle multi-model responses
@@ -4792,6 +4721,10 @@ function setupAddModelBtn() {
     });
     addDropdown.onchange = function() {
       if (this.value) {
+        if (selectedModels.includes(this.value)) {
+          shakeElement(addDropdown);
+          return;
+        }
         selectedModels.push(this.value);
         updateMultiModelDisplay();
         renderChat();
@@ -4819,21 +4752,45 @@ document.addEventListener('DOMContentLoaded', function() {
   setupAddModelBtn();
 });
 
-// Add event listeners for dropdown and + button
-function setupMultiModelHeader() {
-  const multiSelect = document.getElementById('multi-model-select');
-  const addBtn = document.getElementById('add-model-btn');
-  if (multiSelect && addBtn) {
-    addBtn.onclick = function() {
-      if (multiSelect.value) {
-        selectedModels.push(multiSelect.value);
-        updateMultiModelDisplay();
-        renderChat();
-      }
-    };
-  }
+// Add this helper for shake animation
+function shakeElement(el) {
+  if (!el) return;
+  el.classList.add('shake');
+  setTimeout(() => el.classList.remove('shake'), 400);
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  setupMultiModelHeader();
-});
+if (!document.getElementById('shake-style')) {
+  const style = document.createElement('style');
+  style.id = 'shake-style';
+  style.textContent = `
+    .shake {
+      animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    @keyframes shake {
+      10%, 90% { transform: translateX(-2px); }
+      20%, 80% { transform: translateX(4px); }
+      30%, 50%, 70% { transform: translateX(-8px); }
+      40%, 60% { transform: translateX(8px); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+if (!document.getElementById('center-last-row-style')) {
+  const style = document.createElement('style');
+  style.id = 'center-last-row-style';
+  style.textContent = `
+    .multi-model-chat.center-last-row {
+      justify-items: stretch;
+    }
+    @media (min-width: 641px) {
+      .multi-model-chat.center-last-row > :nth-last-child(-n+2):nth-child(odd) {
+        grid-column: 2 / span 1;
+      }
+      .multi-model-chat.center-last-row > :nth-last-child(1):nth-child(odd) {
+        grid-column: 2 / span 1;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}

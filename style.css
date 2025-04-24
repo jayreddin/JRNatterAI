@@ -524,12 +524,14 @@ select#model-select {
 }
 
 .multi-mode-active .selected-models-container {
-  display: flex;
+  display: flex !important;
+  flex-direction: row;
   flex-wrap: wrap;
-  gap: 0.3rem;
-  padding: 0.2rem;
-  min-height: 28px;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  justify-content: flex-start;
   align-items: center;
+  width: 100%;
 }
 
 .selected-model-chip {
@@ -561,13 +563,22 @@ select#model-select {
   background-color: rgba(239, 68, 68, 0.1);
 }
 
+.selected-model-chip.dragging {
+  opacity: 0.5;
+  background: #dbeafe;
+}
+
+.selected-model-chip.drag-over {
+  border: 2px dashed var(--primary-color);
+  background: #f0f9ff;
+}
+
 /* Multi-model chat improvements */
 .multi-model-chat {
   display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   padding: 1rem;
-  min-height: 200px;
-  overflow-y: visible;
 }
 
 .multi-model-chat .chat-message {
@@ -597,12 +608,14 @@ select#model-select {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 90%;
+  width: 90vw;
   max-width: 800px;
   height: 80vh;
   max-height: none;
   z-index: 1000;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+  background: var(--bg-color);
+  overflow-y: auto;
 }
 
 .model-box-overlay {
@@ -1248,10 +1261,9 @@ margin-bottom: 0.5rem;
 /* Multi-model chat grid layout */
 .multi-model-chat {
   display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   padding: 1rem;
-  min-height: 200px;
-  overflow-y: visible;
 }
 
 .multi-model-chat .chat-message {
@@ -1364,6 +1376,12 @@ margin-bottom: 0.5rem;
   word-break: break-word;
   line-height: 1.2;
   box-sizing: border-box;
+  padding: 0.18em 0.5em !important;
+  font-size: 0.95em !important;
+  min-width: 0;
+  min-height: 0;
+  width: fit-content;
+  max-width: 90%;
 }
 
 /* Chat bubble size variations */
@@ -1464,11 +1482,41 @@ margin-bottom: 0.5rem;
   padding: 0.2rem;
 }
 
-.footer-content .feature-btn {
-  width: 1.8em;
-  height: 1.8em;
-  font-size: 0.8rem;
-  margin-right: 0.2rem;
+.footer-content .feature-btn, #token-info-btn, #toggle-mode {
+  width: 2.0em;
+  height: 2.0em;
+  font-size: 1.3em;
+  border-radius: 50%;
+  border: 1px solid #000;
+  background: var(--button-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+#token-info-btn {
+  border-radius: 50%;
+  border: 1px solid #000;
+  background: var(--button-bg);
+  width: 2.0em;
+  height: 2.0em;
+  font-size: 1.3em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#toggle-mode {
+  border-radius: 50%;
+  border: 1px solid #000;
+  background: var(--button-bg);
+  width: 2.0em;
+  height: 2.0em;
+  font-size: 1.3em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Footer info text */
@@ -1677,7 +1725,7 @@ margin-bottom: 0.5rem;
 }
 
 .multi-model-select.flat {
-  height: 28px;
+  height: 35px;
   font-size: 0.85rem;
   padding: 0 0.3rem;
   border-radius: 0.7rem;
@@ -1721,4 +1769,26 @@ margin-bottom: 0.5rem;
 .remove-model:hover {
   background: rgba(239, 68, 68, 0.12);
   color: #b91c1c;
+}
+
+/* 5. MIC and Send button icon fix */
+#voice-input-btn i, .footer-container button[type="submit"] i {
+  font-family: 'Font Awesome 6 Free', 'FontAwesome', Arial, sans-serif;
+  font-weight: 900;
+  font-style: normal;
+  font-size: 1.1em;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1;
+  color: #000 !important;
+}
+#voice-input-btn, .footer-container button[type="submit"] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3em 0.7em;
+}
+
+.dark-mode #voice-input-btn i, .dark-mode .footer-container button[type="submit"] i {
+  color: #fff !important;
 }
