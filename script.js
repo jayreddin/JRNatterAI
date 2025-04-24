@@ -28,7 +28,8 @@ let userSettings = {
   tokenUsage: {
     current: 0,
     limit: 4000
-  }
+  },
+  thinkingMode: false,
 };
 
 // Define toggle functions
@@ -589,8 +590,11 @@ function renderChat() {
     }
   }
 
-  if (currentChat.length > 0 && currentChat[currentChat.length - 1].streaming) {
-    container.scrollTop = container.scrollHeight;
+  // Always scroll to the latest message
+  if (currentChat.length > 0) {
+    setTimeout(() => {
+      container.scrollTop = container.scrollHeight;
+    }, 0);
   }
 }
 
@@ -684,7 +688,117 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// send to AI
+// Update thinking process prompt format
+function formatThinkingPrompt(text) {
+  return `Let's approach this step by step:
+
+1. First, let's understand what's being asked:
+   ${text}
+
+2. Key points to consider:
+   - Context and requirements
+   - Potential approaches
+   - Important constraints
+   - Expected outcomes
+
+3. Analysis process:
+   - Break down the problem
+   - Evaluate options
+   - Consider implications
+   - Form conclusions
+
+Please provide a structured analysis following this framework.`;
+}
+
+// Enhanced model capabilities
+function getModelCapabilities(model) {
+  const capabilities = {
+    think: false,
+    stream: false,
+    vision: false,
+    code: false,
+    context: false
+  };
+
+  // Thinking capability
+  if (model.toLowerCase().includes('reason') || 
+      model.toLowerCase().includes('think') ||
+      model.includes('claude-3') ||
+      model.includes('gpt-4') ||
+      model.includes('o1') ||
+      model.includes('mistral') ||
+      model.includes('deepseek-reasoner')) {
+    capabilities.think = true;
+  }
+
+  // Streaming capability
+  if (isModelStreamCapable(model)) {
+    capabilities.stream = true;
+  }
+
+  // Vision capability
+  if (model.includes('vision') || 
+      model.includes('vl') || 
+      model.includes('pixtral') || 
+      model.includes('gpt-4') || 
+      model.includes('o3') || 
+      model.includes('o4') || 
+      model.includes('claude-3')) {
+    capabilities.vision = true;
+  }
+
+  // Code capability
+  if (model.includes('codestral') || 
+      model.includes('code') || 
+      model.includes('coder') ||
+      model.includes('gpt-4') || 
+      model.includes('claude-3')) {
+    capabilities.code = true;
+  }
+
+  // Long context capability
+  if (model.includes('32k') || 
+      model.includes('128k') || 
+      model.includes('gemini-1.5') || 
+      model.includes('claude-3') || 
+      model.includes('o1-pro')) {
+    capabilities.context = true;
+  }
+
+  return capabilities;
+}
+
+// Update model option display
+function createModelOption(model, capabilities) {
+  const optionDiv = document.createElement('div');
+  optionDiv.className = 'model-select-option';
+  
+  let badges = '';
+  if (capabilities.think) {
+    badges += '<span class="model-capability think"><i class="fa fa-brain"></i>Think</span>';
+  }
+  if (capabilities.stream) {
+    badges += '<span class="model-capability stream"><i class="fa fa-stream"></i>Stream</span>';
+  }
+  if (capabilities.vision) {
+    badges += '<span class="model-capability vision"><i class="fa fa-eye"></i>Vision</span>';
+  }
+  if (capabilities.code) {
+    badges += '<span class="model-capability code"><i class="fa fa-code"></i>Code</span>';
+  }
+  if (capabilities.context) {
+    badges += '<span class="model-capability context"><i class="fa fa-file-alt"></i>Long</span>';
+  }
+  
+  optionDiv.innerHTML = `
+    <span class="model-name">${model}</span>
+    <div class="model-badges">${badges}</div>
+  `;
+  
+  return optionDiv;
+}
+
+// Update aiSend function to use new thinking prompt
 async function aiSend(txt, model, usetime) {
   const models = multiModelMode ? (selectedModels.length > 0 ? selectedModels : [model]) : [model];
 
@@ -705,8 +819,57 @@ async function aiSend(txt, model, usetime) {
         stream: streamingMode && isModelStreamCapable(currentModel)
       };
 
-      if (opts.stream) {
+      if (userSettings.thinkingMode && isModelThinkCapable(currentModel)) {
+        // Add thinking process message
+        const thinkingIdx = currentChat.length;
+        currentChat.push({
+          role: 'thinking',
+          content: '',
+          time: nowStr(),
+          model: currentModel,
+          streaming: true
+        });
+        renderChat();
+
+        // Generate thinking process with new format
+        const thinkingPrompt = formatThinkingPrompt(txt);
         try {
+          let thinkingProcess = '';
+          const thinkingStream = await puter.ai.chat(thinkingPrompt, { ...opts, stream: true });
+
+          for await (const chunk of thinkingStream) {
+            if (chunk?.text) {
+              thinkingProcess += chunk.text;
+              currentChat[thinkingIdx].content = thinkingProcess;
+              renderChat();
+            }
+          }
+
+          // Now generate the actual response
+          const finalPrompt = `Based on this analysis:\n${thinkingProcess}\n\nProvide a clear and concise response to: ${txt}`;
+          if (opts.stream) {
+            let fullResponse = '';
+            const stream = await puter.ai.chat(finalPrompt, opts);
+
+            for await (const chunk of stream) {
+              if (chunk?.text) {
+                fullResponse += chunk.text;
+                currentChat[idx].content = fullResponse;
+                renderChat();
+              }
+            }
+          } else {
+            const resp = await puter.ai.chat(finalPrompt, opts);
+            currentChat[idx].content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
+          }
+        } catch (error) {
+          console.error("Thinking process error:", error);
+          currentChat[thinkingIdx].content = "[ANALYSIS ERROR]: " + (error.message || "Unknown error");
+          currentChat[idx].content = "[ERROR]: Failed to complete analysis";
+        }
+      } else {
+        // Normal response without thinking process
+        if (opts.stream) {
           let fullResponse = '';
           const stream = await puter.ai.chat(txt, opts);
 
@@ -717,60 +880,16 @@ async function aiSend(txt, model, usetime) {
               renderChat();
             }
           }
-
-          // Remove streaming state when done
-          currentChat[idx].streaming = false;
-          renderChat();
-
-        } catch (error) {
-          console.error("Streaming error:", error);
-          currentChat[idx].streaming = false;
-          currentChat[idx].content = `[STREAMING ERROR]: ${error.message || "Unknown error"}\nTrying to fall back to non-streaming mode...`;
-          renderChat();
-
-          // Fallback to non-streaming mode
-          try {
-            const resp = await puter.ai.chat(txt, { ...opts, stream: false });
-            const text = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
-            currentChat[idx].content = text;
-            renderChat();
-          } catch (fallbackError) {
-            console.error("Fallback error:", fallbackError);
-            currentChat[idx].content = `[ERROR]: Failed to get response. ${fallbackError.message || "Unknown error"}`;
-            renderChat();
-          }
-        }
-      } else {
-        // Non-streaming mode
-        try {
-          currentChat[idx].streaming = true;
-          renderChat();
-
+        } else {
           const resp = await puter.ai.chat(txt, opts);
-          let text = '';
-
-          if (resp && resp.message && resp.message.text) {
-            text = resp.message.text;
-          } else if (resp && resp.message && resp.message.content) {
-            text = resp.message.content;
-          } else if (resp && resp.text) {
-            text = resp.text;
-          } else if (typeof resp === 'string') {
-            text = resp;
-          } else {
-            text = JSON.stringify(resp);
-          }
-
-          currentChat[idx].streaming = false;
-          currentChat[idx].content = text;
-          renderChat();
-        } catch (error) {
-          console.error("Response error:", error);
-          currentChat[idx].streaming = false;
-          currentChat[idx].content = `[ERROR]: ${error.message || "Unknown error"}`;
-          renderChat();
+          currentChat[idx].content = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
         }
       }
+
+      // Remove streaming state when done
+      currentChat[idx].streaming = false;
+      renderChat();
+
     } catch (err) {
       console.error("AI error:", err);
       currentChat[idx].streaming = false;
@@ -1637,16 +1756,15 @@ function isModelStreamCapable(model) {
     
     // Mistral Models
     'mistral-large-latest', 'pixtral-large-latest', 'codestral-latest',
-    
-    // OpenRouter Models (prefixed)
-    'openrouter:anthropic/claude-3.7-sonnet', 'openrouter:anthropic/claude-3.5-sonnet',
-    'openrouter:meta-llama/llama-4-maverick', 'openrouter:meta-llama/llama-4-scout',
-    'openrouter:openai/gpt-4o', 'openrouter:openai/o1-mini'
   ];
   
-  // Check if model is in the list or starts with a known streaming prefix
+  // Check if model is in the list or matches known streaming patterns
   return streamingModels.includes(model) || 
-         streamingModels.some(m => model.startsWith(m.split('/')[0] + '/'));
+         model.toLowerCase().includes('stream') ||
+         model.toLowerCase().includes('claude-3') ||
+         model.toLowerCase().includes('gpt-4') ||
+         model.toLowerCase().includes('mistral') ||
+         model.toLowerCase().includes('gemini');
 }
 
 function getModelCapabilities(model) {
@@ -1660,7 +1778,7 @@ function getModelCapabilities(model) {
   };
 
   // Set capabilities based on model name
-  if (model.includes('codestral') || model.includes('code') || model.includes('coder')) {
+  if (model.includes('codestral') || model.includes('code') || model.includes('coder') || model.includes('gpt-4') || model.includes('claude-3')) {
     capabilities.code = true;
   }
 
@@ -1781,22 +1899,13 @@ function updateModelSelectOptions() {
   // Show only appropriate models
   [...sel.options].forEach(o => {
     const shouldShow = userSettings.enabledModels.includes(o.value) && 
-                      (!streamingMode || isModelStreamCapable(o.value));
+                      (!streamingMode || isModelStreamCapable(o.value)) &&
+                      (!userSettings.thinkingMode || isModelThinkCapable(o.value));
     o.style.display = shouldShow ? '' : 'none';
   });
 
-  // If current selection is hidden, select first visible option
-  if (sel.selectedOptions[0]?.style.display === 'none') {
-    const firstVisible = [...sel.options].find(o => o.style.display !== 'none');
-    if (firstVisible) {
-      sel.value = firstVisible.value;
-    }
-  }
-
-  // Update multi-model selection if active
-  if (multiModelMode) {
-    updateMultiModelDisplay();
-  }
+  // Update dropdown if visible
+  updateModelDropdown();
 }
 
 // Store OpenRouter models list from the full model list
@@ -3558,373 +3667,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// Token usage tracking
-let totalTokens = 0;
-const TOKEN_LIMIT = 100000; // Example limit, adjust as needed
-
-async function updateTokenUsage() {
-  try {
-    // Check if user is signed in
-    if (!puter.auth.isSignedIn()) {
-      // Show sign in prompt in the token usage popup
-      const detailsContainer = document.querySelector('.token-usage-details');
-      if (detailsContainer) {
-        detailsContainer.innerHTML = `
-          <div class="text-sm text-center">
-            <p class="mb-2">Please sign in to view storage usage</p>
-            <button onclick="handleTokenUsageAuth()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool text-xs">
-              Sign In
-            </button>
-          </div>
-        `;
-      }
-      return;
-    }
-
-    // Get space usage from puter.fs.space()
-    const spaceData = await puter.fs.space();
-    if (!spaceData) {
-      throw new Error('Could not fetch usage data');
-    }
-
-    const usedBytes = spaceData.used || 0;
-    const totalBytes = spaceData.capacity || 100000;
-    const usagePercent = Math.min((usedBytes / totalBytes) * 100, 100);
-    
-    // Convert bytes to more readable format
-    const usedFormatted = formatBytes(usedBytes);
-    const totalFormatted = formatBytes(totalBytes);
-    const remainingFormatted = formatBytes(totalBytes - usedBytes);
-    
-    // Update the UI elements
-    const percentElement = document.getElementById('token-usage-percent');
-    const countElement = document.getElementById('token-usage-count');
-    const progressBar = document.getElementById('token-progress-bar');
-    const detailsContainer = document.querySelector('.token-usage-details');
-
-    if (percentElement) {
-      percentElement.textContent = `${Math.round(usagePercent)}%`;
-    }
-    
-    if (countElement) {
-      countElement.textContent = usedFormatted;
-    }
-    
-    if (progressBar) {
-      progressBar.style.width = `${usagePercent}%`;
-      
-      // Add warning class if usage is high
-      if (usagePercent > 80) {
-        progressBar.classList.add('token-progress-warning');
-      } else {
-        progressBar.classList.remove('token-progress-warning');
-      }
-    }
-    
-    if (detailsContainer) {
-      detailsContainer.innerHTML = `
-        <div class="text-sm">
-          <div class="flex justify-between mb-1">
-            <span>Total Storage:</span>
-            <span>${totalFormatted}</span>
-          </div>
-          <div class="flex justify-between mb-1">
-            <span>Used:</span>
-            <span>${usedFormatted}</span>
-          </div>
-          <div class="flex justify-between mb-1">
-            <span>Remaining:</span>
-            <span>${remainingFormatted}</span>
-          </div>
-        </div>
-      `;
-    }
-  } catch (error) {
-    console.error('Error fetching storage usage:', error);
-    
-    // Show error in the token usage popup
-    const detailsContainer = document.querySelector('.token-usage-details');
-    if (detailsContainer) {
-      detailsContainer.innerHTML = `
-        <div class="text-sm text-red-600 dark:text-red-400">
-          <p class="mb-2">Error fetching storage usage: ${error.message || 'Please try signing in again'}</p>
-          <button onclick="handleTokenUsageAuth()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool text-xs">
-            Sign In
-          </button>
-        </div>
-      `;
-    }
-  }
-}
-
-// Helper function to format bytes into human readable format
-function formatBytes(bytes) {
-  if (bytes === 0) return '0 Bytes';
-  
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-// Update token usage when the popup is opened
-document.getElementById('token-info-btn')?.addEventListener('click', () => {
-  updateTokenUsage();
-  // Set up auto-refresh every 2 seconds while popup is open
-  const refreshInterval = setInterval(updateTokenUsage, 2000);
-  
-  // Clear interval when popup is closed
-  const tokenPopup = document.getElementById('popup-tokens');
-  if (tokenPopup) {
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'class' && tokenPopup.classList.contains('hidden')) {
-          clearInterval(refreshInterval);
-          observer.disconnect();
-        }
-      });
-    });
-    
-    observer.observe(tokenPopup, { attributes: true });
-  }
-});
-
-// Helper function to handle authentication for token usage
-async function handleTokenUsageAuth() {
-  try {
-    await puter.auth.signIn();
-    // After successful sign in, update the token usage display
-    updateTokenUsage();
-  } catch (error) {
-    console.error('Authentication error:', error);
-    const detailsContainer = document.querySelector('.token-usage-details');
-    if (detailsContainer) {
-      detailsContainer.innerHTML = `
-        <div class="text-sm text-red-600 dark:text-red-400">
-          <p class="mb-2">Authentication failed: ${error.message || 'Please try again'}</p>
-          <button onclick="handleTokenUsageAuth()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool text-xs">
-            Try Again
-          </button>
-        </div>
-      `;
-    }
-  }
-}
-
-// Global variable to store the update interval ID
-let tokenUsageUpdateInterval = null;
-
-// Function to start token usage updates
-async function startTokenUsageUpdates() {
-  try {
-    // Check authentication first
-    if (!puter.auth.isSignedIn()) {
-      // Show sign in prompt
-      const detailsContainer = document.querySelector('.token-usage-details');
-      if (detailsContainer) {
-        detailsContainer.innerHTML = `
-          <div class="text-sm text-center">
-            <p class="mb-2">Please sign in to view storage usage</p>
-            <button onclick="handleTokenUsageAuth()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool text-xs">
-              Sign In
-            </button>
-          </div>
-        `;
-      }
-      return;
-    }
-
-    // Clear any existing interval
-    stopTokenUsageUpdates();
-
-    // Initial update
-    await updateTokenUsage();
-
-    // Set up new interval only if we're authenticated
-    tokenUsageUpdateInterval = setInterval(async () => {
-      if (!puter.auth.isSignedIn()) {
-        stopTokenUsageUpdates();
-        return;
-      }
-      try {
-        await updateTokenUsage();
-      } catch (error) {
-        console.error('Error in update interval:', error);
-        if (error?.status === 401) {
-          stopTokenUsageUpdates();
-        }
-      }
-    }, 2000);
-  } catch (error) {
-    console.error('Error starting token usage updates:', error);
-    stopTokenUsageUpdates();
-  }
-}
-
-// Update the token info button click handler
-document.addEventListener('DOMContentLoaded', function() {
-  const tokenInfoBtn = document.getElementById('token-info-btn');
-  if (tokenInfoBtn) {
-    tokenInfoBtn.addEventListener('click', async () => {
-      // Try to initialize updates
-      await startTokenUsageUpdates();
-      
-      // Set up popup close detection
-      const tokenPopup = document.getElementById('popup-tokens');
-      if (tokenPopup) {
-        const observer = new MutationObserver((mutations) => {
-          mutations.forEach((mutation) => {
-            if (mutation.attributeName === 'class' && tokenPopup.classList.contains('hidden')) {
-              stopTokenUsageUpdates();
-              observer.disconnect();
-            }
-          });
-        });
-        
-        observer.observe(tokenPopup, { attributes: true });
-      }
-    });
-  }
-});
-
-// Update the auth handler
-async function handleTokenUsageAuth() {
-  try {
-    await puter.auth.signIn();
-    // Only start updates if authentication was successful
-    if (puter.auth.isSignedIn()) {
-      await startTokenUsageUpdates();
-    }
-  } catch (error) {
-    console.error('Authentication error:', error);
-    const detailsContainer = document.querySelector('.token-usage-details');
-    if (detailsContainer) {
-      detailsContainer.innerHTML = `
-        <div class="text-sm text-red-600 dark:text-red-400">
-          <p class="mb-2">Authentication failed: ${error.message || 'Please try again'}</p>
-          <button onclick="handleTokenUsageAuth()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-cool text-xs">
-            Try Again
-          </button>
-        </div>
-      `;
-    }
-    stopTokenUsageUpdates();
-  }
-}
-
-// Function to format bytes into human readable format
-function formatBytes(bytes) {
-    const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-    let size = bytes;
-    let unitIndex = 0;
-    
-    while (size >= 1024 && unitIndex < units.length - 1) {
-        size /= 1024;
-        unitIndex++;
-    }
-    
-    return `${size.toFixed(1)} ${units[unitIndex]}`;
-}
-
-// Function to update storage usage display
-async function updateTokenUsage() {
-    try {
-        // Get space usage from puter.fs.space()
-        const spaceData = await puter.fs.space();
-        if (!spaceData) {
-            throw new Error('Could not fetch usage data');
-        }
-
-        const used = spaceData.used || 0;
-        const capacity = spaceData.capacity || 100000;
-        let usagePercent = Math.min(((used / capacity) * 100), 100).toFixed(0);
-
-        // Update UI elements
-        const storageUsed = document.getElementById('storage-used');
-        const storageCapacity = document.getElementById('storage-capacity');
-        const storageUsedPercent = document.getElementById('storage-used-percent');
-        const storageBar = document.getElementById('storage-bar');
-        const storageBarHost = document.getElementById('storage-bar-host');
-
-        if (storageUsed) storageUsed.textContent = formatBytes(used);
-        if (storageCapacity) storageCapacity.textContent = formatBytes(capacity);
-        if (storageUsedPercent) storageUsedPercent.textContent = `${usagePercent}%`;
-        if (storageBar) {
-            storageBar.style.width = `${usagePercent}%`;
-            if (parseInt(usagePercent) >= 100) {
-                storageBar.style.borderTopRightRadius = '3px';
-                storageBar.style.borderBottomRightRadius = '3px';
-            }
-        }
-
-        // Update host usage if available
-        if (spaceData.host_used) {
-            const hostUsed = spaceData.host_used;
-            const hostUsagePercent = ((hostUsed - used) / capacity * 100).toFixed(0);
-            
-            const storagePuterUsed = document.getElementById('storage-puter-used');
-            const storagePuterUsedWrapper = document.getElementById('storage-puter-used-w');
-            
-            if (storagePuterUsed) storagePuterUsed.textContent = formatBytes(used);
-            if (storagePuterUsedWrapper) storagePuterUsedWrapper.style.display = 'inline';
-            if (storageBarHost) storageBar.style.width = `${hostUsagePercent}%`;
-        }
-
-    } catch (error) {
-        console.error('Error fetching storage usage:', error);
-        clearInterval(tokenUsageUpdateInterval);
-        tokenUsageUpdateInterval = null;
-    }
-}
-
-// Function to start token usage updates
-function startTokenUsageUpdates() {
-    // Clear any existing interval
-    if (tokenUsageUpdateInterval) {
-        clearInterval(tokenUsageUpdateInterval);
-    }
-
-    // Initial update
-    updateTokenUsage();
-
-    // Set up new interval
-    tokenUsageUpdateInterval = setInterval(updateTokenUsage, 2000);
-}
-
-// Function to stop token usage updates
-function stopTokenUsageUpdates() {
-    if (tokenUsageUpdateInterval) {
-        clearInterval(tokenUsageUpdateInterval);
-        tokenUsageUpdateInterval = null;
-    }
-}
-
-// Initialize token usage display when document is ready
-document.addEventListener('DOMContentLoaded', function() {
-    const tokenInfoBtn = document.getElementById('token-info-btn');
-    if (tokenInfoBtn) {
-        tokenInfoBtn.addEventListener('click', () => {
-            startTokenUsageUpdates();
-            
-            // Set up popup close detection
-            const tokenPopup = document.getElementById('popup-tokens');
-            if (tokenPopup) {
-                const observer = new MutationObserver((mutations) => {
-                    mutations.forEach((mutation) => {
-                        if (mutation.attributeName === 'class' && tokenPopup.classList.contains('hidden')) {
-                            stopTokenUsageUpdates();
-                            observer.disconnect();
-                        }
-                    });
-                });
-                
-                observer.observe(tokenPopup, { attributes: true });
-            }
-        });
-    }
-});
-
 // Add bubble size handling function
 function updateBubbleSize(size) {
   const container = document.getElementById('chat-container');
@@ -3950,32 +3692,105 @@ function updateBubbleSize(size) {
   saveSettings();
 }
 
-// Handle model box expansion
-function handleModelBoxClick(event) {
-  const modelBox = event.currentTarget;
-  const overlay = document.querySelector('.model-box-overlay') || createOverlay();
+// Update model dropdown content
+function updateModelDropdown() {
+  const dropdown = document.getElementById('model-dropdown');
+  const modelSelect = document.getElementById('model-select');
+  if (!dropdown || !modelSelect) return;
+
+  dropdown.innerHTML = '';
   
-  if (!modelBox.classList.contains('expanded')) {
-    // Expand
-    modelBox.classList.add('expanded');
-    overlay.classList.add('visible');
-    document.body.style.overflow = 'hidden';
+  [...modelSelect.options].forEach(option => {
+    if (option.style.display !== 'none' && !selectedModels.includes(option.value)) {
+      const optionDiv = document.createElement('div');
+      optionDiv.className = 'model-select-option';
+      
+      const capabilities = getModelCapabilities(option.value);
+      let badges = '';
+      
+      if (capabilities.think) {
+        badges += '<span class="model-capability think"><i class="fa fa-brain"></i>Think</span>';
+      }
+      if (capabilities.stream) {
+        badges += '<span class="model-capability stream"><i class="fa fa-stream"></i>Stream</span>';
+      }
+      if (capabilities.vision) {
+        badges += '<span class="model-capability vision"><i class="fa fa-eye"></i>Vision</span>';
+      }
+      if (capabilities.code) {
+        badges += '<span class="model-capability code"><i class="fa fa-code"></i>Code</span>';
+      }
+      if (capabilities.context) {
+        badges += '<span class="model-capability context"><i class="fa fa-file-alt"></i>Long</span>';
+      }
+      
+      optionDiv.innerHTML = `
+        <span class="model-name">${option.text}</span>
+        <div class="model-badges">${badges}</div>
+      `;
+      
+      optionDiv.onclick = function() {
+        selectedModels.push(option.value);
+        updateMultiModelDisplay();
+        dropdown.classList.remove('visible');
+      };
+      
+      dropdown.appendChild(optionDiv);
+    }
+  });
+}
+
+// Update auth handling
+async function handlePuterAuth() {
+  try {
+    const loginBtn = document.getElementById('puter-login-btn');
+    const userInfo = document.getElementById('user-info');
+    
+    if (!loginBtn || !userInfo) return;
+
+    if (puter.auth.isSignedIn()) {
+      // Sign out if already signed in
+      await puter.auth.signOut();
+      loginBtn.innerHTML = '<i class="fa fa-user mr-1"></i> Sign In';
+      userInfo.classList.add('hidden');
+      userInfo.textContent = '';
+    } else {
+      // Sign in
+      await puter.auth.signIn();
+      const user = await puter.auth.getUser();
+      
+      if (user?.username) {
+        loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
+        userInfo.textContent = user.username;
+        userInfo.classList.remove('hidden');
+      }
+    }
+  } catch (error) {
+    console.error('Auth error:', error);
+    alert('Authentication failed: ' + (error.message || 'Please try again'));
   }
 }
 
-function createOverlay() {
-  const overlay = document.createElement('div');
-  overlay.className = 'model-box-overlay';
-  document.body.appendChild(overlay);
-  
-  overlay.addEventListener('click', () => {
-    const expandedBox = document.querySelector('.model-box.expanded');
-    if (expandedBox) {
-      expandedBox.classList.remove('expanded');
-      overlay.classList.remove('visible');
-      document.body.style.overflow = '';
-    }
-  });
-  
-  return overlay;
-}
+// Initialize auth check on load
+document.addEventListener('DOMContentLoaded', function() {
+  // Check initial auth state
+  if (puter.auth && puter.auth.isSignedIn()) {
+    puter.auth.getUser().then(user => {
+      if (user?.username) {
+        const loginBtn = document.getElementById('puter-login-btn');
+        const userInfo = document.getElementById('user-info');
+        if (loginBtn) loginBtn.innerHTML = '<i class="fa fa-sign-out mr-1"></i> Sign Out';
+        if (userInfo) {
+          userInfo.textContent = user.username;
+          userInfo.classList.remove('hidden');
+        }
+      }
+    }).catch(console.error);
+  }
+
+  // Set up auth button click handler
+  const loginBtn = document.getElementById('puter-login-btn');
+  if (loginBtn) {
+    loginBtn.onclick = handlePuterAuth;
+  }
+});

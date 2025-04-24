@@ -28,8 +28,24 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-javascript.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-css.min.js" defer></script>
 
+  <!-- Markdown support -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
   <!-- Core script -->
   <script src="https://js.puter.com/v2/"></script>
+  <script>
+    // Initialize marked with default options
+    window.marked = marked;
+    window.marked.setOptions({
+      breaks: true,
+      gfm: true,
+      headerIds: false,
+      mangle: false
+    });
+  </script>
+
+  <!-- Main script -->
+  <script src="script.js" defer></script>
 </head>
 
 <body class="transition-colors duration-300">
@@ -131,22 +147,36 @@
             <option value="x-ai/grok-3-beta">Grok 3 Beta</option>
           </optgroup>
         </select>
+        <button class="add-model-button" id="add-model-btn" title="Add model">
+          <i class="fa fa-plus"></i>
+        </button>
+        <div class="model-select-dropdown" id="model-dropdown">
+          <!-- Model options will be populated here -->
+        </div>
       </div>
     </div>
     <!-- Mode toggles -->
-    <div class="flex flex-col space-y-2 w-24">
-      <div class="flex items-center justify-end">
-        <span class="text-xs mr-2">Stream</span>
+    <div class="switches-container">
+      <div class="switch-item">
+        <span>Stream</span>
         <label class="toggle-switch">
           <input type="checkbox" id="streaming-toggle" role="switch" aria-label="Toggle streaming mode">
           <span class="toggle-slider"></span>
         </label>
       </div>
 
-      <div class="flex items-center justify-end">
-        <span class="text-xs mr-2">Multi</span>
+      <div class="switch-item">
+        <span>Multi</span>
         <label class="toggle-switch">
           <input type="checkbox" id="multi-toggle" role="switch" aria-label="Toggle multi-model mode">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="switch-item">
+        <span>Think</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="thinking-toggle" role="switch" aria-label="Toggle thinking mode">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -387,8 +417,6 @@
       </div>
     </div>
   </div>
-
-  <script src="script.js" defer></script>
 </body>
 
 </html>
