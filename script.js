@@ -10,6 +10,7 @@ let userSettings = {
   theme: 'light',
   streamingMode: false,
   multiModelMode: false,
+  bubbleSize: 1, // 0: compact, 1: normal, 2: large
   enabledModels: [
     "gpt-4o-mini", "gpt-4o", "o1", "o1-mini", "o1-pro", "o3", "o3-mini", "o4-mini", "gpt-4.1", "gpt-4.1-mini",
     "gpt-4.1-nano", "gpt-4.5-preview", "claude-3-7-sonnet", "claude-3-5-sonnet", "deepseek-chat", "deepseek-reasoner",
@@ -626,59 +627,100 @@ function renderChat() {
   const container = document.getElementById('chat-container');
   if (!container) return;
 
-  const fragment = document.createDocumentFragment();
-  const markdownEnabled = userSettings.markdownEnabled && window.marked;
-  const darkMode = document.body.classList.contains('dark-mode');
+  // Clear container
+  container.innerHTML = '';
 
-  for (let i = currentChat.length - 1; i >= 0; i--) {
-    const m = currentChat[i];
-    const isUser = m.role === 'user';
-    const bubbleClr = isUser ? 
-      `border-black ${darkMode ? 'bg-gray-800' : 'bg-white'}` : 
-      `border-black ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`;
-    const align = isUser ? 'user-message' : 'assistant-message';
-    const label = isUser ? `You: ${m.time}` : `${m.model || "Assistant"}: ${m.time}`;
+  // Create wrapper based on mode
+  const wrapper = document.createElement('div');
+  wrapper.className = multiModelMode ? 'multi-model-chat' : '';
+  container.appendChild(wrapper);
 
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `chat-message ${align}`;
-
-    // Process content with markdown if enabled
-    let content = "";
-    if (typeof m.content === 'string') {
-      if (markdownEnabled && window.marked) {
-        try {
-          content = `<div class="markdown-content">${window.marked(m.content)}</div>`;
-        } catch (e) {
-          console.warn("Markdown parsing failed, falling back to plain text:", e);
-          content = `<div>${m.content}</div>`;
+  // Group messages by model in multi-model mode
+  if (multiModelMode) {
+    const messagesByModel = {};
+    currentChat.forEach(m => {
+      if (m.role === 'model') {
+        if (!messagesByModel[m.model]) {
+          messagesByModel[m.model] = [];
         }
-      } else {
-        content = `<div>${m.content}</div>`;
+        messagesByModel[m.model].push(m);
       }
-    } else if (m.content?.type === "img") {
-      content = `<img src='${m.content.url}' alt='image' class='rounded-cool' loading="lazy">`;
+    });
+
+    // Create a box for each model
+    Object.entries(messagesByModel).forEach(([model, messages]) => {
+      const modelBox = document.createElement('div');
+      modelBox.className = 'model-box p-2 border rounded-cool';
+      
+      const modelHeader = document.createElement('div');
+      modelHeader.className = 'font-medium text-sm mb-2 text-center';
+      modelHeader.textContent = model;
+      modelBox.appendChild(modelHeader);
+
+      messages.forEach(m => {
+        const messageEl = createMessageElement(m);
+        modelBox.appendChild(messageEl);
+      });
+
+      wrapper.appendChild(modelBox);
+    });
+  } else {
+    // Regular chat display
+    for (let i = currentChat.length - 1; i >= 0; i--) {
+      const messageEl = createMessageElement(currentChat[i]);
+      wrapper.appendChild(messageEl);
     }
-
-    messageDiv.innerHTML = `
-      <div class="message-timestamp ${isUser ? 'text-right' : ''} mb-1">${label}</div>
-      <div class="chat-bubble ${bubbleClr}">
-        ${content}
-      </div>
-      <div class="message-actions mt-1 ${isUser ? 'text-right' : ''}">
-        <button onclick="resendMsg(${i})" class="action-button" title="Resend"><i class="fa fa-redo"></i></button>
-        <button onclick="copyMsg(${i})" class="action-button" title="Copy"><i class="fa fa-copy"></i></button>
-        <button onclick="deleteMsg(${i})" class="action-button delete" title="Delete"><i class="fa fa-trash"></i></button>
-        <button onclick="speakMsg(${i})" class="action-button speak" title="Speak"><i class="fa fa-volume-up"></i></button>
-        <button class="action-button" title="Translate" data-message-idx="${i}"><i class="fa fa-language"></i></button>
-      </div>
-    `;
-
-    fragment.appendChild(messageDiv);
   }
 
-  container.textContent = '';
-  container.appendChild(fragment);
-  updateTokenUsageDisplay();
+  // Scroll to bottom if streaming
+  if (currentChat.length > 0 && currentChat[currentChat.length - 1].streaming) {
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+function createMessageElement(m) {
+  const isUser = m.role === 'user';
+  const bubbleClr = isUser ? 
+    `border-black ${isDarkMode ? 'bg-gray-800' : 'bg-white'}` : 
+    `border-black ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`;
+  const align = isUser ? 'user-message' : 'assistant-message';
+  const label = isUser ? `You: ${m.time}` : `${m.model || "Assistant"}: ${m.time}`;
+
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `chat-message ${align} ${m.streaming ? 'streaming' : ''}`;
+
+  let content = "";
+  if (typeof m.content === 'string') {
+    if (userSettings.markdownEnabled && window.marked) {
+      try {
+        content = `<div class="markdown-content">${window.marked(m.content)}</div>`;
+      } catch (e) {
+        console.warn("Markdown parsing failed, falling back to plain text:", e);
+        content = `<div>${m.content}</div>`;
+      }
+    } else {
+      content = `<div>${m.content}</div>`;
+    }
+  } else if (m.content?.type === "img") {
+    content = `<img src='${m.content.url}' alt='image' class='rounded-cool' loading="lazy">`;
+  }
+
+  messageDiv.innerHTML = `
+    <div class="message-timestamp ${isUser ? 'text-right' : ''} mb-1 text-xs">${label}</div>
+    <div class="chat-bubble ${bubbleClr}">
+      ${content}
+      ${m.streaming ? '<span class="typing-cursor"></span>' : ''}
+    </div>
+    <div class="message-actions mt-1 ${isUser ? 'text-right' : ''}">
+      <button onclick="resendMsg(${currentChat.indexOf(m)})" class="action-button" title="Resend"><i class="fa fa-redo"></i></button>
+      <button onclick="copyMsg(${currentChat.indexOf(m)})" class="action-button" title="Copy"><i class="fa fa-copy"></i></button>
+      <button onclick="deleteMsg(${currentChat.indexOf(m)})" class="action-button delete" title="Delete"><i class="fa fa-trash"></i></button>
+      <button onclick="speakMsg(${currentChat.indexOf(m)})" class="action-button speak" title="Speak"><i class="fa fa-volume-up"></i></button>
+      <button class="action-button" title="Translate" data-message-idx="${currentChat.indexOf(m)}"><i class="fa fa-language"></i></button>
+    </div>
+  `;
+
+  return messageDiv;
 }
 
 // ---- CHAT INPUT ----
@@ -732,7 +774,13 @@ async function aiSend(txt, model, usetime) {
 
   for (const currentModel of models) {
     const idx = currentChat.length;
-    currentChat.push({ role: 'model', content: "...", time: nowStr(), model: currentModel });
+    currentChat.push({ 
+      role: 'model', 
+      content: "", 
+      time: nowStr(), 
+      model: currentModel,
+      streaming: true 
+    });
     renderChat();
 
     try {
@@ -747,21 +795,44 @@ async function aiSend(txt, model, usetime) {
           const stream = await puter.ai.chat(txt, opts);
 
           for await (const chunk of stream) {
-            fullResponse += chunk;
-            currentChat[idx].content = fullResponse;
-            renderChat();
+            if (chunk?.text) {
+              fullResponse += chunk.text;
+              currentChat[idx].content = fullResponse;
+              renderChat();
+            }
           }
+
+          // Remove streaming state when done
+          currentChat[idx].streaming = false;
+          renderChat();
+
         } catch (error) {
           console.error("Streaming error:", error);
-          currentChat[idx].content = "[STREAMING ERROR]: " + (error.message || "Unknown error");
+          currentChat[idx].streaming = false;
+          currentChat[idx].content = `[STREAMING ERROR]: ${error.message || "Unknown error"}\nTrying to fall back to non-streaming mode...`;
           renderChat();
+
+          // Fallback to non-streaming mode
+          try {
+            const resp = await puter.ai.chat(txt, { ...opts, stream: false });
+            const text = resp?.message?.content || resp?.message?.text || resp?.text || JSON.stringify(resp);
+            currentChat[idx].content = text;
+            renderChat();
+          } catch (fallbackError) {
+            console.error("Fallback error:", fallbackError);
+            currentChat[idx].content = `[ERROR]: Failed to get response. ${fallbackError.message || "Unknown error"}`;
+            renderChat();
+          }
         }
       } else {
+        // Non-streaming mode
         try {
+          currentChat[idx].streaming = true;
+          renderChat();
+
           const resp = await puter.ai.chat(txt, opts);
           let text = '';
 
-          // Handle different response formats
           if (resp && resp.message && resp.message.text) {
             text = resp.message.text;
           } else if (resp && resp.message && resp.message.content) {
@@ -771,21 +842,23 @@ async function aiSend(txt, model, usetime) {
           } else if (typeof resp === 'string') {
             text = resp;
           } else {
-            // If we get here, format the response as a string
             text = JSON.stringify(resp);
           }
 
-          currentChat[idx] = { role: 'model', content: text, time: nowStr(), model: currentModel };
+          currentChat[idx].streaming = false;
+          currentChat[idx].content = text;
           renderChat();
         } catch (error) {
           console.error("Response error:", error);
-          currentChat[idx] = { role: 'model', content: "[ERROR]: " + (error.message || "Unknown error"), time: nowStr(), model: currentModel };
+          currentChat[idx].streaming = false;
+          currentChat[idx].content = `[ERROR]: ${error.message || "Unknown error"}`;
           renderChat();
         }
       }
     } catch (err) {
       console.error("AI error:", err);
-      currentChat[idx] = { role: 'model', content: "[ERROR]: " + (err.message || JSON.stringify(err)), time: nowStr(), model: currentModel };
+      currentChat[idx].streaming = false;
+      currentChat[idx].content = `[ERROR]: ${err.message || JSON.stringify(err)}`;
       renderChat();
     }
   }
@@ -1628,11 +1701,36 @@ function getProviderIcon(provider) {
 // Get model capabilities
 function isModelStreamCapable(model) {
   const streamingModels = [
-    'gpt-4o', 'gpt-4o-mini', 'claude-3-7-sonnet', 'claude-3-5-sonnet',
-    'deepseek-chat', 'deepseek-reasoner', 'mistral-large-latest',
-    'gemini-2.0-flash', 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'
+    // OpenAI Models
+    'gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4.5-preview',
+    'o1', 'o1-mini', 'o1-pro', 'o3', 'o3-mini', 'o4-mini',
+    
+    // Anthropic Models
+    'claude-3-7-sonnet', 'claude-3-5-sonnet',
+    
+    // DeepSeek Models
+    'deepseek-chat', 'deepseek-reasoner',
+    
+    // Google Models
+    'gemini-2.0-flash', 'gemini-1.5-flash',
+    
+    // Meta/Llama Models
+    'meta-llama/llama-4-maverick', 'meta-llama/llama-4-scout',
+    'meta-llama/llama-3.3-70b-instruct', 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
+    'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
+    
+    // Mistral Models
+    'mistral-large-latest', 'pixtral-large-latest', 'codestral-latest',
+    
+    // OpenRouter Models (prefixed)
+    'openrouter:anthropic/claude-3.7-sonnet', 'openrouter:anthropic/claude-3.5-sonnet',
+    'openrouter:meta-llama/llama-4-maverick', 'openrouter:meta-llama/llama-4-scout',
+    'openrouter:openai/gpt-4o', 'openrouter:openai/o1-mini'
   ];
-  return streamingModels.includes(model);
+  
+  // Check if model is in the list or starts with a known streaming prefix
+  return streamingModels.includes(model) || 
+         streamingModels.some(m => model.startsWith(m.split('/')[0] + '/'));
 }
 
 function getModelCapabilities(model) {
@@ -1756,68 +1854,32 @@ function formatOpenRouterModelName(model) {
 
 // Update the model selection dropdown based on enabled models
 function updateModelSelectOptions() {
-  let sel = document.getElementById('model-select');
+  const sel = document.getElementById('model-select');
   if (!sel) return;
 
-  // First, hide all options
+  // Hide all options first
   [...sel.options].forEach(o => {
     o.style.display = 'none';
   });
 
-  // Show only enabled and streaming-capable models if streaming mode is on
+  // Show only appropriate models
   [...sel.options].forEach(o => {
-    if (userSettings.enabledModels.includes(o.value)) {
-      if (streamingMode && !isModelStreamCapable(o.value)) {
-        o.style.display = 'none';
-      } else {
-        o.style.display = '';
-      }
-    }
+    const shouldShow = userSettings.enabledModels.includes(o.value) && 
+                      (!streamingMode || isModelStreamCapable(o.value));
+    o.style.display = shouldShow ? '' : 'none';
   });
 
-  // Show only enabled options
-  [...sel.options].forEach(o => {
-    if (userSettings.enabledModels.includes(o.value)) {
-      o.style.display = '';
+  // If current selection is hidden, select first visible option
+  if (sel.selectedOptions[0]?.style.display === 'none') {
+    const firstVisible = [...sel.options].find(o => o.style.display !== 'none');
+    if (firstVisible) {
+      sel.value = firstVisible.value;
     }
-  });
+  }
 
-  // Add OpenRouter models if enabled
-  if (userSettings.openRouterEnabled) {
-    // Group OpenRouter models by provider
-    const openRouterModelsByProvider = {};
-
-    userSettings.enabledModels
-      .filter(model => model.startsWith('openrouter:'))
-      .forEach(model => {
-        const provider = getProviderFromModel(model);
-        if (!openRouterModelsByProvider[provider]) {
-          openRouterModelsByProvider[provider] = [];
-        }
-        openRouterModelsByProvider[provider].push(model);
-      });
-
-    // Create or update optgroups for each provider
-    Object.keys(openRouterModelsByProvider).forEach(provider => {
-      // Find or create optgroup
-      let providerGroup = sel.querySelector(`optgroup[label="${provider}"]`);
-      if (!providerGroup) {
-        providerGroup = document.createElement('optgroup');
-        providerGroup.label = provider;
-        sel.appendChild(providerGroup);
-      }
-
-      // Clear existing options
-      providerGroup.innerHTML = '';
-
-      // Add models for this provider
-      openRouterModelsByProvider[provider].forEach(model => {
-        const option = document.createElement('option');
-        option.value = model;
-        option.textContent = formatOpenRouterModelName(model);
-        providerGroup.appendChild(option);
-      });
-    });
+  // Update multi-model selection if active
+  if (multiModelMode) {
+    updateMultiModelDisplay();
   }
 }
 
@@ -1917,6 +1979,9 @@ function loadSettings() {
 
     // Apply theme
     setTheme(userSettings.theme || 'light');
+
+    // Apply bubble size
+    updateBubbleSize(userSettings.bubbleSize || 1);
 
     // Add OpenRouter models if enabled
     if (userSettings.openRouterEnabled) {
@@ -3387,6 +3452,15 @@ document.addEventListener('DOMContentLoaded', function() {
       resizeTimeout = setTimeout(() => window.scrollTo(0, 0), 100);
     });
 
+    // Set up bubble size range
+    const bubbleSizeRange = document.getElementById('bubble-size-range');
+    if (bubbleSizeRange) {
+      bubbleSizeRange.value = userSettings.bubbleSize || 1;
+      bubbleSizeRange.addEventListener('input', function() {
+        updateBubbleSize(this.value);
+      });
+    }
+
     console.log('Initialization complete');
   } catch (error) {
     console.error('Initialization error:', error);
@@ -3934,3 +4008,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Add bubble size handling function
+function updateBubbleSize(size) {
+  const container = document.getElementById('chat-container');
+  if (!container) return;
+
+  // Remove existing size classes
+  container.classList.remove('bubble-size-compact', 'bubble-size-normal', 'bubble-size-large');
+
+  // Add appropriate size class
+  switch (parseInt(size)) {
+    case 0:
+      container.classList.add('bubble-size-compact');
+      break;
+    case 1:
+      container.classList.add('bubble-size-normal');
+      break;
+    case 2:
+      container.classList.add('bubble-size-large');
+      break;
+  }
+
+  userSettings.bubbleSize = parseInt(size);
+  saveSettings();
+}
