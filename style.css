@@ -1,9 +1,15 @@
 /* Base styles */
 :root {
-  --bg-color: #fafafa;
-  --text-color: #24292f;
-  --border-color: rgba(34, 34, 34, 0.8);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+  --bg-color: #ffffff;
+  --text-color: #1a1a1a;
+  --border-color: rgba(0, 0, 0, 0.15);
+  --icon-color: #1a1a1a;
+  --button-bg: #f3f4f6;
+  --button-hover: #e5e7eb;
+  --button-text: #1a1a1a;
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 2px 5px rgba(0,0,0,0.1);
   --transition-fast: 0.2s ease;
   --transition-smooth: 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
@@ -13,9 +19,14 @@
 .dark-mode {
   --bg-color: #141617;
   --text-color: #e5e7eb;
-  --border-color: #444;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
-  --shadow-md: 0 2px 5px rgba(0,0,0,0.3);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --icon-color: #e5e7eb;
+  --button-bg: #374151;
+  --button-hover: #4b5563;
+  --button-text: #e5e7eb;
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 body {
@@ -83,6 +94,7 @@ img:hover {
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-fast);
   will-change: height;
+  color: var(--text-color);
 }
 
 #chat-input:focus {
@@ -103,10 +115,11 @@ img:hover {
 /* Footer container */
 .footer-container {
   background: var(--bg-color) !important;
-  border-top: 0px solid var(--border-color);
+  border-top: none;
   padding-top: 0.1rem;
   padding-bottom: 0.25rem;
   margin-top: auto;
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
   position: fixed;
   bottom: 0;
   left: 0;
@@ -161,19 +174,18 @@ img:hover {
   width: 2em;
   height: 2em;
   border-radius: 50%;
-  background: var(--bg-color);
+  background: var(--button-bg);
   border: 1px solid var(--border-color);
-  color: var(--text-color);
-  transition: all var(--transition-smooth);
+  color: var(--icon-color);
+  transition: all 0.2s ease;
   will-change: transform;
   font-size: 0.9rem;
 }
 
 .feature-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
-  background: var(--text-color);
-  color: var(--bg-color);
+  background: var(--button-hover);
+  color: var(--primary-color);
+  transform: translateY(-1px);
 }
 
 /* Responsive design */
@@ -429,10 +441,10 @@ img:hover {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: var(--button-bg);
   transition: .3s;
   border-radius: 20px;
-  border: 1px solid #999;
+  border: 1px solid var(--border-color);
 }
 
 .toggle-slider:before {
@@ -449,12 +461,12 @@ img:hover {
 }
 
 input:checked + .toggle-slider {
-  background-color: #10b981;
-  border-color: #047857;
+  background-color: var(--primary-color);
+  border-color: var(--primary-hover);
 }
 
 input:focus + .toggle-slider {
-  box-shadow: 0 0 1px #10b981;
+  box-shadow: 0 0 1px var(--primary-color);
 }
 
 input:checked + .toggle-slider:before {
@@ -467,8 +479,8 @@ input:checked + .toggle-slider:before {
 }
 
 .dark-mode input:checked + .toggle-slider {
-  background-color: #10b981;
-  border-color: #047857;
+  background-color: var(--primary-color);
+  border-color: var(--primary-hover);
 }
 
 .dark-mode option,
@@ -522,12 +534,13 @@ select#model-select {
 .selected-model-chip {
   display: inline-flex;
   align-items: center;
-  background: var(--bg-color);
+  background: var(--button-bg);
   border: 1px solid var(--border-color);
   border-radius: 1rem;
   padding: 0.1rem 0.5rem;
   font-size: 0.75rem;
   gap: 0.3rem;
+  color: var(--text-color);
 }
 
 .selected-model-chip .remove-model {
@@ -566,6 +579,7 @@ select#model-select {
   cursor: pointer;
   max-height: 300px;
   overflow-y: auto;
+  box-shadow: var(--shadow-sm);
 }
 
 .model-box.expanded {
@@ -613,12 +627,20 @@ select#model-select {
   height: 2rem;
   padding: 0;
   border-radius: 50%;
+  background: var(--button-bg);
+  color: var(--icon-color);
+}
+
+#voice-input-btn:hover,
+#chat-form button[type="submit"]:hover {
+  background: var(--button-hover);
+  color: var(--primary-color);
 }
 
 #voice-input-btn i,
 #chat-form button[type="submit"] i {
   font-size: 1rem;
-  color: white;
+  color: var(--icon-color);
 }
 
 /* Theme-specific colors */
@@ -717,7 +739,6 @@ select#model-select {
 .w-full.max-w-3xl.mx-auto.fixed.bottom-0.left-0.right-0.px-1.sm\:px-0.bg-white.dark\:bg-gray-900.z-40,
 .footer-container {
   background: var(--bg-color) !important;
-  border-top: 1px solid var(--border-color);
   padding-top: 1rem;
   margin-top: auto;
   position: fixed;
@@ -807,6 +828,7 @@ select#model-select {
   font-size: 0.65rem;
   opacity: 0.7;
   margin: 0 0.3rem;
+  color: var(--text-color);
 }
 
 .chat-bubble {
@@ -821,10 +843,16 @@ select#model-select {
 
 .user-message .chat-bubble {
   border-bottom-right-radius: 0.2rem;
+  background: var(--button-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
 }
 
 .assistant-message .chat-bubble {
   border-bottom-left-radius: 0.2rem;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
 }
 
 .message-actions {
@@ -842,11 +870,13 @@ select#model-select {
 .action-button {
   padding: 0.15rem;
   font-size: 0.75rem;
-  opacity: 0.7;
+  opacity: 0.6;
   transition: opacity 0.2s;
+  color: var(--icon-color);
 }
 
 .action-button:hover {
+  color: var(--primary-color);
   opacity: 1;
 }
 
@@ -855,6 +885,9 @@ select#model-select {
   padding: 0.3rem 0.5rem;
   font-size: 0.85rem;
   margin-bottom: 0.5rem;
+  border-color: var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-color);
 }
 
 /* Model selection buttons */
@@ -863,6 +896,23 @@ select#model-select {
 #show-enabled-only {
   font-size: 0.8rem;
   padding: 0.2rem 0.5rem;
+  background: var(--button-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+#select-all-models:hover,
+#deselect-all-models:hover {
+  background: var(--button-hover);
+}
+
+#show-enabled-only {
+  background: var(--primary-color);
+  color: white;
+}
+
+#show-enabled-only:hover {
+  background: var(--primary-hover);
 }
 
 /* User login styles */
